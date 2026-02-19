@@ -13,8 +13,29 @@ Plugin ini mendukung berbagai penyedia AI terkemuka untuk fleksibilitas maksimal
 *   **OpenRouter**: Akses ke ratusan model open-source (Llama 3, Mistral, dll).
 *   **Smart Fallback System**: Jika satu provider/model gagal atau down, plugin otomatis beralih ke model cadangan tanpa menghentikan proses.
 
-### 2. **Advanced Content Sourcing (Sumber Konten)**
-Plugin tidak hanya menulis, tapi juga **meriset** data dari internet:
+### 2. **🧠 Advanced Agentic Features (New)**
+Plugin ini dilengkapi dengan agen cerdas yang bekerja secara otonom:
+*   **Deep Research (Multi-Hop)**:
+    - Agen melakukan riset bertahap: **Exploratory Search** (Round 1) -> **AI Analysis** -> **Deep Dive** (Round 2).
+    - Memastikan konten memiliki kedalaman fakta yang tidak bisa dicapai oleh AI standar.
+*   **Multi-Modal Content (Auto-Charts)**:
+    - Jika artikel memuat data statistik, AI otomatis membuat **Grafik Visual** (Bar/Pie/Line Chart).
+    - Grafik di-host via QuickChart dan di-embed langsung ke artikel.
+*   **Living Content (Auto-Refresh)**:
+    - Sistem otomatis mencari artikel lama (> 6 bulan).
+    - Melakukan riset ulang dengan data terbaru.
+    - Mengupdate konten tanpa mengubah URL (SEO Friendly).
+    - Jadwal: **Daily Cron**.
+*   **SEO Interlinking**:
+    - Otomatis menyisipkan link ke artikel relevan lain di blog Anda.
+
+### 3. **Flexible Pipeline Modes**
+Pilih cara kerja yang sesuai dengan kebutuhan Anda:
+*   **Hybrid Mode (Default)**: Menggabungkan Triggers eksternal dengan konteks dari Knowledge Base.
+*   **KB Only Mode**: Membuat konten murni dari Knowledge Base Anda (RAG). Aman dari halusinasi dan sangat spesifik.
+*   **Triggers Only Mode**: Berita/Artikel terkini dari RSS atau Search tanpa konteks KB.
+
+### 4. **Advanced Content Sourcing**
 *   **Web Search (SerpApi & Brave)**:
     *   **Context Aggregation**: Menggabungkan data dari *Google AI Overview*, *Google AI Mode*, *Bing Copilot*, *Brave AI Summarizer*, *Answers/FAQ*, dan *Knowledge Graph*.
     *   **Organic Results**: Mengambil 5 artikel teratas dari hasil pencarian untuk konteks yang mendalam.
@@ -26,12 +47,12 @@ Plugin tidak hanya menulis, tapi juga **meriset** data dari internet:
     *   Scraping halaman web spesifik menggunakan CSS Selector.
     *   **Auto-Readability**: Jika selektor kosong, otomatis mendeteksi konten utama artikel.
 
-### 3. **Intelligent Content Generation**
+### 5. **Intelligent Content Generation**
 *   **Human-Like Writing**: Menggunakan teknik *Angle Injection* untuk memberi sudut pandang "manusia" pada setiap artikel.
 *   **SEO Optimized**: Output HTML terstruktur (H1, H2, H3, Lists) yang ramah SEO.
 *   **AI Thumbnails**: Membuat gambar unggulan (Featured Image) unik untuk setiap artikel menggunakan AI (DALL-E 3 / FLUX via API).
 
-### 4. **Automation & Management**
+### 6. **Automation & Management**
 *   **Cron Scheduler**: Berjalan otomatis di latar belakang (Hourly/Daily).
 *   **Duplicate Prevention**: Sistem *hashing* pintar untuk mencegah posting konten yang sama berulang kali.
 *   **Comprehensive Logging**: Log aktivitas detil untuk memantau kinerja dan debugging.
