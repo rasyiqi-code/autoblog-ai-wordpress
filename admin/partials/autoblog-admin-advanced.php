@@ -7,6 +7,22 @@
         <p>Enable these features to transform Autoblog into a fully autonomous research and writing agent. Note that some features will increase API usage.</p>
         
         <table class="form-table">
+            <!-- 0. Dynamic Search Agent -->
+            <tr valign="top">
+                <th scope="row">Dynamic Search Agent</th>
+                <td>
+                    <fieldset>
+                        <label for="autoblog_enable_dynamic_search">
+                            <input name="autoblog_enable_dynamic_search" type="checkbox" id="autoblog_enable_dynamic_search" value="1" <?php checked( '1', get_option( 'autoblog_enable_dynamic_search' ) ); ?> />
+                            Enable Dynamic Search Queries
+                        </label>
+                    </fieldset>
+                    <p class="description">
+                        When enabled, the AI will use your base keywords as 'seeds' to generate specific, unique daily search queries (e.g., "Trends in AI" -> "Impact of AI in Healthcare 2025"). Works for Web Search sources.
+                    </p>
+                </td>
+            </tr>
+
             <!-- 1. Deep Research -->
             <tr valign="top">
                 <th scope="row">Deep Research Agent</th>

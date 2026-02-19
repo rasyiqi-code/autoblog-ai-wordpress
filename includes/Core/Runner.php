@@ -127,7 +127,21 @@ class Runner {
                         case 'web_search':
                             $match_keywords = isset( $source_config['match_keywords'] ) ? $source_config['match_keywords'] : '';
                             $negative_keywords = isset( $source_config['negative_keywords'] ) ? $source_config['negative_keywords'] : '';
-                            $source = new SearchSource( $source_config['url'], $match_keywords, $negative_keywords ); 
+                            $search_query = $source_config['url']; // This acts as the seed keyword
+                            
+                            if ( get_option( 'autoblog_enable_dynamic_search' ) ) {
+                                $kb_summary_for_search = '';
+                                if ( $data_source_mode === 'both' && isset( $vector_store ) ) {
+                                    $kb_summary_for_search = $vector_store->get_brief_summary();
+                                }
+                                $dynamic_query = $this->generate_dynamic_query( $search_query, $kb_summary_for_search );
+                                if ( ! empty( $dynamic_query ) ) {
+                                    Logger::log( "Dynamic Search: Seed '{$search_query}' -> Query '{$dynamic_query}'", 'info' );
+                                    $search_query = $dynamic_query;
+                                }
+                            }
+
+                            $source = new SearchSource( $search_query, $match_keywords, $negative_keywords ); 
                             break;
                     }
 
@@ -410,6 +424,60 @@ class Runner {
             update_option( 'autoblog_used_topics', $used_topics );
 
             return $topic;
+        }
+
+        return false;
+    }
+
+    /**
+     * Generate dynamic search query based on seed keyword and optional KB summary.
+     *
+     * @param string $seed_keyword Trigger url/keyword configured by user
+     * @param string $kb_summary Optional context from Knowledge Base
+     * @return string|false
+     */
+    private function generate_dynamic_query( $seed_keyword, $kb_summary = '' ) {
+        if ( empty( $seed_keyword ) ) return false;
+
+        $ai_client = new \Autoblog\Utils\AIClient();
+
+        $used_topics = get_option( 'autoblog_used_topics', array() );
+        if ( ! is_array( $used_topics ) ) $used_topics = array();
+
+        $used_topics_text = '';
+        if ( ! empty( $used_topics ) ) {
+            $used_topics_text = "QUERY YANG SUDAH PERNAH DIGUNAKAN (JANGAN diulangi):\n";
+            foreach ( array_slice( $used_topics, -15 ) as $t ) {
+                $used_topics_text .= "- {$t}\n";
+            }
+        }
+
+        $prompt  = "Kamu adalah agen riset cerdas spesialis pencarian web.\n";
+        $prompt .= "Tugasmu adalah membuat 1 (satu) query pencarian (search query) spesifik yang panjangnya 3-7 kata untuk diinput ke Google.\n\n";
+        $prompt .= "TEMA UTAMA (SEED): '{$seed_keyword}'\n";
+        
+        if ( ! empty( $kb_summary ) ) {
+            $prompt .= "KNOWLEDGE BASE (Gunakan informasi ini agar query relevan dengan konteks lokal):\n{$kb_summary}\n\n";
+        }
+
+        $prompt .= $used_topics_text . "\n";
+        $prompt .= "Buat 1 search query yang merujuk pada tren, berita, atau fokus pembahasan spesifik terkait TEMA UTAMA di atas.\n";
+        $prompt .= "ATURAN MUTLAK:\n";
+        $prompt .= "- Balas HANYA dengan query pencariannya saja (1 baris).\n";
+        $prompt .= "- Tanpa tanda kutip, tanpa markdown, tanpa penjelasan.\n";
+
+        $provider = get_option( 'autoblog_ai_provider', 'openai' );
+        $model_option = 'autoblog_' . $provider . '_model';
+        $model = get_option( $model_option, 'gpt-4o' );
+
+        $query = $ai_client->generate_text( $prompt, $model, $provider, 0.7 );
+
+        if ( ! empty( $query ) ) {
+            $query = trim( $query, " \t\n\r\0\x0B\"'" );
+            $used_topics[] = $query;
+            if ( count( $used_topics ) > 30 ) $used_topics = array_slice( $used_topics, -30 );
+            update_option( 'autoblog_used_topics', $used_topics );
+            return $query;
         }
 
         return false;

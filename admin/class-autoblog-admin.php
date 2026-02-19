@@ -340,6 +340,7 @@ class Admin {
 		register_setting( 'autoblog_style', 'autoblog_personality_samples' );
 
 		// ── Tab: Advanced Intelligence (group: autoblog_adv) ──
+		register_setting( 'autoblog_adv', 'autoblog_enable_dynamic_search' );
 		register_setting( 'autoblog_adv', 'autoblog_enable_deep_research' );
 		register_setting( 'autoblog_adv', 'autoblog_enable_interlinking' );
 		register_setting( 'autoblog_adv', 'autoblog_enable_living_content' );
