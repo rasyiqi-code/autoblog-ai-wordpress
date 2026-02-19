@@ -234,7 +234,7 @@ class AIClient {
     /**
      * Google Gemini Generation.
      */
-    public function google_completion( $prompt, $model, $temperature = 0.7 ) {
+    public function google_completion( $prompt, $model, $temperature = 0.7, $retry_count = 0 ) {
         if ( empty( $this->gemini_key ) ) {
             Logger::log( 'Google Gemini API Key is missing.', 'error' );
             return false;
@@ -255,17 +255,35 @@ class AIClient {
 
             $response = $this->client->post( $url, [
                 'headers' => [ 'Content-Type' => 'application/json' ],
-                'json' => $postData
+                'json' => $postData,
+                'http_errors' => false // Tangkap http error secara manual agar tidak langung throw exception
             ]);
 
-            $body = json_decode( (string) $response->getBody(), true );
+            $status_code = $response->getStatusCode();
+            $raw_body = (string) $response->getBody();
+            
+            if ( $status_code === 429 ) {
+                 if ( $retry_count < 1 ) {
+                     Logger::log( "Gemini API Rate Limit hit (429). Retrying in 5 seconds... (Attempt " . ($retry_count + 1) . ")", 'warning' );
+                     sleep( 5 );
+                     return $this->google_completion( $prompt, $model, $temperature, $retry_count + 1 );
+                 } else {
+                     Logger::log( "Gemini API Error 429: Too Many Requests/Quota Exceeded. Response: " . substr($raw_body, 0, 200), 'error' );
+                     return false;
+                 }
+            } elseif ( $status_code !== 200 ) {
+                 Logger::log( "Gemini API Error {$status_code}: " . substr($raw_body, 0, 200), 'error' );
+                 return false;
+            }
+
+            $body = json_decode( $raw_body, true );
 
             if ( isset( $body['candidates'][0]['content']['parts'][0]['text'] ) ) {
                 return $body['candidates'][0]['content']['parts'][0]['text'];
             }
 
         } catch ( \Exception $e ) {
-            Logger::log( 'Gemini API Error: ' . $e->getMessage(), 'error' );
+            Logger::log( 'Gemini API Exception: ' . $e->getMessage(), 'error' );
         }
         return false;
     }
