@@ -1,0 +1,392 @@
+<?php
+
+namespace Autoblog\Generators;
+
+use Autoblog\Utils\AIClient;
+use Autoblog\Utils\Logger;
+
+/**
+ * Generates article content using AI.
+ *
+ * @package    Autoblog
+ * @subpackage Autoblog/includes/Generators
+ * @author     Rasyiqi
+ */
+class ArticleWriter {
+
+	/**
+	 * The AI Client instance.
+	 *
+	 * @var AIClient
+	 */
+	private $ai_client;
+
+	/**
+	 * Initialize the class.
+	 */
+	public function __construct() {
+		$this->ai_client = new AIClient();
+	}
+
+	/**
+	 * Write an article based on data and angle.
+	 *
+	 * @param array  $data  Array of data items or a single data string.
+	 * @param string $angle The angle/perspective to take.
+	 * @return string|false The generated HTML content or false on failure.
+	 */
+	public function write_article( $data, $angle, $context = '' ) {
+		
+        // Format data for the prompt
+        $data_string = '';
+        
+        // Ensure data is a list of items
+        if ( is_array( $data ) && ! isset( $data['content'] ) ) {
+            // It's a list of items (Context Bundle)
+            foreach ( $data as $index => $item ) {
+                $title = isset( $item['title'] ) ? $item['title'] : 'Source ' . ($index + 1);
+                $content = isset( $item['content'] ) ? $item['content'] : '';
+                $type = isset( $item['source_type'] ) ? $item['source_type'] : 'article';
+                
+                $data_string .= "--- SOURCE {$index} ({$type}): {$title} ---\n";
+                // Reduce limit to 1200 chars per item to save AI Tokens/Credits
+                // Use robust cleaning
+                $cleaned_content = $this->clean_text( $content );
+                $data_string .= substr( $cleaned_content, 0, 1200 ) . "\n\n"; 
+            }
+        } elseif ( is_array( $data ) ) {
+             // Single item (legacy/RSS specific)
+             $content = isset( $data['content'] ) ? $data['content'] : json_encode( $data );
+             $data_string = substr( $this->clean_text($content), 0, 4000 );
+        } else {
+            $data_string = substr( $this->clean_text($data), 0, 4000 );
+        }
+
+        // DYNAMIC PERSONA ENGINE (INDONESIAN LOCALIZED)
+        $personas = [];
+
+        // Fetch Custom Personas (including seeded defaults)
+        $stored_personas = get_option( 'autoblog_custom_personas', array() );
+        
+        if ( ! empty( $stored_personas ) && is_array( $stored_personas ) ) {
+            foreach ( $stored_personas as $p ) {
+                // Check if active (default true if key missing for safety)
+                $is_active = isset($p['active']) ? $p['active'] : true;
+                
+                if ( $is_active && ! empty( $p['name'] ) && ! empty( $p['desc'] ) ) {
+                    $personas[ $p['name'] ] = $p['desc'];
+                }
+            }
+        }
+        
+        // Fallback if NO personas are active
+        if ( empty( $personas ) ) {
+             $personas['Si Netral'] = 'seorang asisten yang membantu dan informatif. Tulis dengan gaya standar yang jelas dan mudah dipahami.';
+        }
+
+        $persona_key = array_rand( $personas );
+        $persona_desc = $personas[$persona_key];
+
+		$prompt = "KAMU BUKAN AI. Kamu adalah {$persona_key} ({$persona_desc}). \n";
+        $prompt .= "Tugasmu adalah menulis artikel blog dalam BAHASA INDONESIA yang sangat manusiawi, emosional, dan TIDAK TERDETEKSI sebagai mesin. \n\n";
+        
+        if ( ! empty( $context ) ) {
+             $prompt .= "REFERENSI KNOWLEDGE BASE (Gunakan fakta/data dari sini jika relevan, tapi jangan copy-paste): \n";
+             $prompt .= substr( $context, 0, 5000 ) . "\n\n";
+        }
+        
+        $prompt .= "Perspective/Angle: {$angle} \n\n";
+        $prompt .= "Source Data: \n" . $data_string . "\n\n";
+        
+        $prompt .= "ATURAN PSIKOLOGIS & GAYA BAHASA (WAJIB DIPATUHI): \n";
+        $prompt .= "1. LOGIC LEAPS (Loncatan Logika): Jangan terlalu linier (A->B->C). Sesekali melompatlah ke ide yang berhubungan secara emosional atau reflektif di tengah paragraf. \n";
+        $prompt .= "2. PERSONAL BIAS (Subjektif): Jangan netral. Ambil posisi yang kuat. Marah, senang, atau kecewa. Katakan 'Menurut saya pribadi...' atau 'Saya jujur agak kesal dengan...' \n";
+        $prompt .= "3. LOCAL SLANG (Bahasa Gaul): Gunakan Bahasa Indonesia yang luwes. Selipkan istilah gaul/idiom yang wajar dipakai di sosmed/Jakarta (contoh: 'parah sih', 'jujurly', 'mending rakit pc', 'kaum mendang-mending', dll) TAPI jangan berlebihan (cringe). \n";
+        $prompt .= "4. INTERNAL MONOLOGUE (Gumam Batin): Tuliskan apa yang kamu pikirkan dalam kurung atau kalimat sela. Contoh: '(oke, mungkin ini terdengar klise, tapi dengarkan dulu..)'. \n";
+        $prompt .= "5. SELF CORRECTION: Koreksi dirimu sendiri. 'Ide ini bagus. Eh, ralat, ini ide brilian malah.' \n";
+        $prompt .= "6. BURSTINESS (Irama): Variasikan panjang kalimat secara ekstrem. Kadang satu paragraf penuh penjelasan teknis. \n";
+        $prompt .= "Lalu satu kalimat pendek. \n";
+        $prompt .= "Benar-benar pendek. \n";
+        $prompt .= "Ini menciptakan dampak emosional. \n";
+        $prompt .= "7. ORDINARY ANALOGIES (Analogi Receh): Pakai analogi kehidupan sehari-hari orang Indonesia. Jangan 'bak mesin terlumasi', tapi 'kayak nunggu ojol pas hujan'. \n";
+        $prompt .= "8. SHOW, DON'T TELL: Libatkan panca indra. Jangan bilang 'laptopnya panas', bilang 'kipas laptopnya menderu seperti pesawat mau take-off'. \n";
+        $prompt .= "9. BROKEN PATTERNS: Jika membuat list, jangan rapi. Poin 1 panjang, poin 2 pendek, poin 3 berupa pertanyaan retoris/sarkas. \n";
+        $prompt .= "10. NO CLICHES: HARAM menggunakan kata: 'Di era digital ini', 'Kesimpulannya', 'Membuka kunci', 'Ranah', 'Signifikan'. Hapus semua kata-kata robot itu. \n\n";
+
+        $prompt .= "STYLE REFERENCE (Tiru Gaya Ini): \n";
+        $prompt .= "'Jujur, pas pertama nyoba, saya skeptis. Masa sih bisa segampang itu? Tapi pas tombolnya dipencet... wush. Kenceng banget, kayak motor baru ganti oli. Saya sampe mikir, 'kemana aja gue selama ini?'. Oke, mungkin agak lebay, tapi serius, ini game changer.' \n\n";
+
+        // Prompt: Output HARUS HTML valid
+        // Tambahan: Instruksi untuk Multi-Modal Chart
+        // Jika artikel memuat data statistik yang cocok divisualisasikan, AI diminta menyertakan blok JSON khusus.
+        $prompt  = "Kamu adalah penulis artikel blog profesional. Tulis artikel Lengkap, Informatif, dan Enak Dibaca dalam Format HTML.\n";
+        $prompt .= "Topik: '{$title}'\n";
+        $prompt .= "Angle: {$angle}\n";
+        $prompt .= "Konteks Tambahan:\n{$context}\n\n";
+
+        $prompt .= "ATURAN FORMATING:\n";
+        $prompt .= "1. Gunakan tag <h1> untuk judul utama, <h2> dan <h3> untuk subjudul.\n";
+        $prompt .= "2. Gunakan <p> untuk paragraf, <ul>/<ol> untuk list, blockquote untuk kutipan.\n";
+        $prompt .= "3. JANGAN gunakan Markdown (NO **bold**, NO # Heading). Gunakan HTML tag langsung (<strong>, <h1>).\n";
+        $prompt .= "4. Panjang artikel minimal 800 kata.\n";
+        
+        $prompt .= "FITUR MULTI-MODAL (CHART):\n";
+        $prompt .= "Jika konten mengandung data statistik/perbandingan, kamu BISA menyertakan konfigurasi Chart di AKHIR artikel dalam format JSON block:\n";
+        $prompt .= "```json\n";
+        $prompt .= "{\n";
+        $prompt .= "  \"chart\": {\n";
+        $prompt .= "    \"type\": \"bar|line|pie|doughnut\",\n";
+        $prompt .= "    \"title\": \"Judul Grafik\",\n";
+        $prompt .= "    \"labels\": [\"Label1\", \"Label2\", \"Label3\"],\n";
+        $prompt .= "    \"data\": [10, 20, 30]\n";
+        $prompt .= "  }\n";
+        $prompt .= "}\n";
+        $prompt .= "```\n";
+        $prompt .= "Jika tidak ada data, JANGAN sertakan blok JSON ini.\n\n";
+
+        $prompt .= "KEMBALIKAN HANYA ARTIKEL HTML (DAN OPSIONAL JSON CHART DI BAWAH).";
+
+        // Get Active Provider
+        $provider = get_option( 'autoblog_ai_provider', 'openai' );
+        
+        // Get Model based on Provider
+        $model_option_name = 'autoblog_' . $provider . '_model';
+        $model = get_option( $model_option_name, 'gpt-4o' );
+
+        // Use Temperature 0.9 for high creativity/randomness
+        $response_text = $this->ai_client->generate_text( $prompt, $model, $provider, 0.9 );
+
+        if ( ! $response_text ) {
+            Logger::log( "Primary model {$model} ({$provider}) failed. Attempting fallback...", 'warning' );
+            $fallback_model = $this->ai_client->get_fallback_model( $model );
+            
+            if ( $fallback_model ) {
+                 Logger::log( "Falling back to: {$fallback_model}", 'info' );
+                 $response_text = $this->ai_client->generate_text( $prompt, $fallback_model, '', 0.9 );
+            }
+        }
+
+        // Strip markdown code blocks jika AI membungkus output dalam ```html ... ```
+        $response_text = preg_replace( '/^```(?:html)?\s*$/m', '', $response_text );
+        $response_text = trim( $response_text );
+
+        // 0. Konversi Markdown (Fallback) jika AI masih bandel
+        if ( ! $this->is_html( $response_text ) ) {
+            Logger::log( 'ArticleWriter: Output AI terdeteksi Markdown, mengkonversi ke HTML...', 'info' );
+            $response_text = $this->markdown_to_html( $response_text );
+        }
+
+        // 1. Multi-Modal: Deteksi dan Generate Chart
+        $response_text = $this->process_chart_json( $response_text );
+
+        return $response_text;
+	}
+
+    /**
+     * Ekstrak konfigurasi JSON Chart dari output AI dan ganti dengan Image URL.
+     */
+    private function process_chart_json( $content ) {
+        // Regex untuk menangkap blok JSON ```json ... ``` atau sekedar { "chart": ... } di akhir
+        if ( preg_match( '/```json\s*(\{.*?"chart".*?\})\s*```/s', $content, $matches ) || 
+             preg_match( '/(\{.*?"chart".*?\})$/s', $content, $matches ) ) {
+            
+            $json_str = $matches[1];
+            $json_data = json_decode( $json_str, true );
+
+            if ( $json_data && isset( $json_data['chart'] ) ) {
+                $chart_config = $json_data['chart'];
+                
+                // Pastikan class ChartGenerator ada
+                if ( ! class_exists( 'Autoblog\Generators\ChartGenerator' ) ) {
+                    require_once plugin_dir_path( dirname( __FILE__ ) ) . 'Generators/ChartGenerator.php';
+                }
+                
+                $chart_gen = new \Autoblog\Generators\ChartGenerator();
+                $chart_url = $chart_gen->generate_chart_url(
+                    isset($chart_config['labels']) ? $chart_config['labels'] : [],
+                    isset($chart_config['data']) ? $chart_config['data'] : [],
+                    isset($chart_config['type']) ? $chart_config['type'] : 'bar',
+                    isset($chart_config['title']) ? $chart_config['title'] : 'Chart'
+                );
+
+                if ( $chart_url ) {
+                    // Embed image chart
+                    $chart_html = "<figure class='autoblog-chart'>";
+                    $chart_html .= "<img src='{$chart_url}' alt='" . esc_attr($chart_config['title']) . "'>";
+                    $chart_html .= "<figcaption>" . esc_html($chart_config['title']) . "</figcaption>";
+                    $chart_html .= "</figure>";
+
+                    // Hapus blok JSON dari konten dan sisipkan gambar chart
+                    // Kita replace full match (blok JSON) dengan HTML chart
+                    $content = str_replace( $matches[0], $chart_html, $content );
+                    \Autoblog\Utils\Logger::log( "Chart Generated: {$chart_url}", 'info' );
+                }
+            } else {
+                // Jika JSON invalid, hapus saja blok-nya agar tidak bocor ke frontend
+                $content = str_replace( $matches[0], '', $content );
+            }
+        }
+
+        return $content;
+    }
+    /**
+     * Clean text to remove junk characters and save tokens.
+     */
+    private function clean_text( $text ) {
+        if ( empty( $text ) ) return '';
+
+        // 1. Remove script and style tags and their content
+        $text = preg_replace( '@<(script|style)[^>]*?>.*?</\\1>@si', '', $text );
+        
+        // 2. Strip HTML tags
+        $text = strip_tags( $text );
+        
+        // 3. Decode HTML entities (convert &nbsp; to space, &amp; to &, etc)
+        $text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5 );
+        
+        // 4. Remove multiple whitespace/newlines
+        $text = preg_replace( '/\s+/', ' ', $text );
+        
+        // 5. Trim
+        return trim( $text );
+    }
+
+    /**
+     * Deteksi apakah string mengandung HTML tags.
+     *
+     * Jika konten memiliki minimal beberapa HTML block-level tags,
+     * dianggap sudah HTML. Jika tidak, kemungkinan Markdown.
+     *
+     * @param string $text Teks yang akan dicek.
+     * @return bool True jika terdeteksi HTML.
+     */
+    private function is_html( $text ) {
+        if ( empty( $text ) ) return false;
+
+        // Cek apakah ada minimal 2 block-level HTML tags
+        $html_tag_count = preg_match_all( '/<(h[1-6]|p|ul|ol|li|div|blockquote|table|section|article)\b/i', $text );
+
+        return $html_tag_count >= 2;
+    }
+
+    /**
+     * Konversi Markdown ke HTML.
+     *
+     * Fallback converter untuk kasus dimana AI mengembalikan Markdown
+     * meskipun diminta HTML. Mendukung:
+     * - Heading (# ## ### dst)
+     * - Bold (**text**) dan Italic (*text*)
+     * - Unordered list (- item)
+     * - Ordered list (1. item)
+     * - Blockquote (> text)
+     * - Paragraf otomatis dari baris kosong
+     *
+     * @param string $markdown Teks dalam format Markdown.
+     * @return string HTML yang sudah dikonversi.
+     */
+    private function markdown_to_html( $markdown ) {
+        if ( empty( $markdown ) ) return '';
+
+        $lines = explode( "\n", $markdown );
+        $html = '';
+        $in_list = false;     // Sedang di dalam <ul> atau <ol>
+        $list_type = '';      // 'ul' atau 'ol'
+
+        foreach ( $lines as $line ) {
+            $trimmed = trim( $line );
+
+            // Baris kosong = penutup list (jika sedang di list) + skip
+            if ( empty( $trimmed ) ) {
+                if ( $in_list ) {
+                    $html .= "</{$list_type}>\n";
+                    $in_list = false;
+                    $list_type = '';
+                }
+                continue;
+            }
+
+            // Heading: # sampai ######
+            if ( preg_match( '/^(#{1,6})\s+(.+)$/', $trimmed, $match ) ) {
+                if ( $in_list ) {
+                    $html .= "</{$list_type}>\n";
+                    $in_list = false;
+                }
+                $level = strlen( $match[1] );
+                $text = $this->convert_inline_markdown( trim( $match[2] ) );
+                $html .= "<h{$level}>{$text}</h{$level}>\n";
+                continue;
+            }
+
+            // Unordered list: - item atau * item
+            if ( preg_match( '/^[\-\*]\s+(.+)$/', $trimmed, $match ) ) {
+                if ( ! $in_list || $list_type !== 'ul' ) {
+                    if ( $in_list ) $html .= "</{$list_type}>\n";
+                    $html .= "<ul>\n";
+                    $in_list = true;
+                    $list_type = 'ul';
+                }
+                $text = $this->convert_inline_markdown( trim( $match[1] ) );
+                $html .= "<li>{$text}</li>\n";
+                continue;
+            }
+
+            // Ordered list: 1. item
+            if ( preg_match( '/^\d+\.\s+(.+)$/', $trimmed, $match ) ) {
+                if ( ! $in_list || $list_type !== 'ol' ) {
+                    if ( $in_list ) $html .= "</{$list_type}>\n";
+                    $html .= "<ol>\n";
+                    $in_list = true;
+                    $list_type = 'ol';
+                }
+                $text = $this->convert_inline_markdown( trim( $match[1] ) );
+                $html .= "<li>{$text}</li>\n";
+                continue;
+            }
+
+            // Blockquote: > text
+            if ( preg_match( '/^>\s+(.+)$/', $trimmed, $match ) ) {
+                if ( $in_list ) {
+                    $html .= "</{$list_type}>\n";
+                    $in_list = false;
+                }
+                $text = $this->convert_inline_markdown( trim( $match[1] ) );
+                $html .= "<blockquote><p>{$text}</p></blockquote>\n";
+                continue;
+            }
+
+            // Semua baris lain = paragraf
+            if ( $in_list ) {
+                $html .= "</{$list_type}>\n";
+                $in_list = false;
+            }
+            $text = $this->convert_inline_markdown( $trimmed );
+            $html .= "<p>{$text}</p>\n";
+        }
+
+        // Tutup list yang masih terbuka
+        if ( $in_list ) {
+            $html .= "</{$list_type}>\n";
+        }
+
+        return $html;
+    }
+
+    /**
+     * Konversi inline Markdown (bold, italic) ke HTML.
+     *
+     * @param string $text Teks dengan kemungkinan **bold** dan *italic*.
+     * @return string Teks dengan <strong> dan <em>.
+     */
+    private function convert_inline_markdown( $text ) {
+        // Bold: **text** atau __text__
+        $text = preg_replace( '/\*\*(.+?)\*\*/', '<strong>$1</strong>', $text );
+        $text = preg_replace( '/__(.+?)__/', '<strong>$1</strong>', $text );
+
+        // Italic: *text* atau _text_ (harus setelah bold agar tidak conflict)
+        $text = preg_replace( '/\*(.+?)\*/', '<em>$1</em>', $text );
+        $text = preg_replace( '/_(.+?)_/', '<em>$1</em>', $text );
+
+        return $text;
+    }
+
+}
