@@ -6,17 +6,17 @@
  * This file is read by WordPress to generate the plugin information in the plugin
  * administrative area. This file also includes all of the plugin dependencies.
  *
- * @link              https://example.com
+ * @link              https://crediblemark.com
  * @since             1.0.0
  * @package           Autoblog
  *
  * @wordpress-plugin
  * Plugin Name:       Autoblog AI
- * Plugin URI:        https://example.com/plugin/autoblog
+ * Plugin URI:        https://crediblemark.com
  * Description:       An intelligent autoblog plugin that scrapes, processes, and publishes content using AI.
  * Version:           1.0.0
- * Author:            Rasyiqi
- * Author URI:        https://example.com
+ * Author:            CredibleMark
+ * Author URI:        https://crediblemark.com
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain:       autoblog
