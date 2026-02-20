@@ -40,7 +40,12 @@ class VectorStore {
 
     public function __construct() {
         $upload_dir = wp_upload_dir();
-        $this->store_path = $upload_dir['basedir'] . '/autoblog/vector_store.json';
+        
+        // 4. Isolasi Vector Database (Multi-Collection) berdasarkan dimensi model Provider
+        $provider = get_option( 'autoblog_embedding_provider', 'openai' );
+        $safe_provider = sanitize_file_name( strtolower( $provider ) );
+        
+        $this->store_path = $upload_dir['basedir'] . '/autoblog/vector_store_' . $safe_provider . '.json';
         
         // Ensure directory exists
         if ( ! file_exists( dirname( $this->store_path ) ) ) {
@@ -85,7 +90,24 @@ class VectorStore {
      * Save vectors to JSON file.
      */
     public function save() {
-        file_put_contents( $this->store_path, json_encode( $this->memory ) );
+        // Enkode ke JSON dengan penanganan error karakter UTF-8 yang tidak valid
+        $json = json_encode( $this->memory, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE );
+        
+        if ( $json === false ) {
+            Logger::log( 'VectorStore: Gagal melakukan encode JSON: ' . json_last_error_msg(), 'error' );
+            return;
+        }
+
+        // Simpan secara terisolasi (atomic) dengan temp file
+        // Agar file utama tidak kosong jika proses terputus di tengah jalan
+        $temp_path = $this->store_path . '.tmp';
+        $result = file_put_contents( $temp_path, $json );
+        
+        if ( $result !== false ) {
+            rename( $temp_path, $this->store_path );
+        } else {
+            Logger::log( 'VectorStore: Gagal menulis data ke file temporary: ' . $temp_path, 'error' );
+        }
     }
 
     /**
@@ -114,13 +136,18 @@ class VectorStore {
 
         $success_count = 0;
         foreach ( $chunks as $chunk ) {
-            // 2. Generate Embedding
-            // Sleep slightly to avoid strict rate limits if adding many docs
-            usleep( 200000 ); // 0.2s pause
-
             // Get Configured Provider
             $provider = get_option( 'autoblog_embedding_provider', 'openai' );
 
+            // Sleep dynamically to avoid strict rate limits (Gemini Free Tier has ~15 RPM limit)
+            if ( strpos( $provider, 'gemini' ) !== false ) {
+                Logger::log( "VectorStore: Jeda 4 detik untuk model Gemini guna mencegah terkena Rate Limit 15 RPM...", 'debug' );
+                sleep( 4 );
+            } else {
+                usleep( 200000 ); // 0.2s pause untuk provider lain (OpenAI/Groq umumnya limit per menit jauh lebih besar)
+            }
+
+            // 2. Generate Embedding
             $vector = $this->ai_client->create_embedding( $chunk, $provider );
 
             if ( $vector ) {
@@ -261,8 +288,20 @@ class VectorStore {
         // 1. Kumpulkan unique source names
         $sources = array();
         foreach ( $this->memory as $item ) {
-            $source = isset( $item['source'] ) ? basename( $item['source'] ) : 'unknown';
-            $sources[ $source ] = true;
+            $raw_source = isset( $item['source'] ) ? $item['source'] : 'unknown';
+            $source_name = 'unknown';
+
+            if ( is_array( $raw_source ) ) {
+                if ( isset( $raw_source['name'] ) ) {
+                    $source_name = $raw_source['name'];
+                } elseif ( isset( $raw_source['source'] ) ) {
+                    $source_name = $raw_source['source'];
+                }
+            } else {
+                $source_name = basename( (string) $raw_source );
+            }
+
+            $sources[ $source_name ] = true;
         }
         $source_list = implode( ', ', array_keys( $sources ) );
 
@@ -326,10 +365,19 @@ class VectorStore {
                 $title = mb_substr( $title, 0, $last_space ) . '...';
             }
 
+            $raw_source = isset( $chunk['source'] ) ? $chunk['source'] : 'knowledge_base';
+            $source_name = 'unknown';
+
+            if ( is_array( $raw_source ) ) {
+                $source_name = isset( $raw_source['name'] ) ? $raw_source['name'] : ( isset( $raw_source['source'] ) ? $raw_source['source'] : 'knowledge_base' );
+            } else {
+                $source_name = (string) $raw_source;
+            }
+
             $topics[] = [
                 'title'  => $title,
                 'text'   => $text,
-                'source' => isset( $chunk['source'] ) ? $chunk['source'] : 'knowledge_base',
+                'source' => $source_name,
             ];
         }
 

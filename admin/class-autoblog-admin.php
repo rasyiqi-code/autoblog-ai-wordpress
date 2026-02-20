@@ -104,25 +104,62 @@ class Admin {
 	 * @since    1.1.0
 	 */
 	public function ajax_run_pipeline() {
-		// Verifikasi nonce
+		$this->handle_ajax_pipeline_call( 'run_pipeline' );
+	}
+
+	/**
+	 * AJAX Handler: Ingestion Phase.
+	 */
+	public function ajax_run_collector() {
+		$this->handle_ajax_pipeline_call( 'run_ingestion_phase' );
+	}
+
+	/**
+	 * AJAX Handler: Ideation Phase.
+	 */
+	public function ajax_run_ideator() {
+		$this->handle_ajax_pipeline_call( 'run_ideation_phase' );
+	}
+
+	/**
+	 * AJAX Handler: Production Phase.
+	 */
+	public function ajax_run_writer() {
+		$this->handle_ajax_pipeline_call( 'run_production_phase' );
+	}
+
+	/**
+	 * Helper to handle AJAX pipeline calls consistently.
+	 */
+	private function handle_ajax_pipeline_call( $method ) {
 		check_ajax_referer( 'autoblog_ajax_nonce', 'nonce' );
 
-		// Verifikasi capability
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => 'Akses ditolak.' ) );
 		}
 
+		// Prevent execution timeout and memory issues during long AI operations
+		@set_time_limit( 0 );
+		@ini_set( 'memory_limit', '512M' );
+		@ini_set( 'display_errors', 1 );
+		error_reporting( E_ALL );
+
 		try {
 			require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/Core/Runner.php';
 			$runner = new \Autoblog\Core\Runner();
-			$runner->run_pipeline();
-
-			wp_send_json_success( array(
-				'message' => 'Pipeline selesai! Cek log di bawah untuk detail.',
-			));
-		} catch ( \Exception $e ) {
+			
+			if ( method_exists( $runner, $method ) ) {
+				$runner->$method();
+				wp_send_json_success( array(
+					'message' => 'Proses ' . $method . ' selesai!',
+				));
+			} else {
+				wp_send_json_error( array( 'message' => 'Method ' . $method . ' tidak ditemukan.' ) );
+			}
+		} catch ( \Throwable $e ) {
+			Logger::log( 'AJAX Pipeline Fatal Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(), 'error' );
 			wp_send_json_error( array(
-				'message' => 'Pipeline error: ' . $e->getMessage(),
+				'message' => 'Fatal Error: ' . $e->getMessage() . ' (See debug.log for details)',
 			));
 		}
 	}
@@ -198,7 +235,37 @@ class Admin {
 			check_admin_referer( 'autoblog_datasource_verify' );
 
 			$uploaded_file = $_FILES['autoblog_file'];
-			$upload_overrides = array( 'test_form' => false );
+
+            // 1. Validasi Ukuran File (Maksimal 10 MB agar RAM aman saat parsing/chunking)
+            $max_size = 10 * 1024 * 1024;
+            if ( $uploaded_file['size'] > $max_size ) {
+                set_transient( 'autoblog_admin_notice_error', 'Upload gagal: Ukuran file melebihi batas maksimal 10MB.', 30 );
+                wp_safe_redirect( $clean_url );
+                exit;
+            }
+
+            // 2. Validasi Ekstensi dan Mime Type Strict (Security Gate)
+            $allowed_mimes = array(
+                'pdf'  => 'application/pdf',
+                'csv'  => 'text/csv',
+                'txt'  => 'text/plain',
+                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            );
+
+            $file_info = wp_check_filetype( basename( $uploaded_file['name'] ), $allowed_mimes );
+            
+            if ( empty( $file_info['ext'] ) || empty( $file_info['type'] ) ) {
+                set_transient( 'autoblog_admin_notice_error', 'Upload gagal: Tipe/Format file tidak didukung atau disusupi.', 30 );
+                wp_safe_redirect( $clean_url );
+                exit;
+            }
+
+			$upload_overrides = array( 
+                'test_form' => false,
+                'mimes'     => $allowed_mimes // Paksa wp_handle_upload hanya menerima daftar ini
+            );
+            
 			$movefile = wp_handle_upload( $uploaded_file, $upload_overrides );
 
 			if ( $movefile && ! isset( $movefile['error'] ) ) {
@@ -338,6 +405,8 @@ class Admin {
 		// ── Tab: Writing Style — Personality (group: autoblog_style) ──
 		register_setting( 'autoblog_style', 'autoblog_enable_personality' );
 		register_setting( 'autoblog_style', 'autoblog_personality_samples' );
+		register_setting( 'autoblog_style', 'autoblog_author_strategy' );
+		register_setting( 'autoblog_style', 'autoblog_author_fixed_id' );
 
 		// ── Tab: Advanced Intelligence (group: autoblog_adv) ──
 		register_setting( 'autoblog_adv', 'autoblog_enable_dynamic_search' );

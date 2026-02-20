@@ -58,7 +58,9 @@
             <!-- Gemini Models -->
             <div class="model-select-container" id="container_model_gemini" style="display:none;">
                 <select name="autoblog_gemini_model">
+                    <option value="auto" <?php selected( get_option('autoblog_gemini_model'), 'auto' ); ?>>Auto (Best for request)</option>
                     <!-- Gemini 3 Series -->
+                    <option value="gemini-3.1-pro" <?php selected( get_option('autoblog_gemini_model'), 'gemini-3.1-pro' ); ?>>Gemini 3.1 Pro</option>
                     <option value="gemini-3.0-pro" <?php selected( get_option('autoblog_gemini_model'), 'gemini-3.0-pro' ); ?>>Gemini 3 Pro</option>
                     <option value="gemini-3.0-flash" <?php selected( get_option('autoblog_gemini_model'), 'gemini-3.0-flash' ); ?>>Gemini 3 Flash</option>
                     <!-- Gemini 2.5 Series -->
@@ -66,14 +68,15 @@
                     <option value="gemini-2.5-flash" <?php selected( get_option('autoblog_gemini_model'), 'gemini-2.5-flash' ); ?>>Gemini 2.5 Flash</option>
                     <option value="gemini-2.5-flash-lite" <?php selected( get_option('autoblog_gemini_model'), 'gemini-2.5-flash-lite' ); ?>>Gemini 2.5 Flash Lite</option>
                     <!-- Gemini 2 Series -->
-                    <option value="gemini-2.0-pro-exp" <?php selected( get_option('autoblog_gemini_model'), 'gemini-2.0-pro-exp' ); ?>>Gemini 2.0 Pro Exp (Experimental)</option>
-                    <option value="gemini-2.0-flash" <?php selected( get_option('autoblog_gemini_model'), 'gemini-2.0-flash' ); ?>>Gemini 2.0 Flash</option>
-                    <option value="gemini-2.0-flash-lite" <?php selected( get_option('autoblog_gemini_model'), 'gemini-2.0-flash-lite' ); ?>>Gemini 2.0 Flash Lite</option>
-                    <option value="gemini-2.0-flash-exp" <?php selected( get_option('autoblog_gemini_model'), 'gemini-2.0-flash-exp' ); ?>>Gemini 2.0 Flash Exp (Experimental)</option>
+                    <option value="gemini-2.0-pro-exp" <?php selected( get_option('autoblog_gemini_model'), 'gemini-2.0-pro-exp' ); ?>>Gemini 2 Pro Exp</option>
+                    <option value="gemini-2.0-flash" <?php selected( get_option('autoblog_gemini_model'), 'gemini-2.0-flash' ); ?>>Gemini 2 Flash</option>
+                    <option value="gemini-2.0-flash-lite" <?php selected( get_option('autoblog_gemini_model'), 'gemini-2.0-flash-lite' ); ?>>Gemini 2 Flash Lite</option>
+                    <option value="gemini-2.0-flash-exp" <?php selected( get_option('autoblog_gemini_model'), 'gemini-2.0-flash-exp' ); ?>>Gemini 2 Flash Exp</option>
                     <!-- Gemma 3 Series -->
                     <option value="gemma-3-27b-it" <?php selected( get_option('autoblog_gemini_model'), 'gemma-3-27b-it' ); ?>>Gemma 3 27B</option>
                     <option value="gemma-3-12b-it" <?php selected( get_option('autoblog_gemini_model'), 'gemma-3-12b-it' ); ?>>Gemma 3 12B</option>
                     <option value="gemma-3-4b-it" <?php selected( get_option('autoblog_gemini_model'), 'gemma-3-4b-it' ); ?>>Gemma 3 4B</option>
+                    <option value="gemma-3-2b-it" <?php selected( get_option('autoblog_gemini_model'), 'gemma-3-2b-it' ); ?>>Gemma 3 2B</option>
                     <option value="gemma-3-1b-it" <?php selected( get_option('autoblog_gemini_model'), 'gemma-3-1b-it' ); ?>>Gemma 3 1B</option>
                 </select>
             </div>
@@ -81,8 +84,16 @@
             <!-- Groq Models -->
             <div class="model-select-container" id="container_model_groq" style="display:none;">
                 <select name="autoblog_groq_model">
-                    <option value="llama3-70b-8192" <?php selected( get_option('autoblog_groq_model'), 'llama3-70b-8192' ); ?>>Llama 3 70B</option>
-                    <option value="llama3-8b-8192" <?php selected( get_option('autoblog_groq_model'), 'llama3-8b-8192' ); ?>>Llama 3 8B</option>
+                    <option value="auto" <?php selected( get_option('autoblog_groq_model'), 'auto' ); ?>>Auto (Best for request)</option>
+                    <option value="gpt-oss-120b" <?php selected( get_option('autoblog_groq_model'), 'gpt-oss-120b' ); ?>>GPT OSS 120B</option>
+                    <option value="gpt-oss-20b" <?php selected( get_option('autoblog_groq_model'), 'gpt-oss-20b' ); ?>>GPT OSS 20B</option>
+                    <option value="llama-4-scout" <?php selected( get_option('autoblog_groq_model'), 'llama-4-scout' ); ?>>Llama 4 Scout</option>
+                    <option value="llama-4-maverick" <?php selected( get_option('autoblog_groq_model'), 'llama-4-maverick' ); ?>>Llama 4 Maverick</option>
+                    <option value="llama-3.3-70b-versatile" <?php selected( get_option('autoblog_groq_model'), 'llama-3.3-70b-versatile' ); ?>>Llama 3.3 70B</option>
+                    <option value="qwen-3-32b" <?php selected( get_option('autoblog_groq_model'), 'qwen-3-32b' ); ?>>Qwen 3 32B</option>
+                    <option value="kimi-k2" <?php selected( get_option('autoblog_groq_model'), 'kimi-k2' ); ?>>Kimi K2</option>
+                    <option value="llama3-70b-8192" <?php selected( get_option('autoblog_groq_model'), 'llama3-70b-8192' ); ?>>Llama 3 70B (Legacy)</option>
+                    <option value="llama3-8b-8192" <?php selected( get_option('autoblog_groq_model'), 'llama3-8b-8192' ); ?>>Llama 3 8B (Legacy)</option>
                     <option value="mixtral-8x7b-32768" <?php selected( get_option('autoblog_groq_model'), 'mixtral-8x7b-32768' ); ?>>Mixtral 8x7B</option>
                     <option value="gemma-7b-it" <?php selected( get_option('autoblog_groq_model'), 'gemma-7b-it' ); ?>>Gemma 7B (Google)</option>
                 </select>
@@ -92,14 +103,27 @@
             <div class="model-select-container" id="container_model_openrouter" style="display:none;">
                 <select name="autoblog_openrouter_model">
                     <option value="openrouter/auto" <?php selected( get_option('autoblog_openrouter_model'), 'openrouter/auto' ); ?>>Auto (Best for request)</option>
-                    <option value="qwen/qwen-2.5-vl-72b-instruct:free" <?php selected( get_option('autoblog_openrouter_model'), 'qwen/qwen-2.5-vl-72b-instruct:free' ); ?>>Qwen 2.5 VL 72B (Free)</option>
-                    <option value="google/gemma-3-27b-it" <?php selected( get_option('autoblog_openrouter_model'), 'google/gemma-3-27b-it' ); ?>>Gemma 3 27B</option>
-                    <option value="liquid/lfm-1b-instruct" <?php selected( get_option('autoblog_openrouter_model'), 'liquid/lfm-1b-instruct' ); ?>>Liquid LFM 1.2B Instruct</option>
-                    <option value="mistralai/mistral-small-24b-instruct-2501" <?php selected( get_option('autoblog_openrouter_model'), 'mistralai/mistral-small-24b-instruct-2501' ); ?>>Mistral Small 3 24B</option>
-                    <option value="nousresearch/hermes-3-llama-3.1-405b" <?php selected( get_option('autoblog_openrouter_model'), 'nousresearch/hermes-3-llama-3.1-405b' ); ?>>Nous Hermes 3 405B</option>
-                    <option value="google/gemma-3-12b-it" <?php selected( get_option('autoblog_openrouter_model'), 'google/gemma-3-12b-it' ); ?>>Gemma 3 12B</option>
-                    <option value="google/gemma-3-4b-it" <?php selected( get_option('autoblog_openrouter_model'), 'google/gemma-3-4b-it' ); ?>>Gemma 3 4B</option>
-                    <option value="meta-llama/llama-3.2-3b-instruct:free" <?php selected( get_option('autoblog_openrouter_model'), 'meta-llama/llama-3.2-3b-instruct:free' ); ?>>Llama 3.2 3B (Free)</option>
+                    <option value="qwen/qwen3-vl-30b-a3b-thinking" <?php selected( get_option('autoblog_openrouter_model'), 'qwen/qwen3-vl-30b-a3b-thinking' ); ?>>Qwen: Qwen3 VL 30B A3B Thinking ($0/1M)</option>
+                    <option value="qwen/qwen3-vl-235b-a22b-thinking" <?php selected( get_option('autoblog_openrouter_model'), 'qwen/qwen3-vl-235b-a22b-thinking' ); ?>>Qwen: Qwen3 VL 235B A22B Thinking ($0/1M)</option>
+                    <option value="qwen/qwen3-next-80b-a3b-instruct:free" <?php selected( get_option('autoblog_openrouter_model'), 'qwen/qwen3-next-80b-a3b-instruct:free' ); ?>>Qwen: Qwen3 Next 80B A3B Instruct (Free)</option>
+                    <option value="nvidia/nemotron-nano-9b-v2:free" <?php selected( get_option('autoblog_openrouter_model'), 'nvidia/nemotron-nano-9b-v2:free' ); ?>>NVIDIA: Nemotron Nano 9B V2 (Free)</option>
+                    <option value="openai/gpt-oss-120b:free" <?php selected( get_option('autoblog_openrouter_model'), 'openai/gpt-oss-120b:free' ); ?>>OpenAI: gpt-oss-120b (Free)</option>
+                    <option value="openai/gpt-oss-20b:free" <?php selected( get_option('autoblog_openrouter_model'), 'openai/gpt-oss-20b:free' ); ?>>OpenAI: gpt-oss-20b (Free)</option>
+                    <option value="z-ai/glm-4.5-air:free" <?php selected( get_option('autoblog_openrouter_model'), 'z-ai/glm-4.5-air:free' ); ?>>Z.ai: GLM 4.5 Air (Free)</option>
+                    <option value="qwen/qwen3-235b-a22b-thinking-2507" <?php selected( get_option('autoblog_openrouter_model'), 'qwen/qwen3-235b-a22b-thinking-2507' ); ?>>Qwen: Qwen3 235B A22B Thinking 2507 ($0/1M)</option>
+                    <option value="qwen/qwen3-coder:free" <?php selected( get_option('autoblog_openrouter_model'), 'qwen/qwen3-coder:free' ); ?>>Qwen: Qwen3 Coder 480B A35B (Free)</option>
+                    <option value="cognitivecomputations/dolphin-mistral-24b-venice-edition:free" <?php selected( get_option('autoblog_openrouter_model'), 'cognitivecomputations/dolphin-mistral-24b-venice-edition:free' ); ?>>Venice: Uncensored (Free)</option>
+                    <option value="google/gemma-3n-e2b-it:free" <?php selected( get_option('autoblog_openrouter_model'), 'google/gemma-3n-e2b-it:free' ); ?>>Google: Gemma 3n 2B (Free)</option>
+                    <option value="deepseek/deepseek-r1-0528:free" <?php selected( get_option('autoblog_openrouter_model'), 'deepseek/deepseek-r1-0528:free' ); ?>>DeepSeek: R1 0528 (Free)</option>
+                    <option value="google/gemma-3n-e4b-it:free" <?php selected( get_option('autoblog_openrouter_model'), 'google/gemma-3n-e4b-it:free' ); ?>>Google: Gemma 3n 4B (Free)</option>
+                    <option value="qwen/qwen3-4b:free" <?php selected( get_option('autoblog_openrouter_model'), 'qwen/qwen3-4b:free' ); ?>>Qwen: Qwen3 4B (Free)</option>
+                    <option value="mistralai/mistral-small-3.1-24b-instruct:free" <?php selected( get_option('autoblog_openrouter_model'), 'mistralai/mistral-small-3.1-24b-instruct:free' ); ?>>Mistral: Mistral Small 3.1 24B (Free)</option>
+                    <option value="google/gemma-3-4b-it:free" <?php selected( get_option('autoblog_openrouter_model'), 'google/gemma-3-4b-it:free' ); ?>>Google: Gemma 3 4B (Free)</option>
+                    <option value="google/gemma-3-12b-it:free" <?php selected( get_option('autoblog_openrouter_model'), 'google/gemma-3-12b-it:free' ); ?>>Google: Gemma 3 12B (Free)</option>
+                    <option value="google/gemma-3-27b-it:free" <?php selected( get_option('autoblog_openrouter_model'), 'google/gemma-3-27b-it:free' ); ?>>Google: Gemma 3 27B (Free)</option>
+                    <option value="meta-llama/llama-3.3-70b-instruct:free" <?php selected( get_option('autoblog_openrouter_model'), 'meta-llama/llama-3.3-70b-instruct:free' ); ?>>Meta: Llama 3.3 70B Instruct (Free)</option>
+                    <option value="meta-llama/llama-3.2-3b-instruct:free" <?php selected( get_option('autoblog_openrouter_model'), 'meta-llama/llama-3.2-3b-instruct:free' ); ?>>Meta: Llama 3.2 3B Instruct (Free)</option>
+                    <option value="nousresearch/hermes-3-llama-3.1-405b:free" <?php selected( get_option('autoblog_openrouter_model'), 'nousresearch/hermes-3-llama-3.1-405b:free' ); ?>>Nous: Hermes 3 405B Instruct (Free)</option>
                 </select>
             </div>
 

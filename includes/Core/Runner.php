@@ -6,17 +6,21 @@ use Autoblog\Utils\Logger;
 use Autoblog\Sources\RSSSource;
 use Autoblog\Sources\WebScraperSource;
 use Autoblog\Sources\FileSource;
-use Autoblog\Sources\SearchSource;  // NEW
+use Autoblog\Sources\SearchSource;
 use Autoblog\Intelligence\DataSizer;
 use Autoblog\Intelligence\AngleInjector;
 use Autoblog\Generators\ArticleWriter;
 use Autoblog\Generators\ThumbnailGenerator;
-use Autoblog\Generators\ChartGenerator;
 use Autoblog\Publisher\PostManager;
+use Autoblog\Publisher\AuthorManager;
 use Autoblog\Intelligence\VectorStore;
+use Autoblog\Intelligence\IdeationAgent;
 
 /**
- * Orchestrates the entire autoblog pipeline.
+ * Orchestrates the entire autoblog pipeline in a modular way.
+ * 1. Ingestion: Collect raw data into Vector Store.
+ * 2. Ideation: Brainstorm topics based on Knowledge Base.
+ * 3. Production: Write and Publish articles.
  *
  * @package    Autoblog
  * @subpackage Autoblog/includes/Core
@@ -24,463 +28,273 @@ use Autoblog\Intelligence\VectorStore;
  */
 class Runner {
 
-	/**
-	 * Run the full pipeline.
-	 */
-	/**
-	 * Run the full pipeline.
-	 */
-	public function run_pipeline() {
-
-		Logger::log( 'Starting Autoblog Pipeline...', 'info' );
+    /**
+     * Run the modular pipeline.
+     */
+    public function run_pipeline() {
+        Logger::log( 'Starting Modular Autoblog Pipeline...', 'info' );
 
         try {
+            $this->run_ingestion_phase();
 
-            // 0. Baca Data Source Mode (both | kb_only | triggers_only)
+            $selected_idea = $this->run_ideation_phase();
+            if ( ! $selected_idea ) return;
+
+            $this->run_production_phase( $selected_idea );
+
+        } catch ( \Exception $e ) {
+            Logger::log( 'Critical error in Modular Pipeline: ' . $e->getMessage(), 'error' );
+        }
+    }
+
+    /**
+     * Public manual trigger for Ingestion phase.
+     */
+    public function run_ingestion_phase() {
+        try {
             $data_source_mode = get_option( 'autoblog_data_source_mode', 'both' );
-            Logger::log( "Data Source Mode: {$data_source_mode}", 'info' );
-
-            // 1. Gather Sources (hanya jika bukan kb_only)
-            $sources = array();
-            if ( $data_source_mode !== 'kb_only' ) {
-                $sources = $this->get_configured_sources();
-            }
-
-            $all_items = array();
-            
-            // --- 1. Knowledge Base (RAG) Ingestion ---
-            // Skip jika mode = triggers_only
-            $knowledge_base = get_option( 'autoblog_knowledge', array() );
-            $kb_updated = false;
-
-            // Initialize Vector Store (dibutuhkan untuk semua mode kecuali triggers_only)
+            $sources = $this->get_configured_sources();
             $vector_store = new VectorStore();
+            $this->stage_ingestion( $data_source_mode, $sources, $vector_store );
+        } catch ( \Throwable $e ) {
+            Logger::log( 'Ingestion Phase Fatal Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(), 'error' );
+            throw $e;
+        }
+    }
 
-            if ( $data_source_mode !== 'triggers_only' && ! empty( $knowledge_base ) ) {
-                Logger::log( 'Checking Knowledge Base for new files...', 'info' );
-                foreach ( $knowledge_base as $index => &$kb_item ) {
-                    try {
-                        // Check if already embedded
-                        if ( isset( $kb_item['embedded'] ) && $kb_item['embedded'] === true ) {
-                            continue;
-                        }
+    /**
+     * Public manual trigger for Ideation phase.
+     */
+    public function run_ideation_phase() {
+        try {
+            $sources = $this->get_configured_sources();
+            $vector_store = new VectorStore();
+            return $this->stage_ideation( $sources, $vector_store );
+        } catch ( \Throwable $e ) {
+            Logger::log( 'Ideation Phase Fatal Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(), 'error' );
+            throw $e;
+        }
+    }
 
-                        // Not embedded yet
-                        Logger::log( "Processing new KB file: " . $kb_item['name'], 'info' );
-                        $file_source = new FileSource( $kb_item['path'] );
-                        $items = $file_source->fetch_data();
-                        
-                        if ( ! empty( $items ) ) {
-                            $total_embedded = 0;
-                            foreach ( $items as $item ) {
-                                $content = isset( $item['content'] ) ? $item['content'] : '';
-                                $source_url = isset( $item['source_url'] ) ? $item['source_url'] : 'unknown';
-                                $total_embedded += $vector_store->add_document( $content, $source_url );
-                            }
-                            
-                            // Hanya tandai embedded jika minimal 1 chunk berhasil
-                            if ( $total_embedded > 0 ) {
-                                $kb_item['embedded'] = true;
-                                $kb_updated = true;
-                                Logger::log( "KB file {$kb_item['name']}: {$total_embedded} chunks berhasil di-embed.", 'info' );
-                            } else {
-                                Logger::log( "KB file {$kb_item['name']}: GAGAL — 0 chunks berhasil. File tidak ditandai embedded.", 'error' );
-                            }
-                        }
-                    } catch ( \Exception $e ) {
-                        Logger::log( "Error processing KB item {$kb_item['name']}: " . $e->getMessage(), 'error' );
-                    }
-                }
-                unset( $kb_item ); // Break reference
-
-                // Save status back to option
-                if ( $kb_updated ) {
-                    update_option( 'autoblog_knowledge', $knowledge_base );
-                    Logger::log( 'Knowledge Base updated and saved.', 'info' );
-                }
-            }
-
-
-            // --- 2. Content Triggers (RSS, Search, Web) ---
-            // Skip jika mode = kb_only
-            if ( $data_source_mode !== 'kb_only' ) {
-            Logger::log( 'Found ' . count( $sources ) . ' configured triggers.', 'info' );
-
-            foreach ( $sources as $source_config ) {
-                try {
-                    $source = null;
-                    
-                    // Skip files in main loop (Legacy check)
-                    if ( $source_config['type'] === 'file' ) continue;
-
-                    switch ( $source_config['type'] ) {
-                        case 'rss':
-                            $match_keywords = isset( $source_config['match_keywords'] ) ? $source_config['match_keywords'] : '';
-                            $negative_keywords = isset( $source_config['negative_keywords'] ) ? $source_config['negative_keywords'] : '';
-                            $source = new RSSSource( $source_config['url'], $match_keywords, $negative_keywords );
-                            break;
-                        case 'web':
-                            $match_keywords = isset( $source_config['match_keywords'] ) ? $source_config['match_keywords'] : '';
-                            $negative_keywords = isset( $source_config['negative_keywords'] ) ? $source_config['negative_keywords'] : '';
-                            $source = new WebScraperSource( $source_config['url'], $source_config['selector'], $match_keywords, $negative_keywords );
-                            break;
-                        case 'web_search':
-                            $match_keywords = isset( $source_config['match_keywords'] ) ? $source_config['match_keywords'] : '';
-                            $negative_keywords = isset( $source_config['negative_keywords'] ) ? $source_config['negative_keywords'] : '';
-                            $search_query = $source_config['url']; // This acts as the seed keyword
-                            
-                            if ( get_option( 'autoblog_enable_dynamic_search' ) ) {
-                                $kb_summary_for_search = '';
-                                if ( $data_source_mode === 'both' && isset( $vector_store ) ) {
-                                    $kb_summary_for_search = $vector_store->get_brief_summary();
-                                }
-                                $dynamic_query = $this->generate_dynamic_query( $search_query, $kb_summary_for_search );
-                                if ( ! empty( $dynamic_query ) ) {
-                                    Logger::log( "Dynamic Search: Seed '{$search_query}' -> Query '{$dynamic_query}'", 'info' );
-                                    $search_query = $dynamic_query;
-                                }
-                            }
-
-                            $source = new SearchSource( $search_query, $match_keywords, $negative_keywords ); 
-                            break;
-                    }
-
-                    if ( $source ) {
-                        $items = $source->fetch_data();
-                        $all_items = array_merge( $all_items, $items );
-                    }
-                    
-                    sleep( 2 ); 
-                } catch ( \Exception $e ) {
-                    Logger::log( "Error processing source type {$source_config['type']}: " . $e->getMessage(), 'error' );
-                }
-            }
-            } // end if data_source_mode !== kb_only
-
-            // --- Mode kb_only: Generate topik dari Knowledge Base ---
-            // Alur hemat token:
-            //   1. Ambil ringkasan KB (tanpa AI call)
-            //   2. Generate 1 ide topik via AI (prompt ringkas, hemat token)
-            //   3. Vector search KB untuk cari data yang cocok
-            //   4. Buat item dari ide + data relevan
-            if ( $data_source_mode === 'kb_only' && empty( $all_items ) ) {
-                Logger::log( 'Mode kb_only: Generating ide topik dari Knowledge Base...', 'info' );
-
-                // Step 1: Ringkasan KB (tanpa AI call — gratis)
-                $kb_summary = $vector_store->get_brief_summary();
-                if ( empty( $kb_summary ) ) {
-                    Logger::log( 'Mode kb_only: Knowledge Base kosong. Upload file terlebih dahulu.', 'warning' );
+    /**
+     * Public manual trigger for Production phase.
+     * 
+     * @param array|null $idea Optional specific idea to publish. If null, uses the latest completed idea.
+     */
+    public function run_production_phase( $idea = null ) {
+        try {
+            if ( ! $idea ) {
+                $ideation_data = get_option( 'autoblog_last_ideation_data', array() );
+                if ( empty( $ideation_data ) || $ideation_data['status'] !== 'completed' ) {
+                    Logger::log( 'Production: No completed ideation data found to publish.', 'warning' );
                     return;
                 }
-
-                // Step 2: Generate 1 ide topik via AI (prompt singkat, hemat token)
-                $topic_idea = $this->generate_topic_idea( $kb_summary );
-                if ( empty( $topic_idea ) ) {
-                    Logger::log( 'Mode kb_only: Gagal generate ide topik.', 'error' );
-                    return;
-                }
-                Logger::log( "Mode kb_only: Ide topik = \"{$topic_idea}\"", 'info' );
-
-                // Step 3: Vector search KB — cari data yang cocok (tanpa AI call tambahan, hanya embedding query)
-                $relevant_chunks = $vector_store->search( $topic_idea, 5 );
-                $combined_content = '';
-                foreach ( $relevant_chunks as $chunk ) {
-                    $combined_content .= $chunk['text'] . "\n\n";
-                }
-                Logger::log( 'Mode kb_only: Vector search menemukan ' . count($relevant_chunks) . ' chunk relevan.', 'info' );
-
-                // Step 4: Buat item dari ide + data
-                $all_items[] = array(
-                    'title'       => $topic_idea,
-                    'content'     => ! empty( $combined_content ) ? $combined_content : $kb_summary,
-                    'source_url'  => 'knowledge_base',
-                    'source_type' => 'kb_internal',
+                $idea = array(
+                    'title' => $ideation_data['title'],
+                    'angle' => $ideation_data['angle']
                 );
             }
 
-            if ( empty( $all_items ) ) {
-                Logger::log( 'No items found from any source.', 'warning' );
-                return;
-            }
-            
-            $target_data = $all_items;
+            $vector_store = new VectorStore();
+            $this->stage_production( $idea, $vector_store );
+        } catch ( \Throwable $e ) {
+            Logger::log( 'Production Phase Fatal Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(), 'error' );
+            throw $e;
+        }
+    }
 
-            if ( empty( $target_data ) ) {
-                 Logger::log( 'Target data is empty after filtering.', 'warning' );
-                 return;
-            }
+    /**
+     * Phase 1: Ingestion
+     * Standardizes all data collection into the Vector Store.
+     */
+    private function stage_ingestion( $mode, $sources, $vector_store ) {
+        if ( $mode === 'kb_only' ) return;
 
-            $primary_item = $target_data[0];
-            $query_text = isset($primary_item['title']) ? $primary_item['title'] : substr($primary_item['content'], 0, 200);
+        Logger::log( 'Stage 1 [Ingestion]: Processing content sources...', 'info' );
+        
+        $processed_count = 0;
+        $ingestion_data = array(
+            'timestamp' => current_time( 'mysql' ),
+            'status'    => 'running',
+            'sources'   => array()
+        );
 
-            // 2. Retrieve Relevant Context via Vector Search
-            // Skip jika mode = triggers_only (tidak ada KB) atau kb_only (sudah di-search di atas)
-            $relevant_chunks = array();
-            if ( $data_source_mode !== 'triggers_only' && $data_source_mode !== 'kb_only' ) {
-                $relevant_chunks = $vector_store->search( $query_text, 3 );
-            }
-            
-            $context_string = '';
-            if ( ! empty( $relevant_chunks ) ) {
-                foreach ( $relevant_chunks as $chunk ) {
-                    $context_string .= "--- RELEVANT KNOWLEDGE ---\n";
-                    $context_string .= $chunk['text'] . "\n\n";
+        foreach ( $sources as $config ) {
+            try {
+                if ( $config['type'] === 'file' ) continue;
+
+                $query = isset( $config['url'] ) ? $config['url'] : '';
+                
+                // Dynamic Search Research if enabled
+                if ( $config['type'] === 'web_search' && get_option( 'autoblog_enable_dynamic_search' ) ) {
+                    $ideator = new IdeationAgent();
+                    $dynamic_q = $ideator->propose_research_query( $query, $vector_store->get_brief_summary() );
+                    if ( ! empty( $dynamic_q ) ) {
+                        Logger::log( "Ingestion: Using dynamic research query '{$dynamic_q}'", 'info' );
+                        $query = $dynamic_q;
+                    }
                 }
-                Logger::log( "Vector Search retrieved " . count($relevant_chunks) . " chunks for query: '{$query_text}'", 'info' );
-            }
 
-            // 3. Intelligence: Angle Injection
-            $injector = new AngleInjector();
-            // Pass context to help AI understand the domain better
-            $angle = $injector->add_human_perception( $primary_item['content'], $context_string );
-
-            // ... (Rest of pipeline) ...
-            // Again, line 142 in original file was `// ... (Rest of pipeline) ...` ?
-            // No, line 142 was `// ... (Rest of pipeline) ...` in step 146? 
-            // Wait, let's look at step 146.
-            // Line 142: // ... (Rest of pipeline) ...
-            // Line 144: if ( ! $angle ) {
-            // It seems the file on disk DOES contain these comments placeholder? 
-            // "The above content shows the entire, complete file contents of the requested file."
-            // If so, the explicit code is literally `// ...`.
-            // This is strange. The user might have given me a file with placeholders.
-            // I will strictly implement robust error handling around what is there.
-
-            if ( ! $angle ) {
-                 Logger::log( 'Failed to generate angle (Primary & Fallback). Aborting pipeline.', 'error' );
-                 return;
-            }
-
-            Logger::log( "Generated Angle: {$angle}", 'info' );
-
-            // --- 3.5 Deep Research (Advanced Feature) ---
-            $research_context = '';
-            if ( get_option( 'autoblog_enable_deep_research' ) ) {
-                require_once plugin_dir_path( dirname( __FILE__ ) ) . 'Intelligence/ResearchAgent.php';
-                $research_agent = new \Autoblog\Intelligence\ResearchAgent();
-                $research_report = $research_agent->conduct_research( $query_text );
-                if ( ! empty( $research_report ) ) {
-                    $research_context = "\n\n--- DEEP RESEARCH REPORT ---\n" . $research_report;
-                    Logger::log( "Deep Research completed and added to context.", 'info' );
+                $source = null;
+                switch ( $config['type'] ) {
+                    case 'rss':
+                        $source = new RSSSource( $config['url'], isset($config['match_keywords']) ? $config['match_keywords'] : '' );
+                        break;
+                    case 'web':
+                        $source = new WebScraperSource( $config['url'], $config['selector'] );
+                        break;
+                    case 'web_search':
+                        $source = new SearchSource( $query );
+                        break;
                 }
-            }
 
-            // Combine Contexts (Vector + Research)
-            $full_context = $context_string . $research_context;
-            
-            // Rate Limit Protection: Sleep 3 seconds before next AI call (Article Generation)
-            sleep( 3 );
-
-            // 4. Content Generation: Article
-            $writer = new ArticleWriter();
-
-            // --- Personality Fine-Tuning (Advanced Feature) ---
-            if ( get_option( 'autoblog_enable_personality' ) ) {
-                $personality_samples = get_option( 'autoblog_personality_samples', '' );
-                if ( ! empty( $personality_samples ) ) {
-                     $full_context .= "\n\n--- STYLE AND TONE GUIDE ---\nEmulate the following writing style:\n" . $personality_samples;
-                     Logger::log( "Personality samples injected into context.", 'info' );
+                if ( $source ) {
+                    $items = $source->fetch_data();
+                    foreach ( $items as $item ) {
+                        $content = (isset($item['title']) ? $item['title'] . "\n" : "") . $item['content'];
+                        $vector_store->add_document( $content, array( 'source' => $config['type'], 'url' => isset($item['source_url']) ? $item['source_url'] : '' ) );
+                    }
+                    $processed_count++;
+                    $ingestion_data['sources'][] = $config['type'] . ': ' . $query;
                 }
+            } catch ( \Exception $e ) {
+                Logger::log( "Ingestion Error ({$config['type']}): " . $e->getMessage(), 'error' );
             }
+        }
 
-            // Pass enriched context to writer
-            $html_content = $writer->write_article( $target_data, $angle, isset($full_context) ? $full_context : $context_string );
-
-            if ( ! $html_content ) {
-                 Logger::log( 'Failed to generate article content.', 'error' );
-                 return;
-            }
-
-            // --- 4.5 Interlinking (Advanced Feature) ---
-            if ( get_option( 'autoblog_enable_interlinking' ) ) {
-                 require_once plugin_dir_path( dirname( __FILE__ ) ) . 'Intelligence/Interlinker.php';
-                 $interlinker = new \Autoblog\Intelligence\Interlinker();
-                 $related_posts = $interlinker->get_relevant_posts( $query_text );
-                 // Inject links
-                 if ( ! empty( $related_posts ) ) {
-                     $html_content = $interlinker->inject_links( $html_content, $related_posts );
-                     Logger::log( "Injected " . count($related_posts) . " internal links.", 'info' );
+        // Also process Knowledge Base files if any
+        $kb_files = get_option( 'autoblog_knowledge', array() );
+        if ( ! empty( $kb_files ) ) {
+             foreach ( $kb_files as &$kb_item ) {
+                 if ( isset( $kb_item['embedded'] ) && $kb_item['embedded'] ) continue;
+                 try {
+                     $fs = new FileSource();
+                     $parsed = $fs->parse_file( $kb_item['path'] );
+                     foreach ( $parsed as $p ) {
+                         $vector_store->add_document( $p['content'], array( 'name' => $kb_item['name'] ) );
+                     }
+                     $kb_item['embedded'] = true;
+                     $processed_count++;
+                     $ingestion_data['sources'][] = 'File: ' . $kb_item['name'];
+                 } catch ( \Exception $e ) {
+                     Logger::log( "KB Ingestion Error ({$kb_item['name']}): " . $e->getMessage(), 'error' );
                  }
-            }
-
-            // 5. Content Generation: Thumbnail
-            $thumbnail_gen = new ThumbnailGenerator();
-            // Create a prompt based on title + angle
-            $title_prompt = isset( $primary_item['title'] ) ? $primary_item['title'] : substr( $primary_item['content'], 0, 50 );
-            $image_prompt = "A blog post illustration for: '{$title_prompt}'. Concept: {$angle}. High quality, digital art.";
-            $thumbnail_url = $thumbnail_gen->generate_thumbnail( $image_prompt );
-
-            // 6. Publisher
-            $publisher = new PostManager();
-            
-            $source_url = isset( $primary_item['source_url'] ) ? $primary_item['source_url'] : '';
-            $source_type = isset( $primary_item['source_type'] ) ? $primary_item['source_type'] : '';
-
-            // For Search sources, we want a NEW post every time plugin runs, not update existing.
-            // So we append a timestamp to the source_url (query) to make it unique for PostManager.
-            if ( strpos( $source_type, 'search' ) !== false || strpos( $source_type, 'ai_' ) !== false || strpos( $source_type, 'bing_' ) !== false ) {
-                $source_url .= ' | ' . date('Y-m-d H:i:s'); 
-            }
-
-            $source_data = array(
-                'title'      => isset( $primary_item['title'] ) ? $primary_item['title'] : '',
-                'source_url' => $source_url
-            );
-
-            $post_id = $publisher->create_or_update_post( $source_data, $html_content, $thumbnail_url );
-
-            if ( is_wp_error( $post_id ) ) {
-                 Logger::log( 'Failed to publish post.', 'error' );
-            } else {
-                 Logger::log( "Successfully published/updated Post ID: {$post_id}", 'info' );
-            }
-
-        } catch ( \Exception $e ) {
-            Logger::log( 'Critical error in Autoblog pipeline: ' . $e->getMessage(), 'error' );
+             }
+             update_option( 'autoblog_knowledge', $kb_files );
         }
 
-	}
+        $vector_store->save();
+        
+        $ingestion_data['status'] = 'completed';
+        $ingestion_data['count']  = $processed_count;
+        update_option( 'autoblog_last_ingestion_data', $ingestion_data );
+    }
 
     /**
-     * Get configured sources. 
-     * In a real plugin, this would come from get_option('autoblog_sources').
-     * For now, returning a dummy array for testing if options are empty.
+     * Phase 2: Ideation
      */
-    private function get_configured_sources() {
-        // TODO: Implement UI to save these sources
-        // For now, we check if there are any saved sources, if not return a default
-        $sources = get_option( 'autoblog_sources', array() );
+    private function stage_ideation( $sources, $vector_store ) {
+        Logger::log( 'Stage 2 [Ideation]: Brainstorming unique topics...', 'info' );
         
-        if ( ! is_array( $sources ) ) {
-            $sources = array();
+        update_option( 'autoblog_last_ideation_data', array( 'status' => 'running', 'timestamp' => current_time('mysql') ) );
+
+        $ideator = new IdeationAgent();
+        $seed = 'Advanced Technology';
+        foreach ( $sources as $s ) {
+            if ( $s['type'] === 'web_search' && ! empty( $s['url'] ) ) {
+                $seed = $s['url'];
+                break;
+            }
+        }
+
+        $ideas = $ideator->brainstorm_topics( $seed, $vector_store->get_brief_summary(), 1 );
+        $idea = ! empty( $ideas ) ? $ideas[0] : null;
+
+        if ( $idea ) {
+            update_option( 'autoblog_last_ideation_data', array(
+                'status'    => 'completed',
+                'timestamp' => current_time('mysql'),
+                'title'     => $idea['title'],
+                'angle'     => $idea['angle']
+            ));
         } else {
-             // Filter out any non-array entries just in case
-             $sources = array_filter( $sources, 'is_array' );
+            update_option( 'autoblog_last_ideation_data', array( 'status' => 'failed', 'timestamp' => current_time('mysql') ) );
         }
 
-        if ( empty( $sources ) ) {
-            // Default mock source for testing logic flow
-            // $sources[] = array( 'type' => 'rss', 'url' => 'https://techcrunch.com/feed/' );
-        }
-
-        return $sources;
+        return $idea;
     }
 
     /**
-     * Generate 1 ide topik artikel berdasarkan ringkasan KB.
-     *
-     * Prompt didesain SANGAT singkat agar hemat token.
-     * AI hanya terima ringkasan KB + daftar topik lama → hasilkan 1 ide baru.
-     * Topik yang sudah pernah digenerate disimpan untuk menghindari duplikat.
-     *
-     * @param string $kb_summary Ringkasan singkat dari VectorStore::get_brief_summary().
-     * @return string|false Ide topik (1 kalimat) atau false jika gagal.
+     * Phase 3: Production
      */
-    private function generate_topic_idea( $kb_summary ) {
-        $ai_client = new \Autoblog\Utils\AIClient();
+    private function stage_production( $idea, $vector_store ) {
+        $topic = $idea['title'];
+        $angle = $idea['angle'];
 
-        // Ambil topik yang sudah pernah dihasilkan (anti-duplikat)
-        $used_topics = get_option( 'autoblog_used_topics', array() );
-        if ( ! is_array( $used_topics ) ) {
-            $used_topics = array();
+        Logger::log( "Stage 3 [Production]: Writing article for '{$topic}'", 'info' );
+
+        update_option( 'autoblog_last_production_data', array(
+            'status'    => 'running',
+            'timestamp' => current_time('mysql'),
+            'topic'     => $topic
+        ));
+
+        $publisher = new PostManager();
+        if ( $publisher->post_exists_by_title( $topic ) ) {
+            Logger::log( "Production: Skipping '{$topic}' because it already exists.", 'info' );
+            update_option( 'autoblog_last_production_data', array( 'status' => 'skipped', 'topic' => $topic, 'timestamp' => current_time('mysql') ) );
+            return;
         }
 
-        // Format topik lama untuk prompt
-        $used_topics_text = '';
-        if ( ! empty( $used_topics ) ) {
-            $used_topics_text = "\n\nTOPIK YANG SUDAH PERNAH DITULIS (JANGAN ulangi):\n";
-            foreach ( array_slice( $used_topics, -10 ) as $t ) {
-                $used_topics_text .= "- {$t}\n";
-            }
+        // Gather RAG Context
+        $context = "";
+        $chunks = $vector_store->search( $topic . " " . $angle, 8 );
+        foreach ( $chunks as $c ) { $context .= $c['text'] . "\n\n"; }
+
+        // Deep Research if enabled
+        if ( get_option( 'autoblog_enable_deep_research' ) ) {
+            require_once dirname( __DIR__ ) . '/Intelligence/ResearchAgent.php';
+            $research_agent = new \Autoblog\Intelligence\ResearchAgent();
+            $report = $research_agent->conduct_research( $topic );
+            $context .= "\n\n--- RESEARCH REPORT ---\n" . $report;
         }
 
-        // Prompt ringkas — hemat token
-        $prompt  = "Kamu adalah content strategist. Berdasarkan Knowledge Base berikut, ";
-        $prompt .= "buat 1 IDE TOPIK ARTIKEL yang menarik dan unik dalam BAHASA INDONESIA.\n\n";
-        $prompt .= "KNOWLEDGE BASE:\n{$kb_summary}\n";
-        $prompt .= $used_topics_text;
-        $prompt .= "\nATURAN:\n";
-        $prompt .= "- Balas HANYA dengan 1 kalimat judul topik, tanpa penjelasan tambahan.\n";
-        $prompt .= "- Topik harus relevan dengan isi Knowledge Base.\n";
-        $prompt .= "- Topik harus menarik, spesifik, dan belum pernah ditulis.";
+        // Pick an Author Persona & Style
+        $author_mngr  = new AuthorManager();
+        $strategy     = get_option( 'autoblog_author_strategy', 'random' );
+        $fixed_id     = (int) get_option( 'autoblog_author_fixed_id', 0 );
+        $author_id    = $author_mngr->pick_author( $strategy, $fixed_id );
+        $persona_data = $author_mngr->get_author_persona_data( $author_id );
 
-        // Gunakan provider + model yang aktif
-        $provider = get_option( 'autoblog_ai_provider', 'openai' );
-        $model_option = 'autoblog_' . $provider . '_model';
-        $model = get_option( $model_option, 'gpt-4o' );
+        $writer = new ArticleWriter();
+        $target_data = array( array( 'title' => $topic, 'content' => $context, 'source_url' => 'modular_pipeline', 'source_type' => 'ai_modular' ) );
+        $html = $writer->write_article( $target_data, $angle, $context, $persona_data );
 
-        // Temperature rendah agar fokus dan tidak terlalu random
-        $topic = $ai_client->generate_text( $prompt, $model, $provider, 0.7 );
-
-        if ( ! empty( $topic ) ) {
-            // Bersihkan — kadang AI menambahkan tanda kutip
-            $topic = trim( $topic, " \t\n\r\0\x0B\"'" );
-
-            // Simpan ke tracking anti-duplikat (max 20 terakhir)
-            $used_topics[] = $topic;
-            if ( count( $used_topics ) > 20 ) {
-                $used_topics = array_slice( $used_topics, -20 );
-            }
-            update_option( 'autoblog_used_topics', $used_topics );
-
-            return $topic;
+        if ( ! $html ) {
+            Logger::log( "Runner: Gagal menulis artikel untuk topik '{$topic}'.", 'error' );
+            update_option( 'autoblog_last_production_data', array( 'status' => 'failed', 'topic' => $topic, 'timestamp' => current_time('mysql') ) );
+            return;
         }
 
-        return false;
-    }
-
-    /**
-     * Generate dynamic search query based on seed keyword and optional KB summary.
-     *
-     * @param string $seed_keyword Trigger url/keyword configured by user
-     * @param string $kb_summary Optional context from Knowledge Base
-     * @return string|false
-     */
-    private function generate_dynamic_query( $seed_keyword, $kb_summary = '' ) {
-        if ( empty( $seed_keyword ) ) return false;
-
-        $ai_client = new \Autoblog\Utils\AIClient();
-
-        $used_topics = get_option( 'autoblog_used_topics', array() );
-        if ( ! is_array( $used_topics ) ) $used_topics = array();
-
-        $used_topics_text = '';
-        if ( ! empty( $used_topics ) ) {
-            $used_topics_text = "QUERY YANG SUDAH PERNAH DIGUNAKAN (JANGAN diulangi):\n";
-            foreach ( array_slice( $used_topics, -15 ) as $t ) {
-                $used_topics_text .= "- {$t}\n";
-            }
-        }
-
-        $prompt  = "Kamu adalah agen riset cerdas spesialis pencarian web.\n";
-        $prompt .= "Tugasmu adalah membuat 1 (satu) query pencarian (search query) spesifik yang panjangnya 3-7 kata untuk diinput ke Google.\n\n";
-        $prompt .= "TEMA UTAMA (SEED): '{$seed_keyword}'\n";
+        $thumb = new ThumbnailGenerator();
+        $img_url = $thumb->generate_thumbnail( "Article illustration: {$topic}. Concept: {$angle}" );
+            
+        $source_info = array( 'title' => $topic, 'source_url' => 'ai_modular_' . time() );
+        $post_id = $publisher->create_or_update_post( $source_info, $html, $img_url, $author_id );
         
-        if ( ! empty( $kb_summary ) ) {
-            $prompt .= "KNOWLEDGE BASE (Gunakan informasi ini agar query relevan dengan konteks lokal):\n{$kb_summary}\n\n";
-        }
+        update_option( 'autoblog_last_production_data', array(
+            'status'    => 'completed',
+            'timestamp' => current_time('mysql'),
+            'topic'     => $topic,
+            'post_id'   => $post_id,
+            'author_id' => $author_id
+        ));
 
-        $prompt .= $used_topics_text . "\n";
-        $prompt .= "Buat 1 search query yang merujuk pada tren, berita, atau fokus pembahasan spesifik terkait TEMA UTAMA di atas.\n";
-        $prompt .= "ATURAN MUTLAK:\n";
-        $prompt .= "- Balas HANYA dengan query pencariannya saja (1 baris).\n";
-        $prompt .= "- Tanpa tanda kutip, tanpa markdown, tanpa penjelasan.\n";
-
-        $provider = get_option( 'autoblog_ai_provider', 'openai' );
-        $model_option = 'autoblog_' . $provider . '_model';
-        $model = get_option( $model_option, 'gpt-4o' );
-
-        $query = $ai_client->generate_text( $prompt, $model, $provider, 0.7 );
-
-        if ( ! empty( $query ) ) {
-            $query = trim( $query, " \t\n\r\0\x0B\"'" );
-            $used_topics[] = $query;
-            if ( count( $used_topics ) > 30 ) $used_topics = array_slice( $used_topics, -30 );
-            update_option( 'autoblog_used_topics', $used_topics );
-            return $query;
-        }
-
-        return false;
+        Logger::log( "Successfully published article ID: {$post_id} by Author ID: {$author_id}", 'info' );
     }
 
+    private function get_configured_sources() {
+        $sources = get_option( 'autoblog_sources', array() );
+        return is_array( $sources ) ? array_filter( $sources, 'is_array' ) : array();
+    }
 }

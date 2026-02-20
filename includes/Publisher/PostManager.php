@@ -35,9 +35,10 @@ class PostManager {
 	 * @param array  $source_item   The raw source item (must contain 'title', 'source_url').
 	 * @param string $html_content  The generated HTML content.
 	 * @param string $thumbnail_url Optional URL of the generated thumbnail.
+	 * @param int    $author_id     Optional specific WordPress User ID for the post author.
 	 * @return int|WP_Error The post ID or WP_Error on failure.
 	 */
-	public function create_or_update_post( $source_item, $html_content, $thumbnail_url = null ) {
+	public function create_or_update_post( $source_item, $html_content, $thumbnail_url = null, $author_id = null ) {
 
 		$source_url = isset( $source_item['source_url'] ) ? $source_item['source_url'] : '';
         $title      = isset( $source_item['title'] ) ? $source_item['title'] : 'Auto Generated Post';
@@ -46,6 +47,13 @@ class PostManager {
         if ( preg_match( '/<h1>(.*?)<\/h1>/i', $html_content, $match ) ) {
             $title = $match[1];
             // Remove <h1> from content as WP handles title separately
+            $html_content = str_replace( $match[0], '', $html_content );
+        }
+        
+        // Extract title from Markdown # if AI ignored the HTML instruction
+        if ( preg_match( '/^#\s+(.*?)$/mi', $html_content, $match ) ) {
+            $title = $match[1];
+            // Remove # Heading from content
             $html_content = str_replace( $match[0], '', $html_content );
         }
 
@@ -57,7 +65,7 @@ class PostManager {
 			'post_content' => $this->convert_to_gutenberg_blocks( $html_content ),
 			'post_status'  => 'draft', // Default to draft for safety
 			'post_type'    => 'post',
-			'post_author'  => get_current_user_id() ? get_current_user_id() : 1, // Fallback to admin
+			'post_author'  => $author_id ? $author_id : (get_current_user_id() ? get_current_user_id() : 1), // Priority to provided author_id
 		);
 
 		if ( $existing_post_id ) {
@@ -119,6 +127,30 @@ class PostManager {
 	}
 
     /**
+     * Cek apakah ada post (publish/draft) yang menggunakan judul serupa.
+     * Pencegahan Duplikat Artikel/Anti-Spam.
+     *
+     * @param string $title Judul artikel.
+     * @return bool True jika post dengan judul ini sudah ada.
+     */
+    public function post_exists_by_title( $title ) {
+        if ( empty( $title ) ) {
+            return false;
+        }
+
+        $args = array(
+            'post_type'      => 'post',
+            'title'          => trim($title),
+            'post_status'    => 'any',
+            'posts_per_page' => 1,
+            'fields'         => 'ids'
+        );
+
+        $query = new \WP_Query( $args );
+        return $query->have_posts();
+    }
+
+    /**
      * Convert simple HTML to Gutenberg Blocks.
      * 
      * @param string $html The HTML content.
@@ -135,31 +167,19 @@ class PostManager {
             return '';
         }
 
+        // Terapkan wpautop untuk memaksa setiap newline/paragraf dibungkus tag <p> 
+        // secara native oleh WP sebelum masuk ke DOM parser, agar tidak jadi 1 blok raksasa.
+        $html = wpautop( $html );
+
         // Suppress libxml errors for malformed HTML
         libxml_use_internal_errors( true );
 
         $dom = new \DOMDocument();
         
-        // Handle UTF-8 encoding properly without adding artifacts to the DOM
-        // If mb_convert_encoding is available, use it to convert content to HTML-ENTITIES
-        if ( function_exists( 'mb_convert_encoding' ) ) {
-            $html = mb_convert_encoding( $html, 'HTML-ENTITIES', 'UTF-8' );
-             $dom->loadHTML( $html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
-        } else {
-             // Fallback: prepend meta charset, but we must process it carefully later
-             // Using XML hack often leaks into output for loadHTML partials
-             // Try wrapper approach
-             $dom->loadHTML( '<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/></head><body>' . $html . '</body></html>' );
-             // If we use wrapper, we need to get nodes from body
-             $xpath = new \DOMXPath( $dom );
-             $body = $dom->getElementsByTagName('body')->item(0);
-             if ( $body ) {
-                 // Move nodes from body to a list to iterate, or just iterate body childNodes
-                 // But our main loop iterates $dom->childNodes.
-                 // We need to change the loop target if we use this fallback.
-                 // For now, let's assume mb_convert_encoding exists in WP env.
-             }
-        }
+        // Use XML encoding to force UTF-8 natively inside DOMDocument without converting characters to HTML-ENTITIES.
+        // Gutenberg string-matches characters exactly. HTML-Entities will cause "Block contains unexpected or invalid content."
+        $html_with_xml = '<?xml encoding="utf-8" ?>' . $html;
+        $dom->loadHTML( $html_with_xml, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
 
         libxml_clear_errors();
 
@@ -203,6 +223,10 @@ class PostManager {
      * @return string
      */
     private function process_dom_node( $node ) {
+        if ( $node instanceof \DOMProcessingInstruction ) {
+            return '';
+        }
+
         $content = '';
 
         switch ( $node->nodeName ) {
@@ -215,6 +239,18 @@ class PostManager {
                 $level = substr( $node->nodeName, 1 );
                 $text = $node->textContent;
                 $content .= "<!-- wp:heading {\"level\":$level} -->\n<{$node->nodeName}>$text</{$node->nodeName}>\n<!-- /wp:heading -->\n\n";
+                break;
+
+            case 'div':
+            case 'article':
+            case 'section':
+            case 'main':
+            case 'header':
+            case 'footer':
+                // Container tags: Recurse into their children to preserve inner paragraphs and headings
+                foreach ( $node->childNodes as $child ) {
+                    $content .= $this->process_dom_node( $child );
+                }
                 break;
 
             case 'p':

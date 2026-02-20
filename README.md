@@ -6,28 +6,30 @@
 
 ### 1. **Multi-Provider AI Core**
 Plugin ini mendukung berbagai penyedia AI terkemuka untuk fleksibilitas maksimal:
-*   **Google Gemini**: Mendukung model terbaru (Gemini 2.0 Flash, Pro, dll).
-*   **OpenAI**: GPT-4o, GPT-4 Turbo.
-*   **Anthropic (Claude)**: Claude 3.5 Sonnet, Haiku.
-*   **DeepSeek**: DeepSeek Chat/Coder (via OpenRouter/Direct).
-*   **OpenRouter**: Akses ke ratusan model open-source (Llama 3, Mistral, dll).
-*   **Smart Fallback System**: Jika satu provider/model gagal atau down, plugin otomatis beralih ke model cadangan tanpa menghentikan proses.
+*   **Google Gemini**: Mendukung model terbaru (Gemini 3.1 Pro, 2.5 Flash, 2.0 Flash, 1.5 Flash).
+*   **Groq**: Llama 3.3 70B, Llama 3 70B, Mixtral 8x7B.
+*   **OpenRouter**: Akses ke ratusan model open-source.
+*   **Smart Fallback System**: Jika satu provider/model gagal, plugin otomatis beralih ke model cadangan.
+
+### 🛡️ Robust AI Infrastructure (Reliability)
+Sistem dirancang untuk kegagalan minimum:
+*   **Intra-Provider Model Pooling**: Jika model utama gagal (misal Gemini 3.1), sistem tidak langsung menyerah; ia akan mencoba model lain di provider yang sama (3.1 -> 2.5 -> 2.0 -> 1.5) terlebih dahulu.
+*   **Cross-Provider Scaling**: Jika seluruh pool provider utama gagal, sistem akan melompat ke provider cadangan (Groq/OpenAI) secara otomatis.
+*   **Circuit Breaker**: Mencegah infinite loop saat melakukan fallback berantai.
 
 ### 2. **🧠 Advanced Agentic Features (New)**
-Plugin ini dilengkapi dengan agen cerdas yang bekerja secara otonom:
+Plugin ini dilengkapi dengan agen cerdas yang bekerja secara modular dalam 3 fase utama (**Agentic Pipeline**):
+*   **Stage 1: Ingestion Agent (Collector)**:
+    - Mengumpulkan data mentah dari berbagai sumber secara independen.
+    - Membersihkan teks dan menyimpannya ke **Vector Store (Knowledge Base)** untuk RAG.
+*   **Stage 2: Ideator Agent (The Brain)**:
+    - AI berfungsi sebagai Editor-in-Chief yang meriset Knowledge Base secara berkala.
+    - Menghasilkan daftar **Topik + Angle** yang unik dan cerdas, bukan sekadar ringkasan berita.
+*   **Stage 3: Production Agent (The Writer)**:
+    - AI Penulis yang mengeksekusi topik dari Ideator.
+    - Menggunakan konteks mendalam dari KB (RAG) untuk menghasilkan artikel yang kaya informasi.
 *   **Deep Research (Multi-Hop)**:
-    - Agen melakukan riset bertahap: **Exploratory Search** (Round 1) -> **AI Analysis** -> **Deep Dive** (Round 2).
-    - Memastikan konten memiliki kedalaman fakta yang tidak bisa dicapai oleh AI standar.
-*   **Multi-Modal Content (Auto-Charts)**:
-    - Jika artikel memuat data statistik, AI otomatis membuat **Grafik Visual** (Bar/Pie/Line Chart).
-    - Grafik di-host via QuickChart dan di-embed langsung ke artikel.
-*   **Living Content (Auto-Refresh)**:
-    - Sistem otomatis mencari artikel lama (> 6 bulan).
-    - Melakukan riset ulang dengan data terbaru.
-    - Mengupdate konten tanpa mengubah URL (SEO Friendly).
-    - Jadwal: **Daily Cron**.
-*   **SEO Interlinking**:
-    - Otomatis menyisipkan link ke artikel relevan lain di blog Anda.
+    - Agen melakukan riset bertahap untuk memastikan konten memiliki kedalaman fakta.
 
 ### 3. **Flexible Pipeline Modes**
 Pilih cara kerja yang sesuai dengan kebutuhan Anda:

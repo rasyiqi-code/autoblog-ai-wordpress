@@ -84,24 +84,43 @@ class FileSource implements SourceInterface {
 	 * @return array
 	 */
 	private function parse_spreadsheet() {
-		$spreadsheet = IOFactory::load( $this->file_path );
+        $reader = IOFactory::createReaderForFile( $this->file_path );
+        $reader->setReadDataOnly( true ); // Load without styles to save massive RAM
+		$spreadsheet = $reader->load( $this->file_path );
 		$worksheet   = $spreadsheet->getActiveSheet();
-		$rows        = $worksheet->toArray();
         
-        // Assuming first row is header if it exists, strict mapping logic needed later
-        // For now, return rows as items
         $items = array();
-        foreach ( $rows as $row ) {
+        foreach ( $worksheet->getRowIterator() as $row ) {
+            $cellIterator = $row->getCellIterator();
+            $cellIterator->setIterateOnlyExistingCells( true ); // Loop only populated cells
+
+            $rowData = [];
+            foreach ( $cellIterator as $cell ) {
+                $rowData[] = $cell->getValue();
+            }
+
             // Skip empty rows
-            if ( empty( array_filter( $row ) ) ) {
+            if ( empty( array_filter( $rowData ) ) ) {
                 continue;
             }
+
             $items[] = array(
-                'content'     => implode( ' ', $row ), // Simple concatenation for now
+                'content'     => mb_convert_encoding( implode( ' ', $rowData ), 'UTF-8', 'UTF-8' ),
                 'source_type' => 'file',
                 'source_url'  => $this->file_path
             );
+
+            // Safety limit to prevent VectorStore bloat and OOM
+            if ( count( $items ) > 2500 ) {
+                 Logger::log( 'VectorStore Warning: File xlsx/csv melewati 2500 baris. Truncating data to safely fit Memory limit.', 'warning' );
+                 break;
+            }
         }
+        
+        // Free RAM
+        $spreadsheet->disconnectWorksheets();
+        unset( $spreadsheet );
+
 		return $items;
 	}
 
@@ -113,7 +132,7 @@ class FileSource implements SourceInterface {
 	private function parse_pdf() {
 		$parser = new Parser();
 		$pdf    = $parser->parseFile( $this->file_path );
-		$text   = $pdf->getText();
+		$text   = mb_convert_encoding( $pdf->getText(), 'UTF-8', 'UTF-8' );
 
 		return array(
 			array(
@@ -132,13 +151,21 @@ class FileSource implements SourceInterface {
 	private function parse_docx() {
 		$phpWord = WordIOFactory::load( $this->file_path );
         $text = '';
+        $max_length = 200000; // Limit roughly 30-50 pages of words to prevent infinite PHP allocation
+
         foreach ( $phpWord->getSections() as $section ) {
             foreach ( $section->getElements() as $element ) {
                 if ( method_exists( $element, 'getText' ) ) {
                     $text .= $element->getText() . "\n";
                 }
+                // Memory Guard
+                if ( strlen( $text ) > $max_length ) {
+                     Logger::log( 'VectorStore Warning: DOCX melebihi limit panjang karakter. Truncating to safely fit Memory limit.', 'warning' );
+                     break 2;
+                }
             }
         }
+        $text = mb_convert_encoding( $text, 'UTF-8', 'UTF-8' );
 
 		return array(
 			array(
@@ -156,6 +183,7 @@ class FileSource implements SourceInterface {
 	 */
 	private function parse_text() {
 		$text = file_get_contents( $this->file_path );
+		$text = mb_convert_encoding( $text, 'UTF-8', 'UTF-8' );
 
 		return array(
 			array(

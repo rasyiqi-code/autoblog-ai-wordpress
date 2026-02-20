@@ -33,132 +33,119 @@ if ( false === get_option( 'autoblog_custom_personas' ) ) {
     update_option( 'autoblog_custom_personas', $defaults );
 }
 
-// Handle Add Persona
-if ( isset( $_POST['autoblog_add_persona'] ) ) {
-    check_admin_referer( 'autoblog_setup_personas' );
-
-    $personas = get_option( 'autoblog_custom_personas', array() );
-    
-    $name = sanitize_text_field( $_POST['persona_name'] );
-    $desc = sanitize_textarea_field( $_POST['persona_desc'] );
-
-    if ( ! empty( $name ) && ! empty( $desc ) ) {
-        $personas[] = array(
-            'name' => $name,
-            'desc' => $desc,
-            'active' => true,
-            'is_default' => false
-        );
-        
-        update_option( 'autoblog_custom_personas', $personas );
-        echo '<div class="notice notice-success is-dismissible"><p>Persona "'. esc_html($name) .'" added successfully.</p></div>';
-    }
-}
-
-// Handle Save Active State & Delete
-if ( isset( $_POST['autoblog_save_personas'] ) ) {
-    check_admin_referer( 'autoblog_setup_personas' );
-    
-    $personas = get_option( 'autoblog_custom_personas', array() );
-    
-    // Update Active States
-    if ( isset( $_POST['persona_active'] ) && is_array( $_POST['persona_active'] ) ) {
-        foreach ( $personas as $k => $v ) {
-            $personas[$k]['active'] = in_array( $k, $_POST['persona_active'] );
-        }
-    } else {
-        foreach ( $personas as $k => $v ) {
-            $personas[$k]['active'] = false;
-        }
-    }
-    
-    // Handle Delete if button clicked
-    if ( isset( $_POST['delete_persona_index'] ) && $_POST['delete_persona_index'] !== '' ) {
-        $idx = intval( $_POST['delete_persona_index'] );
-        if ( isset( $personas[$idx] ) ) {
-            // Check if default (flag or name match for legacy)
-            $p = $personas[$idx];
-            $is_protected = ( isset($p['is_default']) && $p['is_default'] ) || in_array( $p['name'], $default_names );
-            
-            if ( $is_protected ) {
-                 echo '<div class="notice notice-error is-dismissible"><p>Cannot delete default persona.</p></div>';
-            } else {
-                unset( $personas[$idx] );
-                $personas = array_values( $personas ); // Re-index
-                echo '<div class="notice notice-success is-dismissible"><p>Persona deleted.</p></div>';
-            }
-        }
-    }
-
-    update_option( 'autoblog_custom_personas', $personas );
-    echo '<div class="notice notice-success is-dismissible"><p>Personas updated.</p></div>';
-}
-
 // Fetch existing personas
 $existing_personas = get_option( 'autoblog_custom_personas', array() );
 ?>
 
+<!-- ================================================================ -->
+<!-- SECTION: AI Author Profiles (Multi-Author)                       -->
+<!-- ================================================================ -->
 <div class="card" style="max-width: 100%; margin-top: 20px;">
-    <h2>Manage Personas</h2>
-    <form method="post">
-        <?php wp_nonce_field( 'autoblog_setup_personas' ); ?>
-        
-        <!-- Add New -->
+    <h2>👥 AI Author Profiles</h2>
+    <p>Tentukan identitas siapa yang akan muncul sebagai penulis artikel di WordPress.</p>
+
+    <form method="post" action="options.php">
+        <?php settings_fields( 'autoblog_style' ); ?>
         <table class="form-table">
             <tr valign="top">
-                <th scope="row">Add New Persona</th>
+                <th scope="row">Author Strategy</th>
                 <td>
-                    <input type="text" name="persona_name" class="regular-text" placeholder="Name (e.g. The Expert)" />
-                    <textarea name="persona_desc" rows="2" class="large-text" placeholder="Description / Prompt instructions..." style="margin-top:5px;"></textarea>
-                    <?php submit_button( 'Add New', 'secondary', 'autoblog_add_persona', false ); ?>
+                    <select name="autoblog_author_strategy">
+                        <option value="random" <?php selected( get_option('autoblog_author_strategy'), 'random' ); ?>>Random (Acak)</option>
+                        <option value="round_robin" <?php selected( get_option('autoblog_author_strategy'), 'round_robin' ); ?>>Round Robin (Bergantian)</option>
+                        <option value="fixed" <?php selected( get_option('autoblog_author_strategy'), 'fixed' ); ?>>Fixed Author (Satu Penulis Tetap)</option>
+                    </select>
+                    <p class="description">Metode pemilihan akun WordPress untuk setiap artikel baru.</p>
+                </td>
+            </tr>
+            <tr valign="top">
+                <th scope="row">Target Author (Fixed)</th>
+                <td>
+                    <?php
+                    require_once plugin_dir_path( __DIR__ ) . '../includes/Publisher/AuthorManager.php';
+                    $author_mngr = new \Autoblog\Publisher\AuthorManager();
+                    $authors = $author_mngr->get_available_authors();
+                    $fixed_id = get_option( 'autoblog_author_fixed_id' );
+                    ?>
+                    <select name="autoblog_author_fixed_id">
+                        <option value="0">-- Pilih Penulis --</option>
+                        <?php foreach ( $authors as $author ) : ?>
+                            <option value="<?php echo $author['id']; ?>" <?php selected( $fixed_id, $author['id'] ); ?>>
+                                <?php echo esc_html( $author['display_name'] ); ?> (ID: <?php echo $author['id']; ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="description">Gunakan ini jika Anda memilih strategi 'Fixed Author'.</p>
                 </td>
             </tr>
         </table>
-        
-        <hr>
+        <?php submit_button( 'Simpan Pengaturan Penulis' ); ?>
+    </form>
+</div>
 
-        <!-- List & Toggle -->
+<!-- ================================================================ -->
+<!-- SECTION: Mapping Penulis ke Persona                              -->
+<!-- ================================================================ -->
+<?php
+// Handle Save Author Mapping
+if ( isset( $_POST['autoblog_save_author_mapping'] ) ) {
+    check_admin_referer( 'autoblog_save_author_mapping_nonce' );
+    
+    if ( isset( $_POST['author_persona'] ) && is_array( $_POST['author_persona'] ) ) {
+        foreach ( $_POST['author_persona'] as $uid => $persona ) {
+            $samples = isset( $_POST['author_samples'][$uid] ) ? $_POST['author_samples'][$uid] : '';
+            $author_mngr->update_author_persona( intval($uid), sanitize_text_field($persona), sanitize_textarea_field($samples) );
+        }
+        echo '<div class="notice notice-success is-dismissible"><p>Author mapping saved successfully.</p></div>';
+    }
+}
+?>
+
+<div class="card" style="max-width: 100%; margin-top: 20px;">
+    <h2>🔗 Mapping Penulis ke Persona</h2>
+    <p>Hubungkan setiap penulis WordPress dengan Persona AI dan gaya tulis (fine-tuning) yang unik.</p>
+
+    <form method="post">
+        <?php wp_nonce_field( 'autoblog_save_author_mapping_nonce' ); ?>
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
-                    <th width="5%" class="check-column"><input type="checkbox" id="cb-select-all-1"></th>
-                    <th width="20%">Name</th>
-                    <th width="65%">Description / Prompt</th>
-                    <th width="10%">Actions</th>
+                    <th width="20%">WordPress Author</th>
+                    <th width="25%">Assigned Persona</th>
+                    <th width="55%">Writing Samples (Custom for this Author)</th>
                 </tr>
             </thead>
             <tbody>
-                <?php if ( ! empty( $existing_personas ) ) : ?>
-                    <?php foreach ( $existing_personas as $index => $persona ) : 
-                        $is_def = ( isset($persona['is_default']) && $persona['is_default'] ) || in_array( $persona['name'], $default_names );
+                <?php if ( ! empty( $authors ) ) : ?>
+                    <?php foreach ( $authors as $author ) : 
+                        $current_data = $author_mngr->get_author_persona_data( $author['id'] );
                     ?>
                         <tr>
-                            <th scope="row" class="check-column">
-                                <input type="checkbox" name="persona_active[]" value="<?php echo $index; ?>" <?php checked( isset($persona['active']) ? $persona['active'] : false ); ?> />
-                            </th>
                             <td>
-                                <strong><?php echo esc_html( $persona['name'] ); ?></strong>
-                                <?php if($is_def): ?> <span class="dashicons dashicons-lock" title="Default Persona"></span><?php endif; ?>
+                                <strong><?php echo esc_html( $author['display_name'] ); ?></strong><br>
+                                <span class="description">ID: <?php echo $author['id']; ?></span>
                             </td>
-                            <td><?php echo nl2br( esc_html( $persona['desc'] ) ); ?></td>
                             <td>
-                                <?php if ( ! $is_def ) : ?>
-                                    <button type="submit" name="delete_persona_index" value="<?php echo $index; ?>" class="button button-small button-link-delete" onclick="return confirm('Delete this persona?')">Delete</button>
-                                <?php else: ?>
-                                    <span class="description">Protected</span>
-                                <?php endif; ?>
+                                <select name="author_persona[<?php echo $author['id']; ?>]" style="width:100%;">
+                                    <option value="">-- Pilih Persona --</option>
+                                    <?php foreach ( $existing_personas as $p ) : ?>
+                                        <option value="<?php echo esc_attr($p['name']); ?>" <?php selected( $current_data['name'], $p['name'] ); ?>>
+                                            <?php echo esc_html( $p['name'] ); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </td>
+                            <td>
+                                <textarea name="author_samples[<?php echo $author['id']; ?>]" rows="3" style="width:100%;" placeholder="Contoh tulisan khusus penulis ini... Jika kosong, akan menggunakan setting global."><?php echo esc_textarea( get_user_meta( $author['id'], '_autoblog_personality_samples', true ) ); ?></textarea>
                             </td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else : ?>
-                    <tr><td colspan="4">No personas found.</td></tr>
+                    <tr><td colspan="3">No authors found.</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>
-        
-        <p class="description">Hanya persona yang <strong>dicentang</strong> akan digunakan oleh AI generator (seleksi acak).</p>
-        
-        <?php submit_button( 'Save Changes', 'primary', 'autoblog_save_personas' ); ?>
+        <?php submit_button( 'Simpan Mapping Penulis', 'primary', 'autoblog_save_author_mapping' ); ?>
     </form>
 </div>
 

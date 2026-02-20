@@ -17,44 +17,71 @@
     var $statusArea = $("#autoblog-run-status");
     var logInterval; // Variabel untuk interval polling log
 
-    if ($runBtn.length === 0) return;
+    if ($runBtn.length > 0) {
+      $runBtn.on("click", function (e) {
+        e.preventDefault();
+        runPipelineAction("autoblog_run_pipeline", $runBtn);
+      });
+    }
 
-    $runBtn.on("click", function (e) {
+    // ================================================================
+    // AJAX: Run Specific Agent (Collector, Ideator, Writer)
+    // ================================================================
+    $(document).on("click", ".run-agent", function (e) {
       e.preventDefault();
+      var $btn = $(this);
+      var agent = $btn.data("agent");
+      runPipelineAction("autoblog_run_" + agent, $btn);
+    });
 
-      // UI: disable tombol dan tampilkan status
-      $runBtn.prop("disabled", true).val("⏳ Running...");
+    /**
+     * Helper to run pipeline actions (Full or Granular)
+     */
+    function runPipelineAction(action, $button) {
+      var originalText = $button.val() || $button.text();
+      var isInput = $button.is("input");
+
+      // UI: disable dan status
+      $button.prop("disabled", true);
+      if (isInput) {
+        $button.val("⏳ Running...");
+      } else {
+        $button.text("⏳ Running...");
+      }
+
       $statusArea
         .html(
-          '<div class="notice notice-info"><p>🔄 Pipeline sedang berjalan, harap tunggu...</p></div>'
+          '<div class="notice notice-info"><p>🔄 Proses sedang berjalan, harap tunggu...</p></div>'
         )
         .show();
 
-      // Mulai polling log setiap 2 detik
       startLogPolling();
 
       $.ajax({
         url: autoblog_ajax.ajax_url,
         type: "POST",
         data: {
-          action: "autoblog_run_pipeline",
+          action: action,
           nonce: autoblog_ajax.nonce,
         },
-        // Timeout 10 menit (pipeline bisa lama)
         timeout: 600000,
         success: function (response) {
           if (response.success) {
             $statusArea.html(
               '<div class="notice notice-success is-dismissible">' +
               "<p>✅ " +
-              response.data.message +
+              (response.data.message || "Proses selesai!") +
               "</p></div>"
             );
+            // Reload page after a short delay to show updated status badges
+            setTimeout(function () {
+              location.reload();
+            }, 2000);
           } else {
             $statusArea.html(
               '<div class="notice notice-error is-dismissible">' +
               "<p>❌ " +
-              (response.data.message || "Pipeline gagal.") +
+              (response.data.message || "Proses gagal.") +
               "</p></div>"
             );
           }
@@ -62,7 +89,7 @@
         error: function (xhr, status, error) {
           var msg =
             status === "timeout"
-              ? "Request timeout (>10 menit). Cek log untuk status pipeline."
+              ? "Request timeout (>10 menit). Cek log untuk status."
               : "Network error: " + error;
 
           $statusArea.html(
@@ -73,18 +100,17 @@
           );
         },
         complete: function () {
-          // Hentikan polling log
           stopLogPolling();
-          // Sekali lagi refresh log terakhir
           refreshLogs();
-          // Re-enable tombol
-          $runBtn.prop("disabled", false).val("Running Finished");
-          setTimeout(function () {
-            $runBtn.val("▶ Run Now");
-          }, 3000);
+          $button.prop("disabled", false);
+          if (isInput) {
+            $button.val(originalText);
+          } else {
+            $button.text(originalText);
+          }
         },
       });
-    });
+    }
 
     /**
      * Mulai polling log

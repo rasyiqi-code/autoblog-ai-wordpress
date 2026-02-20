@@ -111,7 +111,7 @@ class SearchSource implements SourceInterface {
                 $content = $this->extract_ai_overview_content( $json['ai_overview'] );
                 if ( $content ) {
                     Logger::log("Fetched SerpApi: AI Mode (Priority 1)", 'info');
-                    return [ $this->build_item( "AI Mode: " . $this->query, $content, "google_ai_mode" ) ];
+                    return [ $this->build_item( $this->query, $content, "google_ai_mode" ) ];
                 } else {
                      Logger::log( "SerpApi AI Mode (Priority 1) 'ai_overview' found but extraction failed.", 'warning' );
                 }
@@ -138,7 +138,7 @@ class SearchSource implements SourceInterface {
                 
                 if ( $content ) {
                     Logger::log("Fetched SerpApi: AI Mode via text_blocks (Priority 1)", 'info');
-                    return [ $this->build_item( "AI Mode: " . $this->query, $content, "google_ai_mode" ) ];
+                    return [ $this->build_item( $this->query, $content, "google_ai_mode" ) ];
                 }
             } else {
                 Logger::log( "SerpApi AI Mode (Priority 1) returned no 'text_blocks'. content keys: " . substr(print_r(array_keys($json), true), 0, 100), 'warning' );
@@ -219,7 +219,7 @@ class SearchSource implements SourceInterface {
                  $content = $this->extract_ai_overview_content( $json['ai_overview'] );
                  if ( $content ) {
                      Logger::log("Fetched SerpApi: AI Overview via Standard (Priority 3)", 'info');
-                     return [ $this->build_item( "AI Overview: " . $this->query, $content, "google_ai_overview" ) ];
+                     return [ $this->build_item( $this->query, $content, "google_ai_overview" ) ];
                  }
             }
         } catch ( \Exception $e ) {

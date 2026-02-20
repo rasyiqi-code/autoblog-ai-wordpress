@@ -68,13 +68,8 @@ class AngleInjector {
 		$angle = $this->ai_client->generate_text( $prompt, $model, $provider );
 
         if ( ! $angle ) {
-            Logger::log( "Primary model {$model} ({$provider}) failed. Attempting fallback...", 'warning' );
-            $fallback_model = $this->ai_client->get_fallback_model( $model );
-            
-            if ( $fallback_model ) {
-                Logger::log( "Falling back to: {$fallback_model}", 'info' );
-                $angle = $this->ai_client->generate_text( $prompt, $fallback_model );
-            }
+            Logger::log( "AngleInjector: Rantai fallback generate_text gagal sepenuhnya. Mengembalikan false.", 'error' );
+            return false;
         }
 
         return $angle;

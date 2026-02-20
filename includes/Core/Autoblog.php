@@ -149,6 +149,9 @@ class Autoblog {
 
 		// AJAX handlers (Run Pipeline & Get Logs tanpa reload)
 		$this->loader->add_action( 'wp_ajax_autoblog_run_pipeline', $plugin_admin, 'ajax_run_pipeline' );
+		$this->loader->add_action( 'wp_ajax_autoblog_run_collector', $plugin_admin, 'ajax_run_collector' );
+		$this->loader->add_action( 'wp_ajax_autoblog_run_ideator', $plugin_admin, 'ajax_run_ideator' );
+		$this->loader->add_action( 'wp_ajax_autoblog_run_writer', $plugin_admin, 'ajax_run_writer' );
 		$this->loader->add_action( 'wp_ajax_autoblog_get_logs', $plugin_admin, 'ajax_get_logs' );
 
         // Scheduler

@@ -31,11 +31,13 @@ class ArticleWriter {
 	/**
 	 * Write an article based on data and angle.
 	 *
-	 * @param array  $data  Array of data items or a single data string.
-	 * @param string $angle The angle/perspective to take.
+	 * @param array  $data         Array of data items or a single data string.
+	 * @param string $angle        The angle/perspective to take.
+	 * @param string $context      Additional KB context.
+	 * @param array  $persona_data Optional persona data (name, desc, samples).
 	 * @return string|false The generated HTML content or false on failure.
 	 */
-	public function write_article( $data, $angle, $context = '' ) {
+	public function write_article( $data, $angle, $context = '', $persona_data = null ) {
 		
         // Format data for the prompt
         $data_string = '';
@@ -61,35 +63,43 @@ class ArticleWriter {
         } else {
             $data_string = substr( $this->clean_text($data), 0, 4000 );
         }
-
-        // DYNAMIC PERSONA ENGINE (INDONESIAN LOCALIZED)
-        $personas = [];
-
-        // Fetch Custom Personas (including seeded defaults)
-        $stored_personas = get_option( 'autoblog_custom_personas', array() );
         
-        if ( ! empty( $stored_personas ) && is_array( $stored_personas ) ) {
-            foreach ( $stored_personas as $p ) {
-                // Check if active (default true if key missing for safety)
-                $is_active = isset($p['active']) ? $p['active'] : true;
-                
-                if ( $is_active && ! empty( $p['name'] ) && ! empty( $p['desc'] ) ) {
-                    $personas[ $p['name'] ] = $p['desc'];
+        // DYNAMIC PERSONA ENGINE (INDONESIAN LOCALIZED)
+        $persona_key = '';
+        $persona_desc = '';
+        $samples = '';
+
+        if ( ! empty( $persona_data ) && isset( $persona_data['name'], $persona_data['desc'] ) ) {
+            $persona_key = $persona_data['name'];
+            $persona_desc = $persona_data['desc'];
+            $samples = isset( $persona_data['samples'] ) ? $persona_data['samples'] : '';
+        } else {
+            // Fallback to random selection if no specific persona assigned
+            $personas = [];
+            $stored_personas = get_option( 'autoblog_custom_personas', array() );
+            if ( ! empty( $stored_personas ) && is_array( $stored_personas ) ) {
+                foreach ( $stored_personas as $p ) {
+                    $is_active = isset($p['active']) ? $p['active'] : true;
+                    if ( $is_active && ! empty( $p['name'] ) && ! empty( $p['desc'] ) ) {
+                        $personas[ $p['name'] ] = $p['desc'];
+                    }
                 }
             }
+            if ( empty( $personas ) ) {
+                $personas['Si Netral'] = 'seorang asisten yang membantu dan informatif. Tulis dengan gaya standar yang jelas dan mudah dipahami.';
+            }
+            $persona_key = array_rand( $personas );
+            $persona_desc = $personas[$persona_key];
+            $samples = get_option( 'autoblog_personality_samples', '' );
         }
-        
-        // Fallback if NO personas are active
-        if ( empty( $personas ) ) {
-             $personas['Si Netral'] = 'seorang asisten yang membantu dan informatif. Tulis dengan gaya standar yang jelas dan mudah dipahami.';
-        }
-
-        $persona_key = array_rand( $personas );
-        $persona_desc = $personas[$persona_key];
 
 		$prompt = "KAMU BUKAN AI. Kamu adalah {$persona_key} ({$persona_desc}). \n";
         $prompt .= "Tugasmu adalah menulis artikel blog dalam BAHASA INDONESIA yang sangat manusiawi, emosional, dan TIDAK TERDETEKSI sebagai mesin. \n\n";
         
+        if ( ! empty( $samples ) ) {
+            $prompt .= "STYLE REFERENCE (Tiru gaya tulis ini): \n\"{$samples}\"\n\n";
+        }
+
         if ( ! empty( $context ) ) {
              $prompt .= "REFERENSI KNOWLEDGE BASE (Gunakan fakta/data dari sini jika relevan, tapi jangan copy-paste): \n";
              $prompt .= substr( $context, 0, 5000 ) . "\n\n";
@@ -125,10 +135,11 @@ class ArticleWriter {
         $prompt .= "Konteks Tambahan:\n{$context}\n\n";
 
         $prompt .= "ATURAN FORMATING:\n";
-        $prompt .= "1. Gunakan tag <h1> untuk judul utama, <h2> dan <h3> untuk subjudul.\n";
-        $prompt .= "2. Gunakan <p> untuk paragraf, <ul>/<ol> untuk list, blockquote untuk kutipan.\n";
-        $prompt .= "3. JANGAN gunakan Markdown (NO **bold**, NO # Heading). Gunakan HTML tag langsung (<strong>, <h1>).\n";
-        $prompt .= "4. Panjang artikel minimal 800 kata.\n";
+        $prompt .= "1. Kamu WAJIB mengawali artikel dengan Judul Utama yang sangat menawan (SEO-Friendly & Provokatif). Judul ini WAJIB dibungkus dengan tag <h1>Judul Utama</h1> di baris paling pertama.\n";
+        $prompt .= "2. Gunakan tag HTML MURNI (Gunakan <p> untuk paragraf pembuka, <ul>/<ol> untuk list, <h2>/<h3> untuk sub-judul).\n";
+        $prompt .= "3. JAGA PARAGRAF TETAP PENDEK. Maksimal 2-3 kalimat per paragraf (<p>). Jangan biarkan teks menumpuk rapat seperti dinding teks, buatlah lebih banyak jarak.\n";
+        $prompt .= "4. HARAM menggunakan Markdown (NO **bold**, NO # Heading). Gunakan HTML tag secara langsung (<strong>, <em>, <h2>).\n";
+        $prompt .= "5. Panjang artikel minimal 800 kata.\n";
         
         $prompt .= "FITUR MULTI-MODAL (CHART):\n";
         $prompt .= "Jika konten mengandung data statistik/perbandingan, kamu BISA menyertakan konfigurasi Chart di AKHIR artikel dalam format JSON block:\n";
@@ -157,13 +168,8 @@ class ArticleWriter {
         $response_text = $this->ai_client->generate_text( $prompt, $model, $provider, 0.9 );
 
         if ( ! $response_text ) {
-            Logger::log( "Primary model {$model} ({$provider}) failed. Attempting fallback...", 'warning' );
-            $fallback_model = $this->ai_client->get_fallback_model( $model );
-            
-            if ( $fallback_model ) {
-                 Logger::log( "Falling back to: {$fallback_model}", 'info' );
-                 $response_text = $this->ai_client->generate_text( $prompt, $fallback_model, '', 0.9 );
-            }
+            Logger::log( "ArticleWriter: Seluruh percobaan generate text (berserta Fallback-nya) telah gagal atau dihentikan Circuit Breaker.", 'error' );
+            return false;
         }
 
         // Strip markdown code blocks jika AI membungkus output dalam ```html ... ```
@@ -186,11 +192,12 @@ class ArticleWriter {
      * Ekstrak konfigurasi JSON Chart dari output AI dan ganti dengan Image URL.
      */
     private function process_chart_json( $content ) {
-        // Regex untuk menangkap blok JSON ```json ... ``` atau sekedar { "chart": ... } di akhir
-        if ( preg_match( '/```json\s*(\{.*?"chart".*?\})\s*```/s', $content, $matches ) || 
-             preg_match( '/(\{.*?"chart".*?\})$/s', $content, $matches ) ) {
+        // Regex super agresif untuk menangkap blok JSON terlepas dari typo markdown AI (seperti ”json, 'json', dll.)
+        // Mencari kata "json" yang dikelilingi kutip/backtick opsional, dilanjut isi JSON, lalu kutip/backtick penutup opsional.
+        if ( preg_match( '/(?:```|”|"|\'|&rdquo;|&quot;)?\s*json(?:```|”|"|\'|&rdquo;|&quot;)?\s*(\{.*"chart".*\})\s*(?:```|”|"|\'|&rdquo;|&quot;)?/is', $content, $matches ) ||
+             preg_match( '/(\{.*"chart".*\})\s*(?:```|”|"|\'|&rdquo;|&quot;)?\s*$/is', $content, $matches ) ) {
             
-            $json_str = $matches[1];
+            $json_str = trim( $matches[1] );
             $json_data = json_decode( $json_str, true );
 
             if ( $json_data && isset( $json_data['chart'] ) ) {
