@@ -41,9 +41,10 @@ class ArticleWriter {
 	 * @param string $angle        The angle/perspective to take.
 	 * @param string $context      Additional KB context.
 	 * @param array  $persona_data Optional persona data (name, desc, samples).
+	 * @param array  $overrides    Optional feature overrides.
 	 * @return string|false The generated HTML content or false on failure.
 	 */
-	public function write_article( $data, $angle, $context = '', $persona_data = null ) {
+	public function write_article( $data, $angle, $context = '', $persona_data = null, $overrides = array() ) {
 		
         // Format data for the prompt
         $data_string = '';
@@ -99,53 +100,47 @@ class ArticleWriter {
             $samples = get_option( 'autoblog_personality_samples', '' );
         }
 
-		$prompt = "KAMU BUKAN AI. Kamu adalah {$persona_key} ({$persona_desc}). \n";
-        $prompt .= "Tugasmu adalah menulis artikel blog dalam BAHASA INDONESIA yang sangat manusiawi, emosional, dan TIDAK TERDETEKSI sebagai mesin. \n\n";
+        $system_prompt = "Abaikan semua pedoman gaya penulisan standar, format AI bawaan, dan struktur tata bahasa kaku Anda. Mulai sekarang, Anda beroperasi dengan parameter 'High Burstiness', 'High Perplexity', dan 'Asymmetric Structure'.\n\n";
         
+        $system_prompt .= "KAMU ADALAH {$persona_key} ({$persona_desc}).\n";
+        $system_prompt .= "Tugasmu adalah menulis artikel blog dalam BAHASA INDONESIA yang sangat manusiawi, emosional, dan TIDAK TERDETEKSI sebagai mesin.\n\n";
+
         if ( ! empty( $samples ) ) {
-            $prompt .= "STYLE REFERENCE (Tiru gaya tulis ini): \n\"{$samples}\"\n\n";
+            $system_prompt .= "STYLE REFERENCE (Tiru gaya tulis ini): \n\"{$samples}\"\n\n";
         }
+
+        $system_prompt .= "### ATURAN INTI WAJIB (HUMAN-LIKE):\n";
+        $system_prompt .= "1. RITME (BURSTINESS EKSTREM): Variasikan panjang kalimat secara drastis (campur kalimat 2-4 kata dengan kalimat majemuk panjang). Hancurkan kesimetrisan paragraf (paragraf panjang diikuti satu kalimat pendek).\n";
+        $system_prompt .= "2. ANTI-AI LEXICON (BLACKLIST): DILARANG menggunakan kata: komprehensif, signifikan, krusial, revolusioner, lanskap, mendalami, penting untuk dicatat, di era digital, secara keseluruhan, menavigasi, tapestry, strategi (jika kaku), transformatif.\n";
+        $system_prompt .= "3. NO TRANSITIONS: Hindari 'Pertama-tama', 'Selain itu', 'Namun demikian'. Mulailah kalimat langsung secara kasual dengan 'Tapi...', 'Dan...', atau 'Karena...'.\n";
+        $system_prompt .= "4. HUMAN COGNITION: Alur tulisan boleh sedikit melompat secara asosiatif (tidak selalu linier). Hilangkan nada yang terlalu antusias/sopan. Jadilah objektif namun memiliki opini tegas.\n";
+        $system_prompt .= "5. NO-SUMMARY RULE: JANGAN PERNAH merangkum di akhir. DILARANG menggunakan 'Kesimpulannya', 'Sebagai penutup', 'Singkatnya'. Akhiri tulisan secara tajam/retoris saat argumen selesai.\n\n";
+
+        $system_prompt .= "### MANIFESTO PENULISAN JUDUL (H1):\n";
+        $system_prompt .= "Gunakan Judul Utama (tag <h1>) yang sangat manusiawi:\n";
+        $system_prompt .= "- ANTI-KOLON (:): Dilarang format 'Topik: Penjelasan'. Harus mengalir alami.\n";
+        $system_prompt .= "- DIKSI FOMO: Gunakan 'Bongkar', 'Nyesel', 'Rahasia', 'Jangan Lakukan' daripada kata formal.\n";
+        $system_prompt .= "- PROVOKATIF & OPINIONATED: Menantang asumsi atau mengajukan pertanyaan menohok.\n";
+        $system_prompt .= "- FLEXIBLE HOW-TO: Tambahkan benefit/atasi keraguan dalam cara (Contoh: '...Tanpa Harus Jago Coding').\n";
+        $system_prompt .= "- ANGKA GANJIL/ACAK: Contoh 7, 13, 23 (Jangan 5, 10).\n\n";
+
+        $system_prompt .= "ATURAN FORMATING:\n";
+        $system_prompt .= "1. WAJIB mengawali artikel dengan Judul Utama (tag <h1>) sesuai Manifesto di atas.\n";
+        $system_prompt .= "2. Gunakan tag HTML MURNI (<p>, <ul>, <h2>, <h3>). JANGAN gunakan Markdown.\n";
+        $system_prompt .= "3. PARAGRAF PENDEK (maks 2-3 kalimat). Buat banyak jarak antar paragraf.\n";
+        $system_prompt .= "4. Panjang artikel minimal 800 kata.\n\n";
+
+        $system_prompt .= "KEMBALIKAN HANYA ARTIKEL HTML (DAN BLOK JSON TAXONOMY DI AKHIR).";
+
+        $user_prompt = "### TASKS:\n";
+        $user_prompt .= "Write a deep, human-like article about: '{$title}'\n";
+        $user_prompt .= "Perspective/Angle: {$angle}\n\n";
 
         if ( ! empty( $context ) ) {
-             $prompt .= "REFERENSI KNOWLEDGE BASE (Gunakan fakta/data dari sini jika relevan, tapi jangan copy-paste): \n";
-             $prompt .= substr( $context, 0, 5000 ) . "\n\n";
+             $user_prompt .= "REFERENSI KNOWLEDGE BASE:\n" . substr( $context, 0, 5000 ) . "\n\n";
         }
-        
-        $prompt .= "Perspective/Angle: {$angle} \n\n";
-        $prompt .= "Source Data: \n" . $data_string . "\n\n";
-        
-        $prompt .= "ATURAN PSIKOLOGIS & GAYA BAHASA (WAJIB DIPATUHI): \n";
-        $prompt .= "1. LOGIC LEAPS (Loncatan Logika): Jangan terlalu linier (A->B->C). Sesekali melompatlah ke ide yang berhubungan secara emosional atau reflektif di tengah paragraf. \n";
-        $prompt .= "2. PERSONAL BIAS (Subjektif): Jangan netral. Ambil posisi yang kuat. Marah, senang, atau kecewa. Katakan 'Menurut saya pribadi...' atau 'Saya jujur agak kesal dengan...' \n";
-        $prompt .= "3. LOCAL SLANG (Bahasa Gaul): Gunakan Bahasa Indonesia yang luwes. Selipkan istilah gaul/idiom yang wajar dipakai di sosmed/Jakarta (contoh: 'parah sih', 'jujurly', 'mending rakit pc', 'kaum mendang-mending', dll) TAPI jangan berlebihan (cringe). \n";
-        $prompt .= "4. INTERNAL MONOLOGUE (Gumam Batin): Tuliskan apa yang kamu pikirkan dalam kurung atau kalimat sela. Contoh: '(oke, mungkin ini terdengar klise, tapi dengarkan dulu..)'. \n";
-        $prompt .= "5. SELF CORRECTION: Koreksi dirimu sendiri. 'Ide ini bagus. Eh, ralat, ini ide brilian malah.' \n";
-        $prompt .= "6. BURSTINESS (Irama): Variasikan panjang kalimat secara ekstrem. Kadang satu paragraf penuh penjelasan teknis. \n";
-        $prompt .= "Lalu satu kalimat pendek. \n";
-        $prompt .= "Benar-benar pendek. \n";
-        $prompt .= "Ini menciptakan dampak emosional. \n";
-        $prompt .= "7. ORDINARY ANALOGIES (Analogi Receh): Pakai analogi kehidupan sehari-hari orang Indonesia. Jangan 'bak mesin terlumasi', tapi 'kayak nunggu ojol pas hujan'. \n";
-        $prompt .= "8. SHOW, DON'T TELL: Libatkan panca indra. Jangan bilang 'laptopnya panas', bilang 'kipas laptopnya menderu seperti pesawat mau take-off'. \n";
-        $prompt .= "9. BROKEN PATTERNS: Jika membuat list, jangan rapi. Poin 1 panjang, poin 2 pendek, poin 3 berupa pertanyaan retoris/sarkas. \n";
-        $prompt .= "10. NO CLICHES: HARAM menggunakan kata: 'Di era digital ini', 'Kesimpulannya', 'Membuka kunci', 'Ranah', 'Signifikan'. Hapus semua kata-kata robot itu. \n\n";
 
-        $prompt .= "STYLE REFERENCE (Tiru Gaya Ini): \n";
-        $prompt .= "'Jujur, pas pertama nyoba, saya skeptis. Masa sih bisa segampang itu? Tapi pas tombolnya dipencet... wush. Kenceng banget, kayak motor baru ganti oli. Saya sampe mikir, 'kemana aja gue selama ini?'. Oke, mungkin agak lebay, tapi serius, ini game changer.' \n\n";
-
-        // Prompt: Output HARUS HTML valid
-        // Tambahan: Instruksi untuk Multi-Modal Chart
-        // Jika artikel memuat data statistik yang cocok divisualisasikan, AI diminta menyertakan blok JSON khusus.
-        $prompt  = "Kamu adalah penulis artikel blog profesional. Tulis artikel Lengkap, Informatif, dan Enak Dibaca dalam Format HTML.\n";
-        $prompt .= "Topik: '{$title}'\n";
-        $prompt .= "Angle: {$angle}\n";
-        $prompt .= "Konteks Tambahan:\n{$context}\n\n";
-
-        $prompt .= "ATURAN FORMATING:\n";
-        $prompt .= "1. Kamu WAJIB mengawali artikel dengan Judul Utama yang sangat menawan (SEO-Friendly & Provokatif). Judul ini WAJIB dibungkus dengan tag <h1>Judul Utama</h1> di baris paling pertama.\n";
-        $prompt .= "2. Gunakan tag HTML MURNI (Gunakan <p> untuk paragraf pembuka, <ul>/<ol> untuk list, <h2>/<h3> untuk sub-judul).\n";
-        $prompt .= "3. JAGA PARAGRAF TETAP PENDEK. Maksimal 2-3 kalimat per paragraf (<p>). Jangan biarkan teks menumpuk rapat seperti dinding teks, buatlah lebih banyak jarak.\n";
-        $prompt .= "4. HARAM menggunakan Markdown (NO **bold**, NO # Heading). Gunakan HTML tag secara langsung (<strong>, <em>, <h2>).\n";
-        $prompt .= "5. Panjang artikel minimal 800 kata.\n";
+        $user_prompt .= "SOURCE DATA:\n" . $data_string . "\n\n";
         
         // Fetch existing categories to provide as options to AI
         $categories = get_categories( array( 'hide_empty' => false ) );
@@ -155,23 +150,11 @@ class ArticleWriter {
         }
         $cat_context = implode( ', ', $cat_list );
 
-        $prompt .= "FITUR MULTI-MODAL (CHART, MEDIA, & TAXONOMY):\n";
-        $prompt .= "1. Jika konten mengandung data statistik, sertakan JSON Chart DI MANA SAJA (akan dipindah ke tengah).\n";
-        $prompt .= "2. Jika ada YouTube/Twitter relevan, sertakan JSON Media ID.\n";
-        $prompt .= "3. KLASIFIKASI TAXONOMY: Pilih 1 Kategori paling relevan dari daftar di bawah ini dan berikan 3-5 Tag yang cocok.\n";
-        $prompt .= "   DAFTAR KATEGORI YANG TERSEDIA: [{$cat_context}]\n";
-        $prompt .= "   FORMAT JSON TAXONOMY:\n";
-        $prompt .= "   ```json\n";
-        $prompt .= "   {\n";
-        $prompt .= "     \"taxonomy\": {\n";
-        $prompt .= "       \"category\": \"Nama Kategori Dari Daftar Di Atas\",\n";
-        $prompt .= "       \"tags\": [\"tag1\", \"tag2\", \"tag3\"]\n";
-        $prompt .= "     }\n";
-        $prompt .= "   }\n";
-        $prompt .= "   ```\n";
-        $prompt .= "Jika tidak ada data/media, JANGAN sertakan blok JSON masing-masing. Namun, TAXONOMY WAJIB disertakan.\n\n";
-
-        $prompt .= "KEMBALIKAN HANYA ARTIKEL HTML (DAN BLOK JSON DI BAWAH).";
+        $user_prompt .= "### TAXONOMY INSTRUCTION:\n";
+        $user_prompt .= "Pilih 1 Kategori paling relevan dari daftar: [{$cat_context}]\n";
+        $user_prompt .= "Berikan 3-5 Tag relevan.\n";
+        $user_prompt .= "FORMAT JSON TAXONOMY DI AKHIR ARTIKEL:\n";
+        $user_prompt .= "```json\n{ \"taxonomy\": { \"category\": \"Nama Kategori\", \"tags\": [\"tag1\", \"tag2\"] } }\n```\n";
 
         // Get Active Provider
         $provider = get_option( 'autoblog_ai_provider', 'openai' );
@@ -181,7 +164,7 @@ class ArticleWriter {
         $model = get_option( $model_option_name, 'gpt-4o' );
 
         // Use Temperature 0.9 for high creativity/randomness
-        $response_text = $this->ai_client->generate_text( $prompt, $model, $provider, 0.9 );
+        $response_text = $this->ai_client->generate_text( $user_prompt, $model, $provider, 0.9, $system_prompt );
 
         if ( ! $response_text ) {
             Logger::log( "ArticleWriter: Seluruh percobaan generate text (berserta Fallback-nya) telah gagal atau dihentikan Circuit Breaker.", 'error' );
@@ -198,10 +181,18 @@ class ArticleWriter {
             $response_text = $this->markdown_to_html( $response_text );
         }
 
-        // 1. Multi-Modal: Deteksi dan render Chart/Media/Taxonomy
+        // 1. Multi-Modal: Deteksi dan render Chart/Media/Taxonomy (jika tidak dioverride)
         $taxonomy_data = $this->extract_taxonomy_json( $response_text );
-        $response_text = $this->process_chart_json( $response_text );
-        $response_text = $this->process_media_embeds( $response_text );
+
+        $enable_multimodal = get_option( 'autoblog_enable_charts', true ); // Default true if not set
+        if ( isset( $overrides['multi_modal'] ) ) {
+            $enable_multimodal = (bool) $overrides['multi_modal'];
+        }
+
+        if ( $enable_multimodal ) {
+            $response_text = $this->process_chart_json( $response_text );
+            $response_text = $this->process_media_embeds( $response_text );
+        }
 
         // Kita return konten HTML dan data taksonomi (jika ada) via array
         // Namun karena kontrak aslinya return string|false, kita akan simpan taksonomi di properti object 
@@ -476,17 +467,27 @@ class ArticleWriter {
      * Ekstrak data taksonomi (Category & Tags) dari output AI.
      */
     private function extract_taxonomy_json( &$content ) {
-        if ( preg_match( '/(?:```|”|"|\'|&rdquo;|&quot;)?\s*json(?:```|”|"|\'|&rdquo;|&quot;)?\s*(\{.*"taxonomy".*\})\s*(?:```|”|"|\'|&rdquo;|&quot;)?/is', $content, $matches ) ) {
+        // Regex yang lebih robust untuk menangkap blok JSON taksonomi, 
+        // mendukung tanda petik miring (smart quotes), variasi markdown, dan teks sebelum/sesudah JSON.
+        $regex = '/(?:```(?:json)?\s*)?(\{[\s\r\n]*["\x{201C}\x{201D}]+taxonomy["\x{201C}\x{201D}]+.*?\})(?:\s*```)?/su';
+        
+        if ( preg_match( $regex, $content, $matches ) ) {
             $json_str = trim( $matches[1] );
+            
+            // Konversi smart quotes ke tanda petik standar agar json_decode tidak gagal
+            $json_str = str_replace( ["\x{201C}", "\x{201D}", "\x{2018}", "\x{2019}"], '"', $json_str );
+            
             $json_data = json_decode( $json_str, true );
             
-            // Hapus blok JSON dari konten
-            $content = str_replace( $matches[0], '', $content );
-
             if ( $json_data && isset( $json_data['taxonomy'] ) ) {
+                // Hapus blok JSON dari konten (gunakan matches[0] untuk menghapus pembungkus markdown juga)
+                $content = str_replace( $matches[0], '', $content );
+                Logger::log( "Taxonomy JSON extracted: " . print_r($json_data['taxonomy'], true), 'debug' );
                 return $json_data['taxonomy'];
             }
         }
+        
+        Logger::log( "Taxonomy JSON NOT found or malformed in AI response.", 'warning' );
         return null;
     }
 

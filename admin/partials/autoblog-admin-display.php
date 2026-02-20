@@ -91,6 +91,19 @@
                 <div class="card" style="max-width: 100%; margin-top: 20px;">
                     <h2>Manual Trigger</h2>
                     <p>Jalankan seluruh pipeline autoblog secara manual.</p>
+                    
+                    <div style="background: #f9f9f9; padding: 15px; border: 1px solid #ccd0d4; border-radius: 4px; margin-bottom: 15px;">
+                        <p><strong>Opsi Cepat (Overrides):</strong></p>
+                        <ul style="margin: 0; padding: 0; list-style: none;">
+                            <li><label><input type="checkbox" class="autoblog-override" data-feature="dynamic_search" <?php checked( get_option('autoblog_enable_dynamic_search'), true ); ?>> 🔍 Dynamic Search Agent (Brainstorm Query)</label></li>
+                            <li><label><input type="checkbox" class="autoblog-override" data-feature="deep_research" <?php checked( get_option('autoblog_enable_deep_research'), true ); ?>> 🧠 Deep Research Agent (Multi-hop Search)</label></li>
+                            <li><label><input type="checkbox" class="autoblog-override" data-feature="interlinking" <?php checked( get_option('autoblog_enable_interlinking'), true ); ?>> 🔗 Autonomous Interlinking (Smart Linking)</label></li>
+                            <li><label><input type="checkbox" class="autoblog-override" data-feature="multi_modal" <?php checked( get_option('autoblog_enable_charts'), true ); ?>> 📊 Multi-Modal Content (Charts & Embeds)</label></li>
+                            <li><label><input type="checkbox" class="autoblog-override" data-feature="living_content" <?php checked( get_option('autoblog_enable_living_content'), true ); ?>> 🔄 Living Content Refresh (Update 1 stale post)</label></li>
+                        </ul>
+                        <p class="description" style="margin-top: 10px;">Catatan: Centang untuk mengaktifkan fitur tersebut pada pemicuan manual ini (tidak merubah pengaturan global).</p>
+                    </div>
+
                     <input type="button" id="autoblog-run-now-btn" class="button button-primary" value="▶ Run Now">
                     <div id="autoblog-run-status" style="margin-top: 10px;"></div>
                 </div>
@@ -110,8 +123,23 @@
                                         <option value="hourly" <?php selected( get_option('autoblog_cron_schedule'), 'hourly' ); ?>>Hourly</option>
                                         <option value="twicedaily" <?php selected( get_option('autoblog_cron_schedule'), 'twicedaily' ); ?>>Twice Daily</option>
                                         <option value="daily" <?php selected( get_option('autoblog_cron_schedule'), 'daily' ); ?>>Daily</option>
+                                        <option value="weekly" <?php selected( get_option('autoblog_cron_schedule'), 'weekly' ); ?>>Weekly</option>
+                                        <option value="monthly" <?php selected( get_option('autoblog_cron_schedule'), 'monthly' ); ?>>Monthly</option>
                                     </select>
-                                    <p class="description">Seberapa sering pipeline dijalankan secara otomatis.</p>
+                                    <p class="description">Seberapa sering pipeline dijalankan untuk membuat artikel baru.</p>
+                                </td>
+                            </tr>
+                            <tr valign="top">
+                                <th scope="row">Living Content Schedule</th>
+                                <td>
+                                    <select name="autoblog_refresh_schedule">
+                                        <option value="daily" <?php selected( get_option('autoblog_refresh_schedule', 'daily'), 'daily' ); ?>>Daily (Recommended)</option>
+                                        <option value="twicedaily" <?php selected( get_option('autoblog_refresh_schedule'), 'twicedaily' ); ?>>Twice Daily</option>
+                                        <option value="hourly" <?php selected( get_option('autoblog_refresh_schedule'), 'hourly' ); ?>>Hourly (High Resource)</option>
+                                        <option value="weekly" <?php selected( get_option('autoblog_refresh_schedule'), 'weekly' ); ?>>Weekly</option>
+                                        <option value="monthly" <?php selected( get_option('autoblog_refresh_schedule'), 'monthly' ); ?>>Monthly</option>
+                                    </select>
+                                    <p class="description">Seberapa sering sistem mencari artikel lama untuk diperbarui (Living Content).</p>
                                 </td>
                             </tr>
                         </table>

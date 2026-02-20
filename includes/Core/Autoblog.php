@@ -152,12 +152,17 @@ class Autoblog {
 		$this->loader->add_action( 'wp_ajax_autoblog_run_collector', $plugin_admin, 'ajax_run_collector' );
 		$this->loader->add_action( 'wp_ajax_autoblog_run_ideator', $plugin_admin, 'ajax_run_ideator' );
 		$this->loader->add_action( 'wp_ajax_autoblog_run_writer', $plugin_admin, 'ajax_run_writer' );
+		$this->loader->add_action( 'wp_ajax_autoblog_ai_predict_taxonomy', $plugin_admin, 'ajax_ai_predict_taxonomy' );
 		$this->loader->add_action( 'wp_ajax_autoblog_get_logs', $plugin_admin, 'ajax_get_logs' );
+		$this->loader->add_action( 'wp_ajax_autoblog_test_gemini_grounding', $plugin_admin, 'ajax_test_gemini_grounding' );
 
         // Scheduler
         require_once plugin_dir_path( dirname( __FILE__ ) ) . '../includes/Publisher/UpdateScheduler.php';
         $scheduler = new \Autoblog\Publisher\UpdateScheduler();
         $this->loader->add_action( 'admin_init', $scheduler, 'schedule_event' );
+        $this->loader->add_action( 'update_option_autoblog_cron_schedule', $scheduler, 'reschedule_on_update' );
+        $this->loader->add_action( 'update_option_autoblog_refresh_schedule', $scheduler, 'reschedule_on_update' );
+        $this->loader->add_filter( 'cron_schedules', $scheduler, 'add_cron_intervals' );
 
         // Runner
         require_once plugin_dir_path( dirname( __FILE__ ) ) . '../includes/Core/Runner.php';

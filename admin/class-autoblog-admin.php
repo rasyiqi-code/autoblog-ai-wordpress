@@ -75,7 +75,12 @@ class Admin {
 	public function enqueue_scripts() {
 		// Hanya load di halaman plugin ini
 		$screen = get_current_screen();
-		if ( ! $screen || $screen->id !== 'toplevel_page_' . $this->plugin_name ) {
+		$allowed_screens = array(
+			'toplevel_page_' . $this->plugin_name,
+			'posts_page_autoblog-taxonomy-tools'
+		);
+
+		if ( ! $screen || ! in_array( $screen->id, $allowed_screens ) ) {
 			return;
 		}
 
@@ -92,6 +97,15 @@ class Admin {
 			'ajax_url' => admin_url( 'admin-ajax.php' ),
 			'nonce'    => wp_create_nonce( 'autoblog_ajax_nonce' ),
 		));
+
+		// Anti-conflict: WordPress kadang memuat script inline-edit-post secara paksa di edit.php?page=...
+		// yang memicu error inlineEditPost is not defined.
+		if ( $screen->id === 'posts_page_autoblog-taxonomy-tools' ) {
+			wp_dequeue_script( 'inline-edit-post' );
+			
+			// Sebagai jaring pengaman terakhir, kita inject dummy object via inline script
+			wp_add_inline_script( $this->plugin_name, 'var inlineEditPost = { init: function(){} };', 'before' );
+		}
 	}
 
 
@@ -105,6 +119,70 @@ class Admin {
 	 */
 	public function ajax_run_pipeline() {
 		$this->handle_ajax_pipeline_call( 'run_pipeline' );
+	}
+
+	/**
+	 * AJAX Handler: AI-powered Taxonomy Prediction based on post title.
+	 */
+	public function ajax_ai_predict_taxonomy() {
+		check_ajax_referer( 'autoblog_ajax_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => 'Akses ditolak.' ) );
+		}
+
+		$post_ids = isset( $_POST['post_ids'] ) ? array_map( 'intval', $_POST['post_ids'] ) : array();
+
+		if ( empty( $post_ids ) ) {
+			wp_send_json_error( array( 'message' => 'Tidak ada post yang dipilih.' ) );
+		}
+
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/Utils/AIClient.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/Utils/Logger.php';
+		
+		$ai_client = new \Autoblog\Utils\AIClient();
+		
+		// Get existing categories
+		$categories = get_categories( array( 'hide_empty' => false ) );
+		$cat_list = array();
+		foreach ( $categories as $cat ) {
+			$cat_list[] = $cat->name;
+		}
+		$cat_context = implode( ', ', $cat_list );
+
+		$provider = get_option( 'autoblog_ai_provider', 'openai' );
+		$model_option_name = 'autoblog_' . $provider . '_model';
+		$model = get_option( $model_option_name, 'gpt-4o' );
+
+		$count = 0;
+		foreach ( $post_ids as $post_id ) {
+			$post = get_post( $post_id );
+			if ( ! $post ) continue;
+
+			$system_prompt = "You are a WordPress SEO Specialist. Your task is to categorize a blog post based ONLY on its title. Select the most relevant category from the provided list. Return ONLY the category name and nothing else.";
+			$user_prompt = "Post Title: \"{$post->post_title}\"\n\nAvailable Categories: [{$cat_context}]\n\nMost Relevant Category:";
+
+			$predicted_cat = $ai_client->generate_text( $user_prompt, $model, $provider, 0.3, $system_prompt );
+
+			if ( $predicted_cat ) {
+				$predicted_cat = trim( $predicted_cat, " \n\r\t\"'[]" );
+				$term = get_term_by( 'name', $predicted_cat, 'category' );
+				
+				if ( ! $term ) {
+					$term = get_term_by( 'slug', sanitize_title( $predicted_cat ), 'category' );
+				}
+
+				if ( $term && ! is_wp_error( $term ) ) {
+					wp_set_post_categories( $post_id, array( $term->term_id ) );
+					$count++;
+					\Autoblog\Utils\Logger::log( "AI Predicted category '{$term->name}' for post ID {$post_id}", 'info' );
+				}
+			}
+		}
+
+		wp_send_json_success( array(
+			'message' => "AI berhasil memprediksi dan menetapkan kategori untuk {$count} postingan.",
+		));
 	}
 
 	/**
@@ -129,6 +207,38 @@ class Admin {
 	}
 
 	/**
+	 * AJAX Handler: Test Gemini Grounding natively.
+	 */
+	public function ajax_test_gemini_grounding() {
+		check_ajax_referer( 'autoblog_ajax_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => 'Akses ditolak.' ) );
+		}
+
+		$prompt = isset( $_POST['prompt'] ) ? sanitize_text_field( $_POST['prompt'] ) : '';
+		$model  = isset( $_POST['model'] ) ? sanitize_text_field( $_POST['model'] ) : 'gemini-3.1-pro';
+
+		if ( empty( $prompt ) ) {
+			wp_send_json_error( array( 'message' => 'Prompt tidak boleh kosong.' ) );
+		}
+
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/Utils/AIClient.php';
+		$client = new \Autoblog\Utils\AIClient();
+		
+		// Paksa nyalakan grounding untuk test ini tanpa peduli setting global
+		add_filter( 'option_autoblog_gemini_grounding', function() { return '1'; } );
+
+		$result = $client->generate_text( $prompt, $model, 'gemini' );
+
+		if ( $result ) {
+			wp_send_json_success( array( 'answer' => $result ) );
+		} else {
+			wp_send_json_error( array( 'message' => 'Gagal mendapatkan respon dari Gemini. Cek Logs untuk detail error.' ) );
+		}
+	}
+
+	/**
 	 * Helper to handle AJAX pipeline calls consistently.
 	 */
 	private function handle_ajax_pipeline_call( $method ) {
@@ -148,8 +258,10 @@ class Admin {
 			require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/Core/Runner.php';
 			$runner = new \Autoblog\Core\Runner();
 			
+			$overrides = isset( $_POST['overrides'] ) ? $_POST['overrides'] : array();
+
 			if ( method_exists( $runner, $method ) ) {
-				$runner->$method();
+				$runner->$method( $overrides );
 				wp_send_json_success( array(
 					'message' => 'Proses ' . $method . ' selesai!',
 				));
@@ -202,6 +314,22 @@ class Admin {
 			110
 		);
 
+		add_submenu_page(
+			'edit.php',
+			'Auto-Set Taxonomy',
+			'Auto-Set Taxonomy',
+			'manage_options',
+			'autoblog-taxonomy-tools',
+			array( $this, 'display_taxonomy_tools_page' )
+		);
+
+	}
+
+	/**
+	 * Render the taxonomy tools page.
+	 */
+	public function display_taxonomy_tools_page() {
+		include_once 'partials/autoblog-admin-taxonomy-tools.php';
 	}
 
 	/**
@@ -386,6 +514,7 @@ class Admin {
 		register_setting( 'autoblog_keys', 'autoblog_hf_key' );
 		register_setting( 'autoblog_keys', 'autoblog_openrouter_key' );
 		register_setting( 'autoblog_keys', 'autoblog_serpapi_key' );
+		register_setting( 'autoblog_keys', 'autoblog_pexels_key' );
 
 		// ── Tab: AI Engine (group: autoblog_ai) ──
 		register_setting( 'autoblog_ai', 'autoblog_ai_provider' );
@@ -397,6 +526,11 @@ class Admin {
 		register_setting( 'autoblog_ai', 'autoblog_hf_model' );
 		register_setting( 'autoblog_ai', 'autoblog_embedding_provider' );
 		register_setting( 'autoblog_ai', 'autoblog_search_provider' );
+		register_setting( 'autoblog_ai', 'autoblog_gemini_grounding' );
+		register_setting( 'autoblog_ai', 'autoblog_thumbnail_source' );
+		register_setting( 'autoblog_ai', 'autoblog_enable_dalle' );
+		register_setting( 'autoblog_ai', 'autoblog_enable_stock_pexels' );
+		register_setting( 'autoblog_ai', 'autoblog_enable_stock_openverse' );
 		register_setting( 'autoblog_ai', 'autoblog_enable_fallback' );
 
 		// ── Tab: Data Sources (group: autoblog_ds) ──
@@ -417,6 +551,7 @@ class Admin {
 
 		// ── Tab: Tools & Logs — Cron (group: autoblog_ops) ──
 		register_setting( 'autoblog_ops', 'autoblog_cron_schedule' );
+		register_setting( 'autoblog_ops', 'autoblog_refresh_schedule' );
 	}
 
 }

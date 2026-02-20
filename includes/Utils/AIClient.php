@@ -98,12 +98,14 @@ class AIClient {
      * @param string $model  The model to use (default: gpt-4o).
      * @return string|false Generated text or false on failure.
      */
-	public function openai_completion( $prompt, $model = 'gpt-4o', $temperature = 0.7 ) {
+	public function openai_completion( $prompt, $model = 'gpt-4o', $temperature = 0.7, $system_prompt = '' ) {
 
 		if ( empty( $this->openai_key ) ) {
 			Logger::log( 'OpenAI API Key is missing.', 'error' );
 			return false;
 		}
+
+        $system_content = ! empty( $system_prompt ) ? $system_prompt : 'You are a helpful assistant.';
 
 		try {
 			$response = $this->client->post( 'https://api.openai.com/v1/chat/completions', [
@@ -115,7 +117,7 @@ class AIClient {
 					'model'    => $model,
                     'temperature' => (float) $temperature,
 					'messages' => [
-						[ 'role' => 'system', 'content' => 'You are a helpful assistant.' ],
+						[ 'role' => 'system', 'content' => $system_content ],
 						[ 'role' => 'user', 'content' => $prompt ],
 					],
 				],
@@ -141,11 +143,16 @@ class AIClient {
      * @param string $model The model to use (default: claude-3-5-sonnet-20240620).
      * @return string|false Generated text or false on failure.
      */
-    public function anthropic_completion( $prompt, $model = 'claude-3-5-sonnet-20240620', $temperature = 0.7 ) {
+    public function anthropic_completion( $prompt, $model = 'claude-3-5-sonnet-20240620', $temperature = 0.7, $system_prompt = '' ) {
         
         if ( empty( $this->anthropic_key ) ) {
             Logger::log( 'Anthropic API Key is missing.', 'error' );
             return false;
+        }
+
+        $messages = [['role' => 'user', 'content' => $prompt]];
+        if (!empty($system_prompt)) {
+            array_unshift($messages, ['role' => 'system', 'content' => $system_prompt]);
         }
 
         try {
@@ -159,9 +166,7 @@ class AIClient {
                     'model' => $model,
                     'max_tokens' => 2048,
                     'temperature' => (float) $temperature,
-                    'messages' => [
-                        ['role' => 'user', 'content' => $prompt]
-                    ]
+                    'messages' => $messages
                 ]
             ]);
 
@@ -183,16 +188,13 @@ class AIClient {
      * Priorities: OpenAI -> Anthropic -> Gemini -> Groq -> OpenRouter -> HF.
      *
      * @param string $exclude_model The model that just failed.
+     * @param string $provider      The provider of the failed model.
      * @return string|false A fallback model identifier or false.
      */
-    public function get_fallback_model( $exclude_model = '' ) {
+    public function get_fallback_model( $exclude_model = '', $provider = '' ) {
         
-        // Check if Smart Fallback is enabled
-        $enable_fallback = get_option( 'autoblog_enable_fallback', '0' );
-        if ( ! $enable_fallback ) {
-            Logger::log( 'Smart Fallback is DISABLED in settings.', 'warning' );
-            return false;
-        }
+        // Note: Smart Fallback (Cross-Provider) check is now moved specifically 
+        // to the cross-provider section to allow intra-provider pooling to always work.
 
         $defaults = [
             'openai'     => 'gpt-4o',
@@ -206,9 +208,13 @@ class AIClient {
         $pools = [
             'gemini' => [
                 'gemini-3.1-pro',
+                'gemini-3.0-pro',
+                'gemini-3.0-flash',
+                'gemini-2.5-pro',
                 'gemini-2.5-flash',
+                'gemini-2.5-flash-lite',
                 'gemini-2.0-flash',
-                'gemini-1.5-flash',
+                'gemini-2.0-flash-exp',
             ],
             'groq' => [
                 'llama-3.3-70b-versatile',
@@ -230,13 +236,26 @@ class AIClient {
         $has_openrouter = ! empty( $this->openrouter_key );
         
         // 1. INTRA-PROVIDER POOLING: Cek apakah model yang gagal punya cadangan di provider yang sama
-        $provider_of_failed = '';
-        if ( strpos( $exclude_model, 'gemini' ) !== false ) $provider_of_failed = 'gemini';
-        elseif ( strpos( $exclude_model, 'gpt' ) !== false ) $provider_of_failed = 'openai';
-        elseif ( strpos( $exclude_model, 'llama' ) !== false || strpos( $exclude_model, 'mixtral' ) !== false || strpos( $exclude_model, 'gemma' ) !== false ) $provider_of_failed = 'groq';
+        $provider_of_failed = $provider;
+        if ( empty( $provider_of_failed ) ) {
+            if ( strpos( $exclude_model, 'gemini' ) !== false ) $provider_of_failed = 'gemini';
+            elseif ( strpos( $exclude_model, 'gpt' ) !== false ) $provider_of_failed = 'openai';
+            elseif ( strpos( $exclude_model, 'claude' ) !== false ) $provider_of_failed = 'anthropic';
+            elseif ( strpos( $exclude_model, 'llama' ) !== false || strpos( $exclude_model, 'mixtral' ) !== false || strpos( $exclude_model, 'gemma' ) !== false ) $provider_of_failed = 'groq';
+        }
 
         if ( ! empty( $provider_of_failed ) && isset( $pools[ $provider_of_failed ] ) ) {
             $pool = $pools[ $provider_of_failed ];
+            
+            // Logika cerdas untuk 'auto':
+            // Jika mode 'auto' gagal, jangan coba model pertama di pool lagi 
+            // (krena 'auto' biasanya sudah memanggil model tercanggih/pertama di pool).
+            if ( $exclude_model === 'auto' || empty( $exclude_model ) ) {
+                $next_after_auto = ( isset( $pool[1] ) ) ? $pool[1] : $pool[0];
+                Logger::log( "Intra-Provider Fallback ({$provider_of_failed}): 'auto' failed, jumping to: " . $next_after_auto, 'debug' );
+                return $next_after_auto;
+            }
+
             $found_current = false;
             foreach ( $pool as $m ) {
                 if ( $found_current ) {
@@ -251,30 +270,37 @@ class AIClient {
         }
 
         // 2. CROSS-PROVIDER FALLBACK: Pindah ke provider lain jika pool atau provider utama gagal
+        // ONLY if Smart Fallback is enabled in settings.
+        $enable_fallback = get_option( 'autoblog_enable_fallback', '0' );
+        if ( ! $enable_fallback ) {
+            Logger::log( 'Smart Provider Switching (Cross-Provider) is DISABLED in settings.', 'info' );
+            return false;
+        }
+
         Logger::log( "Checking cross-provider fallback. Keys available: OpenAI=" . ($has_openai?1:0) . ", Anthropic=" . ($has_anthropic?1:0) . ", Groq=" . ($has_groq?1:0), 'info' );
 
         // If Gemini failed (and exhausted pool), try Groq -> OpenAI
-        if ( strpos( $exclude_model, 'gemini' ) !== false ) {
+        if ( $provider_of_failed === 'gemini' || strpos( $exclude_model, 'gemini' ) !== false ) {
              if ( $has_groq ) return $defaults['groq'];
              if ( $has_openai ) return $defaults['openai'];
              if ( $has_anthropic ) return $defaults['anthropic'];
         }
 
         // If OpenAI failed, try Anthropic -> Groq -> Gemini
-        if ( strpos( $exclude_model, 'gpt' ) !== false ) {
+        if ( $provider_of_failed === 'openai' || strpos( $exclude_model, 'gpt' ) !== false || strpos( $exclude_model, 'openai' ) !== false ) {
              if ( $has_anthropic ) return $defaults['anthropic'];
              if ( $has_groq ) return $defaults['groq'];
              if ( $has_gemini ) return $defaults['gemini'];
         }
 
         // If Anthropic failed, try OpenAI -> Groq
-        if ( strpos( $exclude_model, 'claude' ) !== false ) {
+        if ( $provider_of_failed === 'anthropic' || strpos( $exclude_model, 'claude' ) !== false ) {
              if ( $has_openai ) return $defaults['openai'];
              if ( $has_groq ) return $defaults['groq'];
         }
 
         // If Groq failed, try Gemini -> OpenAI
-        if ( strpos( $exclude_model, 'llama' ) !== false || strpos( $exclude_model, 'mixtral' ) !== false || strpos( $exclude_model, 'gemma' ) !== false ) {
+        if ( $provider_of_failed === 'groq' || strpos( $exclude_model, 'llama' ) !== false || strpos( $exclude_model, 'mixtral' ) !== false || strpos( $exclude_model, 'gemma' ) !== false ) {
              if ( $has_gemini ) return $defaults['gemini'];
              if ( $has_openai ) return $defaults['openai'];
         }
@@ -286,16 +312,18 @@ class AIClient {
      * Unified text generation method.
      * Matches model name to provider.
      * 
-     * @param string $prompt The prompt.
+     * @param string $prompt The user prompt.
      * @param string $model  The model identifier (optional if provider is set).
      * @param string $provider The provider to use (optional).
+     * @param float  $temperature Creativity level.
+     * @param string $system_prompt The global instructions for the AI.
      * @return string|false
      */
-    public function generate_text( $prompt, $model = '', $provider = '', $temperature = 0.7 ) {
+    public function generate_text( $prompt, $model = '', $provider = '', $temperature = 0.7, $system_prompt = '' ) {
         Logger::log( "AIClient: Generating text with model [{$model}] via [{$provider}]", 'debug' );
         
-        // Sanitasi UTF-8: prompt bisa mengandung teks KB dari PDF yang rusak
         $prompt = $this->sanitize_utf8( $prompt );
+        $system_prompt = $this->sanitize_utf8( $system_prompt );
 
         // If provider is not passed, try to detect from model name (backward compatibility)
         if ( empty( $provider ) ) {
@@ -309,16 +337,16 @@ class AIClient {
         $result = false;
         switch ( $provider ) {
             case 'openai':
-                $result = $this->openai_completion( $prompt, $model, $temperature );
+                $result = $this->openai_completion( $prompt, $model, $temperature, $system_prompt );
                 break;
             case 'anthropic':
-                $result = $this->anthropic_completion( $prompt, $model, $temperature );
+                $result = $this->anthropic_completion( $prompt, $model, $temperature, $system_prompt );
                 break;
             case 'gemini':
-                $result = $this->google_completion( $prompt, $model, $temperature );
+                $result = $this->google_completion( $prompt, $model, $temperature, $system_prompt );
                 break;
             case 'groq':
-                $result = $this->groq_completion( $prompt, $model, $temperature );
+                $result = $this->groq_completion( $prompt, $model, $temperature, $system_prompt );
                 break;
             case 'openrouter':
                  $result = $this->openrouter_completion( $prompt, str_replace( 'openrouter/', '', $model ), $temperature );
@@ -341,13 +369,13 @@ class AIClient {
                 $fallback_depth[$call_id] = 0;
             }
 
-            if ( $fallback_depth[$call_id] < 3 ) {
-                $fallback_model = $this->get_fallback_model( $model );
+            if ( $fallback_depth[$call_id] < 10 ) {
+                $fallback_model = $this->get_fallback_model( $model, $provider );
                 if ( $fallback_model ) {
                     $fallback_depth[$call_id]++;
                     Logger::log( "Model [{$model}] gagal. Auto-redirect -> [{$fallback_model}] (Lompatan ke-{$fallback_depth[$call_id]})...", 'warning' );
                     
-                    $new_result = $this->generate_text( $prompt, $fallback_model, '', $temperature );
+                    $new_result = $this->generate_text( $prompt, $fallback_model, '', $temperature, $system_prompt );
                     
                     // Bersihkan memori static jika berhasil
                     if ($new_result !== false) {
@@ -369,20 +397,22 @@ class AIClient {
     /**
      * Google Gemini Generation.
      */
-    public function google_completion( $prompt, $model, $temperature = 0.7 ) {
+    public function google_completion( $prompt, $model, $temperature = 0.7, $system_prompt = '' ) {
         if ( empty( $this->gemini_key ) ) {
             Logger::log( 'Google Gemini API Key is missing.', 'error' );
             return false;
         }
 
         // Handle 'auto' model request explicitly
-        if ( $model === 'auto' ) {
-            $model = 'gemini-3.1-pro'; // Default smartest model for 'auto'
+        if ( $model === 'auto' || empty($model) ) {
+            $model = 'gemini-3.1-pro'; // Default smartest model based on user list
         }
 
+        // Grounding with Google Search is a v1beta feature.
+        $version = 'v1beta';
         try {
             // Google API: https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}
-            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$this->gemini_key}";
+            $url = "https://generativelanguage.googleapis.com/{$version}/models/{$model}:generateContent?key={$this->gemini_key}";
             
             $postData = [
                 'contents' => [
@@ -393,6 +423,26 @@ class AIClient {
                 ]
             ];
 
+            // Add System Instruction if available (v1beta support)
+            if ( ! empty( $system_prompt ) ) {
+                $postData['system_instruction'] = [
+                    'parts' => [ [ 'text' => $system_prompt ] ]
+                ];
+            }
+
+            // Add Search Grounding if enabled
+            if ( get_option( 'autoblog_gemini_grounding', '0' ) === '1' ) {
+                $postData['tools'] = [
+                    [
+                        'google_search' => (object)[]
+                    ]
+                ];
+                Logger::log( "Gemini ({$version}): Google Search Grounding (google_search) ENABLED with default settings.", 'debug' );
+            }
+
+            // DEBUG: Log full payload for deep debug
+            Logger::log( "Gemini Request Payload ({$version}): " . json_encode($postData), 'debug' );
+
             $response = $this->request_with_backoff( 'POST', $url, [
                 'headers' => [ 'Content-Type' => 'application/json' ],
                 'json' => $postData
@@ -400,21 +450,22 @@ class AIClient {
 
             $body = json_decode( (string) $response->getBody(), true );
 
+            // DEBUG: Log full response for deep debug
+            Logger::log( "Gemini Response Body ({$version}): " . json_encode($body), 'debug' );
+
             if ( isset( $body['candidates'][0]['content']['parts'][0]['text'] ) ) {
                 return $body['candidates'][0]['content']['parts'][0]['text'];
             }
 
         } catch ( \Exception $e ) {
             $err_msg = $e->getMessage();
-            Logger::log( 'Gemini API Error: ' . $err_msg, 'error' );
+            
+            Logger::log( "Gemini API Error ({$version}): " . $err_msg, 'error' );
             
             // Log full response if available
             if ( method_exists($e, 'getResponse') && $e->getResponse() ) {
-                Logger::log( 'Gemini API Error Body: ' . (string) $e->getResponse()->getBody(), 'error' );
+                Logger::log( "Gemini API Error Body ({$version}): " . (string) $e->getResponse()->getBody(), 'error' );
             }
-            
-            // Note: We removed the internal 429 fallback here to let the global generate_text
-            // handle cross-provider switching immediately if desired.
         }
         return false;
     }

@@ -15,23 +15,113 @@ use GuzzleHttp\Client;
 class ThumbnailGenerator {
 
 	private $openai_key;
+	private $pexels_key;
 	private $client;
 
 	public function __construct() {
-		$this->openai_key = get_option( 'autoblog_openai_key' );
-		$this->client     = new Client();
+		$this->openai_key  = get_option( 'autoblog_openai_key' );
+		$this->pexels_key  = get_option( 'autoblog_pexels_key' );
+		$this->client      = new Client();
 	}
 
 	/**
-	 * Generate an image based on a prompt.
+	 * Generate an image based on a prompt or search.
 	 *
-	 * @param string $prompt The prompt for the image.
-	 * @return string|false The URL of the generated image or false on failure.
+	 * @param string $prompt The prompt or keywords for the image.
+	 * @return string|false The URL of the image or false on failure.
 	 */
 	public function generate_thumbnail( $prompt ) {
+		// Default to pexels if not set
+		$source = get_option( 'autoblog_thumbnail_source', 'pexels' );
+		Logger::log( "ThumbnailGenerator: Using source '{$source}' for prompt: '{$prompt}'", 'info' );
 
+		switch ( $source ) {
+			case 'openai':
+				return $this->generate_dalle( $prompt );
+
+			case 'openverse':
+				return $this->search_openverse( $prompt );
+
+			case 'random_stock':
+				$url = $this->search_pexels( $prompt );
+				if ( ! $url ) {
+					$url = $this->search_openverse( $prompt );
+				}
+				return $url;
+
+			case 'pexels':
+			default:
+				return $this->search_pexels( $prompt );
+		}
+	}
+
+	/**
+	 * Search for high-quality images on Pexels.
+	 */
+	private function search_pexels( $query ) {
+		if ( empty( $this->pexels_key ) ) {
+			Logger::log( 'Pexels API Key is missing.', 'warning' );
+			return false;
+		}
+
+		try {
+			$response = $this->client->get( 'https://api.pexels.com/v1/search', [
+				'headers' => [ 'Authorization' => $this->pexels_key ],
+				'query'   => [
+					'query'    => $query,
+					'per_page' => 1,
+					'orientation' => 'landscape'
+				]
+			]);
+
+			$body = json_decode( (string) $response->getBody(), true );
+
+			if ( ! empty( $body['photos'][0]['src']['large2x'] ) ) {
+				$url = $body['photos'][0]['src']['large2x'];
+				Logger::log( "Pexels: Found image URL: {$url}", 'info' );
+				return $url;
+			} else {
+				Logger::log( "Pexels: No photos found for query: '{$query}'", 'warning' );
+			}
+		} catch ( \Exception $e ) {
+			Logger::log( 'Pexels Search Error: ' . $e->getMessage(), 'error' );
+		}
+
+		return false;
+	}
+
+	/**
+	 * Search for openly licensed images on WordPress Openverse.
+	 */
+	private function search_openverse( $query ) {
+		try {
+			// Openverse API (Creative Commons search)
+			$response = $this->client->get( 'https://api.openverse.org/v1/images/', [
+				'query' => [
+					'q'        => $query,
+					'page_size' => 1,
+					'license_type' => 'commercial', // Filter for commercial use
+				]
+			]);
+
+			$body = json_decode( (string) $response->getBody(), true );
+
+			if ( ! empty( $body['results'][0]['url'] ) ) {
+				return $body['results'][0]['url'];
+			}
+		} catch ( \Exception $e ) {
+			Logger::log( 'Openverse Search Error: ' . $e->getMessage(), 'error' );
+		}
+
+		return false;
+	}
+
+	/**
+	 * Original DALL-E generation.
+	 */
+	private function generate_dalle( $prompt ) {
 		if ( empty( $this->openai_key ) ) {
-			Logger::log( 'OpenAI API Key is missing for image generation.', 'error' );
+			Logger::log( 'OpenAI API Key is missing for DALL-E.', 'error' );
 			return false;
 		}
 
@@ -60,7 +150,6 @@ class ThumbnailGenerator {
 		}
 
 		return false;
-
 	}
 
 	/**

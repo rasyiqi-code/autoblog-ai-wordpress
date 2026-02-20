@@ -30,17 +30,30 @@ class Runner {
 
     /**
      * Run the modular pipeline.
+     * 
+     * @param array $overrides Optional features to disable or force.
      */
-    public function run_pipeline() {
+    public function run_pipeline( $overrides = array() ) {
         Logger::log( 'Starting Modular Autoblog Pipeline...', 'info' );
 
         try {
-            $this->run_ingestion_phase();
+            $this->run_ingestion_phase( $overrides );
 
             $selected_idea = $this->run_ideation_phase();
-            if ( ! $selected_idea ) return;
+            if ( ! $selected_idea ) {
+                // If ideation fails or no new idea, we might still want to run living content if overridden
+                if ( isset( $overrides['living_content'] ) && (bool) $overrides['living_content'] ) {
+                    $this->run_maintenance_phase();
+                }
+                return;
+            }
 
-            $this->run_production_phase( $selected_idea );
+            $this->run_production_phase( $selected_idea, $overrides );
+
+            // Run maintenance phase if explicitly requested via overrides
+            if ( isset( $overrides['living_content'] ) && (bool) $overrides['living_content'] ) {
+                $this->run_maintenance_phase();
+            }
 
         } catch ( \Exception $e ) {
             Logger::log( 'Critical error in Modular Pipeline: ' . $e->getMessage(), 'error' );
@@ -50,12 +63,12 @@ class Runner {
     /**
      * Public manual trigger for Ingestion phase.
      */
-    public function run_ingestion_phase() {
+    public function run_ingestion_phase( $overrides = array() ) {
         try {
             $data_source_mode = get_option( 'autoblog_data_source_mode', 'both' );
             $sources = $this->get_configured_sources();
             $vector_store = new VectorStore();
-            $this->stage_ingestion( $data_source_mode, $sources, $vector_store );
+            $this->stage_ingestion( $data_source_mode, $sources, $vector_store, $overrides );
         } catch ( \Throwable $e ) {
             Logger::log( 'Ingestion Phase Fatal Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(), 'error' );
             throw $e;
@@ -80,8 +93,9 @@ class Runner {
      * Public manual trigger for Production phase.
      * 
      * @param array|null $idea Optional specific idea to publish. If null, uses the latest completed idea.
+     * @param array      $overrides Optional feature overrides.
      */
-    public function run_production_phase( $idea = null ) {
+    public function run_production_phase( $idea = null, $overrides = array() ) {
         try {
             if ( ! $idea ) {
                 $ideation_data = get_option( 'autoblog_last_ideation_data', array() );
@@ -96,7 +110,7 @@ class Runner {
             }
 
             $vector_store = new VectorStore();
-            $this->stage_production( $idea, $vector_store );
+            $this->stage_production( $idea, $vector_store, $overrides );
         } catch ( \Throwable $e ) {
             Logger::log( 'Production Phase Fatal Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(), 'error' );
             throw $e;
@@ -104,10 +118,24 @@ class Runner {
     }
 
     /**
+     * Public manual trigger for Maintenance phase (Living Content).
+     */
+    public function run_maintenance_phase() {
+        try {
+            require_once plugin_dir_path( dirname( __FILE__ ) ) . '../includes/Core/ContentRefresher.php';
+            $refresher = new ContentRefresher();
+            // Force refresh since it was manually triggered
+            $refresher->refresh_old_content( true );
+        } catch ( \Throwable $e ) {
+            Logger::log( 'Maintenance Phase Fatal Error: ' . $e->getMessage(), 'error' );
+        }
+    }
+
+    /**
      * Phase 1: Ingestion
      * Standardizes all data collection into the Vector Store.
      */
-    private function stage_ingestion( $mode, $sources, $vector_store ) {
+    private function stage_ingestion( $mode, $sources, $vector_store, $overrides = array() ) {
         if ( $mode === 'kb_only' ) return;
 
         Logger::log( 'Stage 1 [Ingestion]: Processing content sources...', 'info' );
@@ -125,8 +153,13 @@ class Runner {
 
                 $query = isset( $config['url'] ) ? $config['url'] : '';
                 
-                // Dynamic Search Research if enabled
-                if ( $config['type'] === 'web_search' && get_option( 'autoblog_enable_dynamic_search' ) ) {
+                // Dynamic Search Research if enabled and not overridden
+                $enable_dynamic = get_option( 'autoblog_enable_dynamic_search' );
+                if ( isset( $overrides['dynamic_search'] ) ) {
+                    $enable_dynamic = (bool) $overrides['dynamic_search'];
+                }
+
+                if ( $config['type'] === 'web_search' && $enable_dynamic ) {
                     $ideator = new IdeationAgent();
                     $dynamic_q = $ideator->propose_research_query( $query, $vector_store->get_brief_summary() );
                     if ( ! empty( $dynamic_q ) ) {
@@ -227,7 +260,7 @@ class Runner {
     /**
      * Phase 3: Production
      */
-    private function stage_production( $idea, $vector_store ) {
+    private function stage_production( $idea, $vector_store, $overrides = array() ) {
         $topic = $idea['title'];
         $angle = $idea['angle'];
 
@@ -251,8 +284,13 @@ class Runner {
         $chunks = $vector_store->search( $topic . " " . $angle, 8 );
         foreach ( $chunks as $c ) { $context .= $c['text'] . "\n\n"; }
 
-        // Deep Research if enabled
-        if ( get_option( 'autoblog_enable_deep_research' ) ) {
+        // Deep Research if enabled and not overridden
+        $enable_deep = get_option( 'autoblog_enable_deep_research' );
+        if ( isset( $overrides['deep_research'] ) ) {
+            $enable_deep = (bool) $overrides['deep_research'];
+        }
+
+        if ( $enable_deep ) {
             require_once dirname( __DIR__ ) . '/Intelligence/ResearchAgent.php';
             $research_agent = new \Autoblog\Intelligence\ResearchAgent();
             $report = $research_agent->conduct_research( $topic );
@@ -268,7 +306,9 @@ class Runner {
 
         $writer = new ArticleWriter();
         $target_data = array( array( 'title' => $topic, 'content' => $context, 'source_url' => 'modular_pipeline', 'source_type' => 'ai_modular' ) );
-        $html = $writer->write_article( $target_data, $angle, $context, $persona_data );
+        
+        // Pass overrides to write_article if it supports it
+        $html = $writer->write_article( $target_data, $angle, $context, $persona_data, $overrides );
 
         if ( ! $html ) {
             Logger::log( "Runner: Gagal menulis artikel untuk topik '{$topic}'.", 'error' );
@@ -277,10 +317,10 @@ class Runner {
         }
 
         $thumb = new ThumbnailGenerator();
-        $img_url = $thumb->generate_thumbnail( "Article illustration: {$topic}. Concept: {$angle}" );
+        $img_url = $thumb->generate_thumbnail( $topic );
             
         $source_info = array( 'title' => $topic, 'source_url' => 'ai_modular_' . time() );
-        $post_id = $publisher->create_or_update_post( $source_info, $html, $img_url, $author_id, $writer->last_taxonomy );
+        $post_id = $publisher->create_or_update_post( $source_info, $html, $img_url, $author_id, $writer->last_taxonomy, $overrides );
         
         update_option( 'autoblog_last_production_data', array(
             'status'    => 'completed',

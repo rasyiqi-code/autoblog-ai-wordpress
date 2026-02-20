@@ -1,7 +1,7 @@
 <?php
 // SEED DEFAULT PERSONAS (Run Once)
 // We also use this list to identify protected personas
-$default_names = ['Si Kritis', 'Si Storyteller', 'Si Realistis', 'Si Santuy'];
+$default_names = ['Si Kritis', 'Si Storyteller', 'Si Realistis', 'Si Santuy', 'Si Profesional'];
 
 if ( false === get_option( 'autoblog_custom_personas' ) ) {
     $defaults = [
@@ -28,9 +28,92 @@ if ( false === get_option( 'autoblog_custom_personas' ) ) {
             'desc' => 'anak muda Jakarta Selatan yang cerdas tapi santai. Sering pakai istilah gaul (slang) yang relevan tapi tetap berbobot.',
             'active' => true,
             'is_default' => true
+        ],
+        [
+            'name' => 'Si Profesional', 
+            'desc' => 'seorang jurnalis senior yang ahli dalam menyederhanakan konsep rumit. Gaya bahasamu sopan, autoritatif, dan sangat terstruktur.',
+            'active' => true,
+            'is_default' => true
         ]
     ];
     update_option( 'autoblog_custom_personas', $defaults );
+} else {
+    // Sync missing defaults (e.g. adding 'Si Profesional' to existing installations)
+    $existing_personas = get_option( 'autoblog_custom_personas', [] );
+    $needs_update = false;
+
+    $defaults = [
+        'Si Kritis' => 'seorang pengamat industri yang skeptis, to-the-point, dan benci basa-basi marketing. kamu sering menggunakan kalimat pendek yang menohok.',
+        'Si Storyteller' => 'seorang pencerita ulung yang suka menggunakan metafora hidup dan anekdot pribadi. Tulisanmu mengalir seperti obrolan di warkop.',
+        'Si Realistis' => 'orang yang praktis, fokus pada "apa yang bekerja", dan sering menggunakan kata "Gini lho," atau "Jujur aja,".',
+        'Si Santuy' => 'anak muda Jakarta Selatan yang cerdas tapi santai. Sering pakai istilah gaul (slang) yang relevan tapi tetap berbobot.',
+        'Si Profesional' => 'seorang jurnalis senior yang ahli dalam menyederhanakan konsep rumit. Gaya bahasamu sopan, autoritatif, dan sangat terstruktur.'
+    ];
+
+    foreach ( $defaults as $d_name => $d_desc ) {
+        $found_index = -1;
+        foreach ( $existing_personas as $idx => $ep ) {
+            if ( $ep['name'] === $d_name ) {
+                $found_index = $idx;
+                break;
+            }
+        }
+
+        if ( $found_index === -1 ) {
+            // Add missing default
+            $existing_personas[] = [
+                'name' => $d_name,
+                'desc' => $d_desc,
+                'active' => true,
+                'is_default' => true
+            ];
+            $needs_update = true;
+        } else {
+            // Ensure existing default is flagged as protected
+            if ( ! isset( $existing_personas[$found_index]['is_default'] ) || ! $existing_personas[$found_index]['is_default'] ) {
+                $existing_personas[$found_index]['is_default'] = true;
+                $needs_update = true;
+            }
+        }
+    }
+
+    if ( $needs_update ) {
+        update_option( 'autoblog_custom_personas', $existing_personas );
+    }
+}
+
+// Logic: Add New Persona
+if ( isset( $_POST['autoblog_add_persona'] ) ) {
+    check_admin_referer( 'autoblog_add_persona_nonce' );
+    $new_name = sanitize_text_field( $_POST['persona_name'] );
+    $new_desc = sanitize_textarea_field( $_POST['persona_desc'] );
+    
+    if ( ! empty( $new_name ) && ! empty( $new_desc ) ) {
+        $personas = get_option( 'autoblog_custom_personas', [] );
+        $personas[] = [
+            'name' => $new_name,
+            'desc' => $new_desc,
+            'active' => true,
+            'is_default' => false
+        ];
+        update_option( 'autoblog_custom_personas', $personas );
+        echo '<div class="notice notice-success is-dismissible"><p>Persona baru berhasil ditambahkan.</p></div>';
+    }
+}
+
+// Logic: Delete Persona
+if ( isset( $_GET['action'] ) && $_GET['action'] === 'autoblog_delete_persona' && isset( $_GET['name'] ) ) {
+    check_admin_referer( 'autoblog_delete_persona_nonce' );
+    $target_name = sanitize_text_field( $_GET['name'] );
+    
+    if ( ! in_array( $target_name, $default_names ) ) {
+        $personas = get_option( 'autoblog_custom_personas', [] );
+        $filtered = array_filter( $personas, function($p) use ($target_name) {
+            return $p['name'] !== $target_name;
+        });
+        update_option( 'autoblog_custom_personas', array_values($filtered) );
+        echo '<div class="notice notice-success is-dismissible"><p>Persona berhasil dihapus.</p></div>';
+    }
 }
 
 // Fetch existing personas
@@ -187,5 +270,60 @@ if ( isset( $_POST['autoblog_save_author_mapping'] ) ) {
             </tr>
         </table>
         <?php submit_button( 'Simpan Personality' ); ?>
+    </form>
+</div>
+<!-- ================================================================ -->
+<!-- SECTION: Manage Custom Personas                                  -->
+<!-- ================================================================ -->
+<div class="card" style="max-width: 100%; margin-top: 20px;">
+    <h2>🎭 Manajemen Persona Master</h2>
+    <p>Kelola daftar persona yang bisa dipilih oleh para penulis Anda.</p>
+    
+    <table class="wp-list-table widefat fixed striped">
+        <thead>
+            <tr>
+                <th width="20%">Nama Persona</th>
+                <th width="60%">Character Prompt (Description)</th>
+                <th width="20%">Tindakan</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ( $existing_personas as $p ) : ?>
+                <tr>
+                    <td><strong><?php echo esc_html($p['name']); ?></strong> 
+                        <?php if ( (isset($p['is_default']) && $p['is_default']) || in_array($p['name'], $default_names) ) : ?>
+                            <span class="badge" style="background:#e5e5e5; padding:2px 6px; font-size:10px; border-radius:3px;">DEFAULT</span>
+                        <?php endif; ?>
+                    </td>
+                    <td><span class="description" style="font-size:12px;"><?php echo esc_html($p['desc']); ?></span></td>
+                    <td>
+                        <?php if ( ! in_array($p['name'], $default_names) && (!isset($p['is_default']) || !$p['is_default']) ) : ?>
+                            <?php 
+                            $delete_url = wp_nonce_url( 
+                                add_query_arg( [ 'action' => 'autoblog_delete_persona', 'name' => $p['name'] ] ), 
+                                'autoblog_delete_persona_nonce' 
+                            ); 
+                            ?>
+                            <a href="<?php echo $delete_url; ?>" class="button-link-delete" style="color:#d63638;" onclick="return confirm('Hapus persona ini?')">Hapus</a>
+                        <?php else : ?>
+                            <span class="description">Protected</span>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+
+    <hr>
+    <h3>➕ Tambah Persona Baru</h3>
+    <form method="post">
+        <?php wp_nonce_field( 'autoblog_add_persona_nonce' ); ?>
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+            <input type="text" name="persona_name" placeholder="Nama Persona (cth: Si Tekno)" style="flex:1;" required>
+        </div>
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+            <textarea name="persona_desc" rows="3" placeholder="Deskripsi/Prompt Persona (cth: Kamu adalah seorang kutu buku yang sangat teliti...)" style="flex:1;" required></textarea>
+        </div>
+        <input type="submit" name="autoblog_add_persona" class="button button-secondary" value="Tambahkan Persona">
     </form>
 </div>

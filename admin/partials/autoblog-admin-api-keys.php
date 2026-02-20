@@ -87,4 +87,15 @@
             <p class="description">Untuk Google AI Overview, AI Mode, dan Bing Copilot integration.</p>
         </td>
     </tr>
+
+    <!-- Pexels -->
+    <tr valign="top">
+        <th scope="row">Pexels API Key</th>
+        <td>
+            <input type="password" name="autoblog_pexels_key"
+                   value="<?php echo esc_attr( get_option('autoblog_pexels_key') ); ?>"
+                   class="regular-text" />
+            <p class="description">Untuk mencari gambar stok gratis berkualitas tinggi sebagai thumbnail post.</p>
+        </td>
+    </tr>
 </table>

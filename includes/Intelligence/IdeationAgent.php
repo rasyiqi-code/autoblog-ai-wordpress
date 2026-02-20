@@ -69,8 +69,16 @@ class IdeationAgent {
         $prompt .= "1. Buatlah {$count} ide topik.\n";
         $prompt .= "2. Setiap ide harus memiliki 'Judul' yang menangkap perhatian (Click-worthy) dan 'Angle' (Sudut Pandang) yang spesifik.\n";
         $prompt .= "3. JANGAN gunakan bahasa klise AI. Jadilah kreatif, sarkas, atau kontrian jika perlu.\n";
-        $prompt .= "4. FORMAT OUTPUT: JSON valid berupa array of objects. Contoh: [{\"title\": \"...\", \"angle\": \"...\"}]\n";
-        $prompt .= "5. Kembalikan HANYA JSON!";
+        $prompt .= "\nINSTRUKSI KHUSUS PENULISAN JUDUL (MANIFESTO):\n";
+        $prompt .= "1. ANTI-KOLON (:): Dilarang menggunakan format 'Topik: Penjelasan'. Judul harus mengalir sebagai satu kalimat atau frasa utuh yang alami.\n";
+        $prompt .= "2. DIKSI MANUSIA (FOMO): Hindari kata kaku seperti 'Komprehensif', 'Strategi', 'Lanskap', 'Menavigasi'. Gunakan kata pemicu emosi atau rasa sakit seperti 'Bongkar', 'Nyesel', 'Rahasia', 'Tanpa Ribet', 'Jangan Lakukan'.\n";
+        $prompt .= "3. PROVOKATIF: Tantang asumsi pembaca atau ajukan pertanyaan menohok. Jangan hanya memberi tahu isi.\n";
+        $prompt .= "4. FLEXIBLE HOW-TO: Hindari rumus kaku 'Cara X dalam Y Langkah'. Tambahkan benefit spesifik atau atasi keraguan (Contoh: '...Bahkan Kalau Kamu Bukan Ahli').\n";
+        $prompt .= "5. IRAMA VARIATIF: Panjang judul harus bervariasi, jangan seragam.\n";
+        $prompt .= "6. ANGKA GANJIL: Jika daftar, gunakan angka ganjil atau acak (7, 13, 23) daripada angka bulat (5, 10).\n\n";
+
+        $prompt .= "FORMAT OUTPUT: JSON valid berupa array of objects. Contoh: [{\"title\": \"...\", \"angle\": \"...\"}]\n";
+        $prompt .= "Kembalikan HANYA JSON!";
 
         // Use higher temperature for brainstorming
         $response = $this->ai_client->generate_text( $prompt, 'gpt-4o', 'openai', 0.85 );

@@ -68,10 +68,10 @@
                     <option value="gemini-2.5-flash" <?php selected( get_option('autoblog_gemini_model'), 'gemini-2.5-flash' ); ?>>Gemini 2.5 Flash</option>
                     <option value="gemini-2.5-flash-lite" <?php selected( get_option('autoblog_gemini_model'), 'gemini-2.5-flash-lite' ); ?>>Gemini 2.5 Flash Lite</option>
                     <!-- Gemini 2 Series -->
-                    <option value="gemini-2.0-pro-exp" <?php selected( get_option('autoblog_gemini_model'), 'gemini-2.0-pro-exp' ); ?>>Gemini 2 Pro Exp</option>
                     <option value="gemini-2.0-flash" <?php selected( get_option('autoblog_gemini_model'), 'gemini-2.0-flash' ); ?>>Gemini 2 Flash</option>
                     <option value="gemini-2.0-flash-lite" <?php selected( get_option('autoblog_gemini_model'), 'gemini-2.0-flash-lite' ); ?>>Gemini 2 Flash Lite</option>
                     <option value="gemini-2.0-flash-exp" <?php selected( get_option('autoblog_gemini_model'), 'gemini-2.0-flash-exp' ); ?>>Gemini 2 Flash Exp</option>
+                    <option value="gemini-2.0-pro-exp" <?php selected( get_option('autoblog_gemini_model'), 'gemini-2.0-pro-exp' ); ?>>Gemini 2 Pro Exp</option>
                     <!-- Gemma 3 Series -->
                     <option value="gemma-3-27b-it" <?php selected( get_option('autoblog_gemini_model'), 'gemma-3-27b-it' ); ?>>Gemma 3 27B</option>
                     <option value="gemma-3-12b-it" <?php selected( get_option('autoblog_gemini_model'), 'gemma-3-12b-it' ); ?>>Gemma 3 12B</option>
@@ -166,6 +166,51 @@
         </td>
     </tr>
 
+    <!-- Thumbnail Methods Selection -->
+    <tr valign="top">
+        <th scope="row">Enabled Thumbnail Methods</th>
+        <td>
+            <fieldset>
+                <label>
+                    <input name="autoblog_enable_dalle" type="checkbox" value="1" <?php checked( '1', get_option( 'autoblog_enable_dalle', '1' ) ); ?> />
+                    OpenAI DALL-E 3 (AI Generated)
+                </label><br>
+                <label>
+                    <input name="autoblog_enable_stock_pexels" type="checkbox" value="1" <?php checked( '1', get_option( 'autoblog_enable_stock_pexels', '1' ) ); ?> />
+                    Pexels (Stock Photos)
+                </label><br>
+                <label>
+                    <input name="autoblog_enable_stock_openverse" type="checkbox" value="1" <?php checked( '1', get_option( 'autoblog_enable_stock_openverse', '1' ) ); ?> />
+                    Openverse (Open Source Media)
+                </label>
+            </fieldset>
+            <p class="description">Aktifkan metode yang ingin Anda gunakan. Jika dimatikan, metode tersebut tidak akan muncul di pilihan "Post Thumbnail Source" di bawah.</p>
+        </td>
+    </tr>
+
+    <!-- Thumbnail Source -->
+    <tr valign="top">
+        <th scope="row">Post Thumbnail Source</th>
+        <td>
+            <select name="autoblog_thumbnail_source" id="autoblog_thumbnail_source">
+                <?php if ( get_option( 'autoblog_enable_dalle', '1' ) === '1' ) : ?>
+                    <option value="openai" <?php selected( get_option('autoblog_thumbnail_source'), 'openai' ); ?>>OpenAI DALL-E 3</option>
+                <?php endif; ?>
+
+                <?php if ( get_option( 'autoblog_enable_stock_pexels', '1' ) === '1' ) : ?>
+                    <option value="pexels" <?php selected( get_option('autoblog_thumbnail_source', 'pexels'), 'pexels' ); ?>>Pexels (Stock Photos)</option>
+                <?php endif; ?>
+
+                <?php if ( get_option( 'autoblog_enable_stock_openverse', '1' ) === '1' ) : ?>
+                    <option value="openverse" <?php selected( get_option('autoblog_thumbnail_source'), 'openverse' ); ?>>Openverse</option>
+                <?php endif; ?>
+
+                <option value="random_stock" <?php selected( get_option('autoblog_thumbnail_source'), 'random_stock' ); ?>>Mix: Pexels -> Openverse (Fallback chain)</option>
+            </select>
+            <p class="description">Pilih sumber gambar utama. Pexels disarankan sebagai default untuk menghindari biaya AI tambahan.</p>
+        </td>
+    </tr>
+
     <!-- Separator visual -->
     <tr><td colspan="2"><hr></td></tr>
 
@@ -184,24 +229,66 @@
             <p class="description">Jika aktif, plugin otomatis switch ke provider lain (misal Gemini → Groq → OpenAI) jika provider utama gagal atau melebihi kuota.</p>
         </td>
     </tr>
+
+    <!-- Gemini Grounding -->
+    <tr valign="top" id="row_gemini_grounding" style="display:none;">
+        <th scope="row">Gemini Search Grounding</th>
+        <td>
+            <fieldset>
+                <label for="autoblog_gemini_grounding">
+                    <input name="autoblog_gemini_grounding" type="checkbox"
+                           id="autoblog_gemini_grounding" value="1"
+                           <?php checked( '1', get_option( 'autoblog_gemini_grounding' ) ); ?> />
+                    Enable Native Google Search Grounding
+                </label>
+            </fieldset>
+            <p class="description">Mungkinkan Gemini mengakses Google Search secara real-time untuk akurasi fakta yang lebih tinggi (Tanpa perlu API Search eksternal).</p>
+            
+            <div id="gemini_tester_box" style="margin-top: 15px; padding: 15px; background: #f0f0f1; border: 1px solid #ccd0d4; border-radius: 4px;">
+                <h4 style="margin-top:0;">🧪 Gemini Grounding Tester</h4>
+                <p class="description" style="margin-bottom:10px;">Coba tanyakan sesuatu yang membutuhkan data real-time (misal: "Siapa pemenang Oscar 2024?" atau "Harga Bitcoin hari ini").</p>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <label for="gemini_test_model" style="font-weight:bold; min-width:100px;">Pilih Model:</label>
+                        <select id="gemini_test_model" style="flex-grow:1;">
+                            <option value="gemini-3.1-pro">Gemini 3.1 Pro (Akurasi)</option>
+                            <option value="gemini-3.0-flash">Gemini 3 Flash (Kecepatan)</option>
+                            <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                            <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                        </select>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" id="gemini_test_prompt" placeholder="Ketik pertanyaan riset..." style="flex-grow:1;" />
+                        <button type="button" id="btn_test_grounding" class="button button-secondary">Run Test</button>
+                    </div>
+                </div>
+                <div id="gemini_test_result" style="margin-top:10px; display:none; padding:10px; background:#fff; border-left:4px solid #72aee6; font-family:monospace; font-size:12px; white-space:pre-wrap;"></div>
+            </div>
+        </td>
+    </tr>
 </table>
 
 <!-- JavaScript untuk toggle model dropdown berdasarkan provider -->
 <script>
     jQuery(document).ready(function($) {
         /**
-         * Toggle visibility dropdown model sesuai AI provider yang dipilih.
-         * Menyembunyikan semua container lalu menampilkan yang relevan.
+         * Toggle visibility dropdown model dan opsi khusus provider.
          */
         function toggleModelDropdowns() {
             var provider = $('#autoblog_ai_provider').val();
 
-            // Sembunyikan semua container model
+            // Sembunyikan semua container model dan opsi khusus
             $('.model-select-container').hide();
+            $('#row_gemini_grounding').hide();
 
             // Tampilkan container sesuai provider
             var containerId = '#container_model_' + provider;
             $(containerId).show();
+
+            // Tampilkan Grounding jika provider adalah Gemini
+            if (provider === 'gemini') {
+                $('#row_gemini_grounding').show();
+            }
         }
 
         // Bind event change

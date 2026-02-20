@@ -3,6 +3,7 @@
 namespace Autoblog\Publisher;
 
 use Autoblog\Generators\ThumbnailGenerator;
+use Autoblog\Intelligence\Interlinker;
 use Autoblog\Utils\Logger;
 use WP_Error;
 
@@ -23,10 +24,18 @@ class PostManager {
 	private $thumbnail_generator;
 
 	/**
+	 * Interlinker instance.
+	 * 
+	 * @var Interlinker
+	 */
+	private $interlinker;
+
+	/**
 	 * Initialize the class.
 	 */
 	public function __construct() {
 		$this->thumbnail_generator = new ThumbnailGenerator();
+		$this->interlinker          = new Interlinker();
 	}
 
 	/**
@@ -37,9 +46,10 @@ class PostManager {
 	 * @param string $thumbnail_url Optional URL of the generated thumbnail.
 	 * @param int    $author_id     Optional specific WordPress User ID for the post author.
 	 * @param array  $taxonomy      Optional array with 'category' (string) and 'tags' (array).
+	 * @param array  $overrides     Optional feature overrides.
 	 * @return int|WP_Error The post ID or WP_Error on failure.
 	 */
-	public function create_or_update_post( $source_item, $html_content, $thumbnail_url = null, $author_id = null, $taxonomy = null ) {
+	public function create_or_update_post( $source_item, $html_content, $thumbnail_url = null, $author_id = null, $taxonomy = null, $overrides = array() ) {
 
 		$source_url = isset( $source_item['source_url'] ) ? $source_item['source_url'] : '';
         $title      = isset( $source_item['title'] ) ? $source_item['title'] : 'Auto Generated Post';
@@ -57,6 +67,20 @@ class PostManager {
             // Remove # Heading from content
             $html_content = str_replace( $match[0], '', $html_content );
         }
+
+		// Autonomous Interlinking if enabled and not overridden
+		$enable_interlink = get_option( 'autoblog_enable_interlinking' );
+		if ( isset( $overrides['interlinking'] ) ) {
+			$enable_interlink = (bool) $overrides['interlinking'];
+		}
+
+		if ( $enable_interlink ) {
+			$links = $this->interlinker->get_relevant_posts( $title );
+			if ( ! empty( $links ) ) {
+				$html_content = $this->interlinker->inject_links( $html_content, $links );
+				Logger::log( "Interlinker: Injected " . count($links) . " internal links into post content.", 'info' );
+			}
+		}
 
 		// Check if post exists
 		$existing_post_id = $this->get_post_by_source_url( $source_url );
@@ -99,13 +123,27 @@ class PostManager {
 		if ( ! empty( $taxonomy ) ) {
 			// 1. Kategorisasi
 			if ( ! empty( $taxonomy['category'] ) ) {
-				$cat_id = get_cat_ID( $taxonomy['category'] );
-				if ( $cat_id ) {
-					wp_set_post_categories( $post_id, array( $cat_id ) );
-					Logger::log( "Assigned category '{$taxonomy['category']}' to post ID {$post_id}", 'info' );
+                $category_name = trim( $taxonomy['category'] );
+                
+                // Coba cari berdasarkan nama (case-insensitive via get_term_by)
+				$term = get_term_by( 'name', $category_name, 'category' );
+                
+                // Jika tidak ketemu, coba cari berdasarkan slug
+                if ( ! $term ) {
+                    $term = get_term_by( 'slug', sanitize_title( $category_name ), 'category' );
+                }
+
+                $cat_id = 0;
+				if ( $term && ! is_wp_error( $term ) ) {
+					$cat_id = $term->term_id;
+                    Logger::log( "Assigned existing category '{$category_name}' (ID: {$cat_id}) to post ID {$post_id}", 'info' );
 				} else {
-					Logger::log( "Category '{$taxonomy['category']}' not found. Defaulting to existing categories.", 'warning' );
+					Logger::log( "Category '{$category_name}' not found by name or slug. Skipping auto-creation to prevent spam.", 'warning' );
 				}
+
+                if ( $cat_id > 0 ) {
+                    wp_set_post_categories( $post_id, array( $cat_id ) );
+                }
 			}
 
 			// 2. Tagging

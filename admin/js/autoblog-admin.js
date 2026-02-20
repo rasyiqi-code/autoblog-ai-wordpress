@@ -57,12 +57,18 @@
 
       startLogPolling();
 
+      var overrides = {};
+      $(".autoblog-override").each(function () {
+        overrides[$(this).data("feature")] = $(this).is(":checked") ? 1 : 0;
+      });
+
       $.ajax({
         url: autoblog_ajax.ajax_url,
         type: "POST",
         data: {
           action: action,
           nonce: autoblog_ajax.nonce,
+          overrides: overrides,
         },
         timeout: 600000,
         success: function (response) {
@@ -162,6 +168,54 @@
         global: false // Jangan trigger global ajax events
       });
     }
+
+    // ================================================================
+    // AJAX: Test Gemini Grounding
+    // ================================================================
+    $("#btn_test_grounding").on("click", function (e) {
+      e.preventDefault();
+      var $btn = $(this);
+      var $promptInput = $("#gemini_test_prompt");
+      var $resultArea = $("#gemini_test_result");
+      var prompt = $promptInput.val();
+      var model = $("#gemini_test_model").val();
+
+      if (!prompt) {
+        alert("Harap masukkan prompt pertanyaan riset.");
+        return;
+      }
+
+      $btn.prop("disabled", true).text("⏳ Testing...");
+      $resultArea.hide().html("").css("border-left-color", "#72aee6");
+
+      $.ajax({
+        url: autoblog_ajax.ajax_url,
+        type: "POST",
+        data: {
+          action: "autoblog_test_gemini_grounding",
+          nonce: autoblog_ajax.nonce,
+          prompt: prompt,
+          model: model
+        },
+        success: function (response) {
+          $resultArea.show();
+          if (response.success) {
+            $resultArea.html("<strong>Gemini Answer:</strong>\n\n" + response.data.answer);
+            $resultArea.css("border-left-color", "green");
+          } else {
+            $resultArea.html("<strong>Error:</strong>\n\n" + (response.data.message || "Gagal mendapatkan respon."));
+            $resultArea.css("border-left-color", "red");
+          }
+        },
+        error: function () {
+          $resultArea.show().html("<strong>Error:</strong>\n\nNetwork or Server Error.");
+          $resultArea.css("border-left-color", "red");
+        },
+        complete: function () {
+          $btn.prop("disabled", false).text("Run Test");
+        }
+      });
+    });
 
   });
 })(jQuery);

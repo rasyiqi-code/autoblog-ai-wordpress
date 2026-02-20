@@ -20,9 +20,11 @@ class ContentRefresher {
 
     /**
      * Run the refresh process on a single old post.
+     * 
+     * @param bool $force Whether to bypass the global enable option.
      */
-    public function refresh_old_content() {
-        if ( ! get_option( 'autoblog_enable_living_content' ) ) {
+    public function refresh_old_content( $force = false ) {
+        if ( ! $force && ! get_option( 'autoblog_enable_living_content' ) ) {
             return;
         }
 
