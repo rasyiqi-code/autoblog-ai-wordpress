@@ -54,7 +54,11 @@ Pilih cara kerja yang sesuai dengan kebutuhan Anda:
 *   **SEO Optimized**: Output HTML terstruktur (H1, H2, H3, Lists) yang ramah SEO.
 *   **AI Thumbnails**: Membuat gambar unggulan (Featured Image) unik untuk setiap artikel menggunakan AI (DALL-E 3 / FLUX via API).
 
-### 6. **Automation & Management**
+### 6. **Advanced Content Features (New)**
+*   **Intelligent Taxonomy Management**: AI secara otomatis memilih kategori yang paling relevan dari daftar kategori blog Anda dan menyarankan tag cerdas untuk setiap artikel.
+*   **Multi-Modal Median Injection**: Menempatkan visualisasi data (Charts) dan media eksternal (YouTube/X) secara strategis di tengah konten untuk keterlibatan pembaca yang lebih tinggi.
+
+### 7. **Automation & Management**
 *   **Cron Scheduler**: Berjalan otomatis di latar belakang (Hourly/Daily).
 *   **Duplicate Prevention**: Sistem *hashing* pintar untuk mencegah posting konten yang sama berulang kali.
 *   **Comprehensive Logging**: Log aktivitas detil untuk memantau kinerja dan debugging.

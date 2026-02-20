@@ -280,7 +280,7 @@ class Runner {
         $img_url = $thumb->generate_thumbnail( "Article illustration: {$topic}. Concept: {$angle}" );
             
         $source_info = array( 'title' => $topic, 'source_url' => 'ai_modular_' . time() );
-        $post_id = $publisher->create_or_update_post( $source_info, $html, $img_url, $author_id );
+        $post_id = $publisher->create_or_update_post( $source_info, $html, $img_url, $author_id, $writer->last_taxonomy );
         
         update_option( 'autoblog_last_production_data', array(
             'status'    => 'completed',

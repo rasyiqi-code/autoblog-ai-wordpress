@@ -15,6 +15,12 @@ use Autoblog\Utils\Logger;
 class ArticleWriter {
 
 	/**
+	 * Simpan data taksonomi terakhir untuk diambil oleh PostManager.
+	 * @var array
+	 */
+	public $last_taxonomy = null;
+
+	/**
 	 * The AI Client instance.
 	 *
 	 * @var AIClient
@@ -141,21 +147,31 @@ class ArticleWriter {
         $prompt .= "4. HARAM menggunakan Markdown (NO **bold**, NO # Heading). Gunakan HTML tag secara langsung (<strong>, <em>, <h2>).\n";
         $prompt .= "5. Panjang artikel minimal 800 kata.\n";
         
-        $prompt .= "FITUR MULTI-MODAL (CHART):\n";
-        $prompt .= "Jika konten mengandung data statistik/perbandingan, kamu BISA menyertakan konfigurasi Chart di AKHIR artikel dalam format JSON block:\n";
-        $prompt .= "```json\n";
-        $prompt .= "{\n";
-        $prompt .= "  \"chart\": {\n";
-        $prompt .= "    \"type\": \"bar|line|pie|doughnut\",\n";
-        $prompt .= "    \"title\": \"Judul Grafik\",\n";
-        $prompt .= "    \"labels\": [\"Label1\", \"Label2\", \"Label3\"],\n";
-        $prompt .= "    \"data\": [10, 20, 30]\n";
-        $prompt .= "  }\n";
-        $prompt .= "}\n";
-        $prompt .= "```\n";
-        $prompt .= "Jika tidak ada data, JANGAN sertakan blok JSON ini.\n\n";
+        // Fetch existing categories to provide as options to AI
+        $categories = get_categories( array( 'hide_empty' => false ) );
+        $cat_list = array();
+        foreach ( $categories as $cat ) {
+            $cat_list[] = $cat->name;
+        }
+        $cat_context = implode( ', ', $cat_list );
 
-        $prompt .= "KEMBALIKAN HANYA ARTIKEL HTML (DAN OPSIONAL JSON CHART DI BAWAH).";
+        $prompt .= "FITUR MULTI-MODAL (CHART, MEDIA, & TAXONOMY):\n";
+        $prompt .= "1. Jika konten mengandung data statistik, sertakan JSON Chart DI MANA SAJA (akan dipindah ke tengah).\n";
+        $prompt .= "2. Jika ada YouTube/Twitter relevan, sertakan JSON Media ID.\n";
+        $prompt .= "3. KLASIFIKASI TAXONOMY: Pilih 1 Kategori paling relevan dari daftar di bawah ini dan berikan 3-5 Tag yang cocok.\n";
+        $prompt .= "   DAFTAR KATEGORI YANG TERSEDIA: [{$cat_context}]\n";
+        $prompt .= "   FORMAT JSON TAXONOMY:\n";
+        $prompt .= "   ```json\n";
+        $prompt .= "   {\n";
+        $prompt .= "     \"taxonomy\": {\n";
+        $prompt .= "       \"category\": \"Nama Kategori Dari Daftar Di Atas\",\n";
+        $prompt .= "       \"tags\": [\"tag1\", \"tag2\", \"tag3\"]\n";
+        $prompt .= "     }\n";
+        $prompt .= "   }\n";
+        $prompt .= "   ```\n";
+        $prompt .= "Jika tidak ada data/media, JANGAN sertakan blok JSON masing-masing. Namun, TAXONOMY WAJIB disertakan.\n\n";
+
+        $prompt .= "KEMBALIKAN HANYA ARTIKEL HTML (DAN BLOK JSON DI BAWAH).";
 
         // Get Active Provider
         $provider = get_option( 'autoblog_ai_provider', 'openai' );
@@ -182,8 +198,15 @@ class ArticleWriter {
             $response_text = $this->markdown_to_html( $response_text );
         }
 
-        // 1. Multi-Modal: Deteksi dan Generate Chart
+        // 1. Multi-Modal: Deteksi dan render Chart/Media/Taxonomy
+        $taxonomy_data = $this->extract_taxonomy_json( $response_text );
         $response_text = $this->process_chart_json( $response_text );
+        $response_text = $this->process_media_embeds( $response_text );
+
+        // Kita return konten HTML dan data taksonomi (jika ada) via array
+        // Namun karena kontrak aslinya return string|false, kita akan simpan taksonomi di properti object 
+        // atau menyematkannya sebentar di konten jika perlu. Tapi lebih bersih di properti.
+        $this->last_taxonomy = $taxonomy_data;
 
         return $response_text;
 	}
@@ -192,8 +215,6 @@ class ArticleWriter {
      * Ekstrak konfigurasi JSON Chart dari output AI dan ganti dengan Image URL.
      */
     private function process_chart_json( $content ) {
-        // Regex super agresif untuk menangkap blok JSON terlepas dari typo markdown AI (seperti ”json, 'json', dll.)
-        // Mencari kata "json" yang dikelilingi kutip/backtick opsional, dilanjut isi JSON, lalu kutip/backtick penutup opsional.
         if ( preg_match( '/(?:```|”|"|\'|&rdquo;|&quot;)?\s*json(?:```|”|"|\'|&rdquo;|&quot;)?\s*(\{.*"chart".*\})\s*(?:```|”|"|\'|&rdquo;|&quot;)?/is', $content, $matches ) ||
              preg_match( '/(\{.*"chart".*\})\s*(?:```|”|"|\'|&rdquo;|&quot;)?\s*$/is', $content, $matches ) ) {
             
@@ -203,7 +224,6 @@ class ArticleWriter {
             if ( $json_data && isset( $json_data['chart'] ) ) {
                 $chart_config = $json_data['chart'];
                 
-                // Pastikan class ChartGenerator ada
                 if ( ! class_exists( 'Autoblog\Generators\ChartGenerator' ) ) {
                     require_once plugin_dir_path( dirname( __FILE__ ) ) . 'Generators/ChartGenerator.php';
                 }
@@ -217,24 +237,98 @@ class ArticleWriter {
                 );
 
                 if ( $chart_url ) {
-                    // Embed image chart
-                    $chart_html = "<figure class='autoblog-chart'>";
-                    $chart_html .= "<img src='{$chart_url}' alt='" . esc_attr($chart_config['title']) . "'>";
-                    $chart_html .= "<figcaption>" . esc_html($chart_config['title']) . "</figcaption>";
+                    $chart_html = "<figure class='autoblog-chart' style='margin: 25px 0; text-align: center;'>";
+                    $chart_html .= "<img src='{$chart_url}' alt='" . esc_attr($chart_config['title']) . "' style='max-width: 100%; border-radius: 8px;'>";
+                    $chart_html .= "<figcaption style='font-style: italic; font-size: 0.9em; margin-top: 8px;'>" . esc_html($chart_config['title']) . "</figcaption>";
                     $chart_html .= "</figure>";
 
-                    // Hapus blok JSON dari konten dan sisipkan gambar chart
-                    // Kita replace full match (blok JSON) dengan HTML chart
-                    $content = str_replace( $matches[0], $chart_html, $content );
-                    \Autoblog\Utils\Logger::log( "Chart Generated: {$chart_url}", 'info' );
+                    // Hapus JSON block asli
+                    $content = str_replace( $matches[0], '', $content );
+                    
+                    // Sisipkan di tengah artikel (Median Injection)
+                    $content = $this->inject_at_median( $content, $chart_html );
+                    Logger::log( "Chart Injected at Median Point.", 'info' );
                 }
             } else {
-                // Jika JSON invalid, hapus saja blok-nya agar tidak bocor ke frontend
                 $content = str_replace( $matches[0], '', $content );
             }
         }
-
         return $content;
+    }
+
+    /**
+     * Deteksi dan render Media Embed (YouTube/X/Vimeo) dari JSON.
+     */
+    private function process_media_embeds( $content ) {
+        if ( preg_match( '/(?:```|”|"|\'|&rdquo;|&quot;)?\s*json(?:```|”|"|\'|&rdquo;|&quot;)?\s*(\{.*"media".*\})\s*(?:```|”|"|\'|&rdquo;|&quot;)?/is', $content, $matches ) ||
+             preg_match( '/(\{.*"media".*\})\s*(?:```|”|"|\'|&rdquo;|&quot;)?\s*$/is', $content, $matches ) ) {
+            
+            $json_str = trim( $matches[1] );
+            $json_data = json_decode( $json_str, true );
+
+            if ( $json_data && isset( $json_data['media'] ) ) {
+                $media = $json_data['media'];
+                $type = isset($media['type']) ? strtolower($media['type']) : '';
+                $id = isset($media['id']) ? $media['id'] : '';
+                
+                $embed_html = '';
+                if ( $type === 'youtube' ) {
+                    // Extract ID if full URL passed
+                    if (strpos($id, 'youtu') !== false) {
+                        preg_match('%(?:youtube(?:-nocookie)?\.com/(?:[^/]+/.+/|(?:v|e(?:mbed)?)/|.*[?&]v=)|youtu\.be/)([^"&?/ ]{11})%i', $id, $m);
+                        $id = isset($m[1]) ? $m[1] : $id;
+                    }
+                    $embed_html = "<div class='autoblog-embed' style='margin: 25px 0;'><iframe width='100%' height='400' src='https://www.youtube.com/embed/{$id}' frameborder='0' allowfullscreen></iframe></div>";
+                } elseif ( $type === 'twitter' || $type === 'x' ) {
+                    // X/Twitter oEmbed atau simple URL (WP akan auto-embed jika URL diletakkan di baris sendiri)
+                    $embed_html = "\n\nhttps://twitter.com/x/status/{$id}\n\n";
+                }
+
+                if ( ! empty( $embed_html ) ) {
+                    // Hapus JSON block asli
+                    $content = str_replace( $matches[0], '', $content );
+                    
+                    // Sisipkan di tengah artikel (Median Injection)
+                    $content = $this->inject_at_median( $content, $embed_html );
+                    Logger::log( "Media Embed ({$type}) Injected at Median Point.", 'info' );
+                }
+            } else {
+                $content = str_replace( $matches[0], '', $content );
+            }
+        }
+        return $content;
+    }
+
+    /**
+     * Menyisipkan elemen HTML di titik tengah (median) jumlah paragraf.
+     */
+    private function inject_at_median( $content, $element_html ) {
+        // Cari semua paragraf <p>...</p>
+        // Gunakan regex non-greedy agar tidak menangkap seluruh konten sekaligus
+        $parts = preg_split( '/(<\/p>)/i', $content, -1, PREG_SPLIT_DELIM_CAPTURE );
+        
+        // Parts akan berisi: ["<p>p1", "</p>", "<p>p2", "</p>", ...]
+        $total_parts = count( $parts );
+        
+        // Jika konten terlalu pendek, taruh di akhir saja
+        if ( $total_parts < 4 ) {
+            return $content . $element_html;
+        }
+
+        // Cari index median (di tengah-tengah jumlah paragraf)
+        // Kita lompat per 2 karena tiap paragraf punya 2 parts (isi data + tag penutup)
+        $median_paragraph_index = floor( ( $total_parts / 2 ) / 2 ) * 2;
+        
+        // Sisipkan element setelah tag </p> di titik median
+        $new_content = '';
+        foreach ( $parts as $i => $part ) {
+            $new_content .= $part;
+            if ( $i === $median_paragraph_index + 1 ) {
+                $new_content .= "\n" . $element_html . "\n";
+            }
+        }
+
+        return $new_content;
     }
     /**
      * Clean text to remove junk characters and save tokens.
@@ -376,6 +470,24 @@ class ArticleWriter {
         }
 
         return $html;
+    }
+
+    /**
+     * Ekstrak data taksonomi (Category & Tags) dari output AI.
+     */
+    private function extract_taxonomy_json( &$content ) {
+        if ( preg_match( '/(?:```|”|"|\'|&rdquo;|&quot;)?\s*json(?:```|”|"|\'|&rdquo;|&quot;)?\s*(\{.*"taxonomy".*\})\s*(?:```|”|"|\'|&rdquo;|&quot;)?/is', $content, $matches ) ) {
+            $json_str = trim( $matches[1] );
+            $json_data = json_decode( $json_str, true );
+            
+            // Hapus blok JSON dari konten
+            $content = str_replace( $matches[0], '', $content );
+
+            if ( $json_data && isset( $json_data['taxonomy'] ) ) {
+                return $json_data['taxonomy'];
+            }
+        }
+        return null;
     }
 
     /**

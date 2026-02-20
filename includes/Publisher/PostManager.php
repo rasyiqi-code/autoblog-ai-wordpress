@@ -36,9 +36,10 @@ class PostManager {
 	 * @param string $html_content  The generated HTML content.
 	 * @param string $thumbnail_url Optional URL of the generated thumbnail.
 	 * @param int    $author_id     Optional specific WordPress User ID for the post author.
+	 * @param array  $taxonomy      Optional array with 'category' (string) and 'tags' (array).
 	 * @return int|WP_Error The post ID or WP_Error on failure.
 	 */
-	public function create_or_update_post( $source_item, $html_content, $thumbnail_url = null, $author_id = null ) {
+	public function create_or_update_post( $source_item, $html_content, $thumbnail_url = null, $author_id = null, $taxonomy = null ) {
 
 		$source_url = isset( $source_item['source_url'] ) ? $source_item['source_url'] : '';
         $title      = isset( $source_item['title'] ) ? $source_item['title'] : 'Auto Generated Post';
@@ -93,8 +94,28 @@ class PostManager {
 			}
 		}
 
-		return $post_id;
 
+		// Handle Taxonomy (Category & Tags)
+		if ( ! empty( $taxonomy ) ) {
+			// 1. Kategorisasi
+			if ( ! empty( $taxonomy['category'] ) ) {
+				$cat_id = get_cat_ID( $taxonomy['category'] );
+				if ( $cat_id ) {
+					wp_set_post_categories( $post_id, array( $cat_id ) );
+					Logger::log( "Assigned category '{$taxonomy['category']}' to post ID {$post_id}", 'info' );
+				} else {
+					Logger::log( "Category '{$taxonomy['category']}' not found. Defaulting to existing categories.", 'warning' );
+				}
+			}
+
+			// 2. Tagging
+			if ( ! empty( $taxonomy['tags'] ) && is_array( $taxonomy['tags'] ) ) {
+				wp_set_post_tags( $post_id, $taxonomy['tags'], true ); // Append = true
+				Logger::log( "Assigned tags [" . implode(',', $taxonomy['tags']) . "] to post ID {$post_id}", 'info' );
+			}
+		}
+
+		return $post_id;
 	}
 
 	/**
