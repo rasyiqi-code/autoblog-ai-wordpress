@@ -63,7 +63,7 @@ class Admin {
 		 */
 
 
-		// wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/autoblog-admin.css', array(), $this->version, 'all' );
+		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/autoblog-admin.css', array(), $this->version, 'all' );
 
 	}
 
@@ -129,6 +129,12 @@ class Admin {
 
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => 'Akses ditolak.' ) );
+		}
+
+		// License Check
+		$license_status = get_option( 'agencyos_license_autoblog-ai_status' );
+		if ( $license_status !== 'active' ) {
+			wp_send_json_error( array( 'message' => 'License Required: Peringatan! Fitur AI hanya tersedia untuk pengguna lisensi aktif.' ) );
 		}
 
 		$post_ids = isset( $_POST['post_ids'] ) ? array_map( 'intval', $_POST['post_ids'] ) : array();
@@ -248,6 +254,12 @@ class Admin {
 			wp_send_json_error( array( 'message' => 'Akses ditolak.' ) );
 		}
 
+		// License Check
+		$license_status = get_option( 'agencyos_license_autoblog-ai_status' );
+		if ( $license_status !== 'active' ) {
+			wp_send_json_error( array( 'message' => 'License Required: Fitur ini terkunci. Silakan aktivasi lisensi Autoblog AI Anda.' ) );
+		}
+
 		// Prevent execution timeout and memory issues during long AI operations
 		@set_time_limit( 0 );
 		@ini_set( 'memory_limit', '512M' );
@@ -329,6 +341,12 @@ class Admin {
 	 * Render the taxonomy tools page.
 	 */
 	public function display_taxonomy_tools_page() {
+		// License Check
+		$license_status = get_option( 'agencyos_license_autoblog-ai_status' );
+		if ( $license_status !== 'active' ) {
+			$this->display_licensing_required_notice();
+			return;
+		}
 		include_once 'partials/autoblog-admin-taxonomy-tools.php';
 	}
 
@@ -338,7 +356,32 @@ class Admin {
 	 * @since    1.0.0
 	 */
 	public function display_plugin_setup_page() {
+		// License Check
+		$license_status = get_option( 'agencyos_license_autoblog-ai_status' );
+		if ( $license_status !== 'active' ) {
+			$this->display_licensing_required_notice();
+			return;
+		}
 		include_once 'partials/autoblog-admin-display.php';
+	}
+
+	/**
+	 * Helper to display a licensing required screen.
+	 */
+	private function display_licensing_required_notice() {
+		?>
+		<div class="wrap">
+			<h1>Autoblog AI: License Activation Required</h1>
+			<div class="notice notice-error" style="padding: 20px; border-left-width: 5px;">
+				<h2 style="margin-top: 0; color: #dc3232;">🔒 Fitur Terkunci</h2>
+				<p style="font-size: 16px;">Semua fitur canggih Autoblog AI (Ingestion, Ideation, Production, & Taxonomy Tools) saat ini terkunci.</p>
+				<p style="font-size: 16px;">Silakan masukkan License Key yang valid untuk mengaktifkan seluruh kekuatan AI di blog Anda.</p>
+				<p style="margin-top: 20px;">
+					<a href="<?php echo admin_url( 'admin.php?page=autoblog-ai-license' ); ?>" class="button button-primary button-large">Aktivasi Lisensi Sekarang</a>
+				</p>
+			</div>
+		</div>
+		<?php
 	}
 
 	/**
@@ -552,6 +595,29 @@ class Admin {
 		// ── Tab: Tools & Logs — Cron (group: autoblog_ops) ──
 		register_setting( 'autoblog_ops', 'autoblog_cron_schedule' );
 		register_setting( 'autoblog_ops', 'autoblog_refresh_schedule' );
+		register_setting( 'autoblog_ops', 'autoblog_post_status' );
+	}
+
+	public function display_license_notice() {
+		$license_status = get_option( 'agencyos_license_autoblog-ai_status' );
+		if ( $license_status === 'active' ) {
+			return;
+		}
+
+		// Don't show notice twice on the license page itself
+		$screen = get_current_screen();
+		if ( $screen && $screen->id === 'autoblog_page_autoblog-ai-license' ) {
+			return;
+		}
+
+		?>
+		<div class="notice notice-error is-dismissible">
+			<p>
+				<strong>Autoblog AI:</strong> Lisensi Anda belum aktif. Semua fitur otomatisasi AI saat ini <strong>terkunci</strong>. 
+				<a href="<?php echo admin_url( 'admin.php?page=autoblog-ai-license' ); ?>">Klik di sini untuk aktivasi lisensi</a>.
+			</p>
+		</div>
+		<?php
 	}
 
 }

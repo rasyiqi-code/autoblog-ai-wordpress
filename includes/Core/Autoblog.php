@@ -144,6 +144,12 @@ class Autoblog {
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
 		$this->loader->add_action( 'admin_menu', $plugin_admin, 'add_plugin_admin_menu' );
 		$this->loader->add_action( 'admin_init', $plugin_admin, 'register_settings' );
+		$this->loader->add_action( 'admin_notices', $plugin_admin, 'display_license_notice' );
+
+		// AgencyOS License System
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'class-agencyos-license.php';
+		new \Autoblog\License\AgencyOS_License_Checker( 'autoblog-ai' );
+
 		// Handler data sources (upload/hapus) HARUS di admin_init agar redirect bisa kirim header
 		$this->loader->add_action( 'admin_init', $plugin_admin, 'handle_data_source_actions' );
 

@@ -24,6 +24,13 @@ class ContentRefresher {
      * @param bool $force Whether to bypass the global enable option.
      */
     public function refresh_old_content( $force = false ) {
+        // License Protection
+        $license_status = get_option( 'agencyos_license_autoblog-ai_status' );
+        if ( $license_status !== 'active' ) {
+            Logger::log( 'Content Refresh aborted: License is not active.', 'warning' );
+            return;
+        }
+
         if ( ! $force && ! get_option( 'autoblog_enable_living_content' ) ) {
             return;
         }

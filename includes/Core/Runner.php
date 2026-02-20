@@ -34,6 +34,13 @@ class Runner {
      * @param array $overrides Optional features to disable or force.
      */
     public function run_pipeline( $overrides = array() ) {
+        // License Protection
+        $license_status = get_option( 'agencyos_license_autoblog-ai_status' );
+        if ( $license_status !== 'active' ) {
+            Logger::log( 'Autoblog Pipeline aborted: License is not active. Please activate your license in the plugin settings.', 'error' );
+            return;
+        }
+
         Logger::log( 'Starting Modular Autoblog Pipeline...', 'info' );
 
         try {

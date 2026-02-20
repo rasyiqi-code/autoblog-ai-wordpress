@@ -88,7 +88,7 @@ class PostManager {
 		$post_data = array(
 			'post_title'   => wp_strip_all_tags( $title ),
 			'post_content' => $this->convert_to_gutenberg_blocks( $html_content ),
-			'post_status'  => 'draft', // Default to draft for safety
+			'post_status'  => get_option( 'autoblog_post_status', 'draft' ),
 			'post_type'    => 'post',
 			'post_author'  => $author_id ? $author_id : (get_current_user_id() ? get_current_user_id() : 1), // Priority to provided author_id
 		);
