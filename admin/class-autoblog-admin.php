@@ -61,10 +61,13 @@ class Admin {
 		 * between the defined hooks and the functions defined in this
 		 * class.
 		 */
-
-
 		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/autoblog-admin.css', array(), $this->version, 'all' );
-
+		
+		// Load khusus halaman taxonomy tools
+		$screen = get_current_screen();
+		if ( $screen && $screen->id === 'posts_page_autoblog-taxonomy-tools' ) {
+			wp_enqueue_style( $this->plugin_name . '-taxonomy', plugin_dir_url( __FILE__ ) . 'css/autoblog-admin-taxonomy.css', array(), $this->version, 'all' );
+		}
 	}
 
 	/**
