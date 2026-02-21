@@ -146,6 +146,10 @@ class Admin {
 			wp_send_json_error( array( 'message' => 'Tidak ada post yang dipilih.' ) );
 		}
 
+		// Prevent execution timeout and memory issues during bulk AI operations
+		@set_time_limit( 0 );
+		@ini_set( 'memory_limit', '512M' );
+
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/Utils/AIClient.php';
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/Utils/Logger.php';
 		
@@ -164,34 +168,86 @@ class Admin {
 		$model = get_option( $model_option_name, 'gpt-4o' );
 
 		$count = 0;
+		$failed = 0;
 		foreach ( $post_ids as $post_id ) {
-			$post = get_post( $post_id );
-			if ( ! $post ) continue;
-
-			$system_prompt = "You are a WordPress SEO Specialist. Your task is to categorize a blog post based ONLY on its title. Select the most relevant category from the provided list. Return ONLY the category name and nothing else.";
-			$user_prompt = "Post Title: \"{$post->post_title}\"\n\nAvailable Categories: [{$cat_context}]\n\nMost Relevant Category:";
-
-			$predicted_cat = $ai_client->generate_text( $user_prompt, $model, $provider, 0.3, $system_prompt );
-
-			if ( $predicted_cat ) {
-				$predicted_cat = trim( $predicted_cat, " \n\r\t\"'[]" );
-				$term = get_term_by( 'name', $predicted_cat, 'category' );
-				
-				if ( ! $term ) {
-					$term = get_term_by( 'slug', sanitize_title( $predicted_cat ), 'category' );
+			try {
+				$post = get_post( $post_id );
+				if ( ! $post ) {
+					$failed++;
+					continue;
 				}
 
-				if ( $term && ! is_wp_error( $term ) ) {
-					wp_set_post_categories( $post_id, array( $term->term_id ) );
-					$count++;
-					\Autoblog\Utils\Logger::log( "AI Predicted category '{$term->name}' for post ID {$post_id}", 'info' );
+				$system_prompt = "You are a WordPress SEO Specialist. Your task is to categorize and tag a blog post based ONLY on its title.\n";
+				$system_prompt .= "Select 1 most relevant category from the provided list, and provide 3 to 5 relevant tags.\n";
+				$system_prompt .= "Return ONLY a valid JSON object in this format:\n";
+				$system_prompt .= "{\"category\": \"Category Name\", \"tags\": [\"tag1\", \"tag2\"]}";
+
+				$user_prompt = "Post Title: \"{$post->post_title}\"\n\nAvailable Categories: [{$cat_context}]\n\nJSON Output:";
+
+				$response_text = $ai_client->generate_text( $user_prompt, $model, $provider, 0.3, $system_prompt );
+
+				if ( $response_text ) {
+					// Strip markdown code blocks jika AI membungkus output JSON
+					$response_text = preg_replace( '/^```(?:json)?\s*$/m', '', $response_text );
+					$response_text = trim( $response_text );
+					
+					$json_data = json_decode( $response_text, true );
+
+					if ( $json_data && isset( $json_data['category'] ) ) {
+						// 1. Kategori
+						$predicted_cat = trim( $json_data['category'], " \n\r\t\"'[]" );
+						$term = get_term_by( 'name', $predicted_cat, 'category' );
+						
+						if ( ! $term ) {
+							$term = get_term_by( 'slug', sanitize_title( $predicted_cat ), 'category' );
+						}
+
+						$success = false;
+						if ( $term && ! is_wp_error( $term ) ) {
+							wp_set_post_categories( $post_id, array( $term->term_id ) );
+							$success = true;
+							\Autoblog\Utils\Logger::log( "AI Predicted category '{$term->name}' for post ID {$post_id}", 'info' );
+						}
+
+						// 2. Tags
+						if ( isset( $json_data['tags'] ) && is_array( $json_data['tags'] ) ) {
+							// Append = false (timpa tag lama dengan tag baru hasil prediksi)
+							wp_set_post_tags( $post_id, $json_data['tags'], false );
+							$success = true;
+							\Autoblog\Utils\Logger::log( "AI Predicted tags [" . implode(', ', $json_data['tags']) . "] for post ID {$post_id}", 'info' );
+						}
+
+						if ( $success ) {
+							$count++;
+						} else {
+							$failed++;
+						}
+					} else {
+						$failed++;
+						\Autoblog\Utils\Logger::log( "Error processing post ID {$post_id}: Invalid JSON Response -> " . $response_text, 'error' );
+					}
+				} else {
+					$failed++;
 				}
+			} catch ( \Throwable $e ) {
+				$failed++;
+				\Autoblog\Utils\Logger::log( "Error processing post ID {$post_id}: " . $e->getMessage(), 'error' );
 			}
 		}
 
-		wp_send_json_success( array(
-			'message' => "AI berhasil memprediksi dan menetapkan kategori untuk {$count} postingan.",
-		));
+		if ( $count > 0 ) {
+			$msg = "AI berhasil memprediksi dan menetapkan kategori untuk {$count} pos.";
+			if ( $failed > 0 ) {
+				$msg .= " ({$failed} gagal).";
+			}
+			wp_send_json_success( array(
+				'message' => $msg,
+			));
+		} else {
+			wp_send_json_error( array(
+				'message' => "Gagal memprediksi. {$failed} pos dilewati. Cek log.",
+			));
+		}
 	}
 
 	/**
