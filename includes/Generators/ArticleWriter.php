@@ -206,42 +206,43 @@ class ArticleWriter {
      * Ekstrak konfigurasi JSON Chart dari output AI dan ganti dengan Image URL.
      */
     private function process_chart_json( $content ) {
-        if ( preg_match( '/(?:```|”|"|\'|&rdquo;|&quot;)?\s*json(?:```|”|"|\'|&rdquo;|&quot;)?\s*(\{.*"chart".*\})\s*(?:```|”|"|\'|&rdquo;|&quot;)?/is', $content, $matches ) ||
-             preg_match( '/(\{.*"chart".*\})\s*(?:```|”|"|\'|&rdquo;|&quot;)?\s*$/is', $content, $matches ) ) {
-            
-            $json_str = trim( $matches[1] );
-            $json_data = json_decode( $json_str, true );
+        $regex = '/(?:```(?:html|json)?\s*)?(\{(?:[^{}]+|(?R))*\})(?:\s*```)?/isu';
+        
+        if ( preg_match_all( $regex, $content, $matches, PREG_SET_ORDER ) ) {
+            foreach ( $matches as $match ) {
+                $json_str = trim( $match[1] );
+                $json_str = str_replace( ["\x{201C}", "\x{201D}", "\x{2018}", "\x{2019}"], '"', $json_str );
+                $json_data = json_decode( $json_str, true );
 
-            if ( $json_data && isset( $json_data['chart'] ) ) {
-                $chart_config = $json_data['chart'];
-                
-                if ( ! class_exists( 'Autoblog\Generators\ChartGenerator' ) ) {
-                    require_once plugin_dir_path( dirname( __FILE__ ) ) . 'Generators/ChartGenerator.php';
-                }
-                
-                $chart_gen = new \Autoblog\Generators\ChartGenerator();
-                $chart_url = $chart_gen->generate_chart_url(
-                    isset($chart_config['labels']) ? $chart_config['labels'] : [],
-                    isset($chart_config['data']) ? $chart_config['data'] : [],
-                    isset($chart_config['type']) ? $chart_config['type'] : 'bar',
-                    isset($chart_config['title']) ? $chart_config['title'] : 'Chart'
-                );
-
-                if ( $chart_url ) {
-                    $chart_html = "<figure class='autoblog-chart' style='margin: 25px 0; text-align: center;'>";
-                    $chart_html .= "<img src='{$chart_url}' alt='" . esc_attr($chart_config['title']) . "' style='max-width: 100%; border-radius: 8px;'>";
-                    $chart_html .= "<figcaption style='font-style: italic; font-size: 0.9em; margin-top: 8px;'>" . esc_html($chart_config['title']) . "</figcaption>";
-                    $chart_html .= "</figure>";
-
-                    // Hapus JSON block asli
-                    $content = str_replace( $matches[0], '', $content );
+                if ( $json_data && isset( $json_data['chart'] ) ) {
+                    $chart_config = $json_data['chart'];
                     
-                    // Sisipkan di tengah artikel (Median Injection)
-                    $content = $this->inject_at_median( $content, $chart_html );
-                    Logger::log( "Chart Injected at Median Point.", 'info' );
+                    if ( ! class_exists( 'Autoblog\Generators\ChartGenerator' ) ) {
+                        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'Generators/ChartGenerator.php';
+                    }
+                    
+                    $chart_gen = new \Autoblog\Generators\ChartGenerator();
+                    $chart_url = $chart_gen->generate_chart_url(
+                        isset($chart_config['labels']) ? $chart_config['labels'] : [],
+                        isset($chart_config['data']) ? $chart_config['data'] : [],
+                        isset($chart_config['type']) ? $chart_config['type'] : 'bar',
+                        isset($chart_config['title']) ? $chart_config['title'] : 'Chart'
+                    );
+
+                    if ( $chart_url ) {
+                        $chart_html = "<figure class='autoblog-chart' style='margin: 25px 0; text-align: center;'>";
+                        $chart_html .= "<img src='{$chart_url}' alt='" . esc_attr($chart_config['title']) . "' style='max-width: 100%; border-radius: 8px;'>";
+                        $chart_html .= "<figcaption style='font-style: italic; font-size: 0.9em; margin-top: 8px;'>" . esc_html($chart_config['title']) . "</figcaption>";
+                        $chart_html .= "</figure>";
+
+                        // Hapus JSON block asli
+                        $content = str_replace( $match[0], '', $content );
+                        
+                        // Sisipkan di tengah artikel (Median Injection)
+                        $content = $this->inject_at_median( $content, $chart_html );
+                        Logger::log( "Chart Injected at Median Point.", 'info' );
+                    }
                 }
-            } else {
-                $content = str_replace( $matches[0], '', $content );
             }
         }
         return $content;
@@ -251,40 +252,41 @@ class ArticleWriter {
      * Deteksi dan render Media Embed (YouTube/X/Vimeo) dari JSON.
      */
     private function process_media_embeds( $content ) {
-        if ( preg_match( '/(?:```|”|"|\'|&rdquo;|&quot;)?\s*json(?:```|”|"|\'|&rdquo;|&quot;)?\s*(\{.*"media".*\})\s*(?:```|”|"|\'|&rdquo;|&quot;)?/is', $content, $matches ) ||
-             preg_match( '/(\{.*"media".*\})\s*(?:```|”|"|\'|&rdquo;|&quot;)?\s*$/is', $content, $matches ) ) {
-            
-            $json_str = trim( $matches[1] );
-            $json_data = json_decode( $json_str, true );
+        $regex = '/(?:```(?:html|json)?\s*)?(\{(?:[^{}]+|(?R))*\})(?:\s*```)?/isu';
 
-            if ( $json_data && isset( $json_data['media'] ) ) {
-                $media = $json_data['media'];
-                $type = isset($media['type']) ? strtolower($media['type']) : '';
-                $id = isset($media['id']) ? $media['id'] : '';
-                
-                $embed_html = '';
-                if ( $type === 'youtube' ) {
-                    // Extract ID if full URL passed
-                    if (strpos($id, 'youtu') !== false) {
-                        preg_match('%(?:youtube(?:-nocookie)?\.com/(?:[^/]+/.+/|(?:v|e(?:mbed)?)/|.*[?&]v=)|youtu\.be/)([^"&?/ ]{11})%i', $id, $m);
-                        $id = isset($m[1]) ? $m[1] : $id;
-                    }
-                    $embed_html = "<div class='autoblog-embed' style='margin: 25px 0;'><iframe width='100%' height='400' src='https://www.youtube.com/embed/{$id}' frameborder='0' allowfullscreen></iframe></div>";
-                } elseif ( $type === 'twitter' || $type === 'x' ) {
-                    // X/Twitter oEmbed atau simple URL (WP akan auto-embed jika URL diletakkan di baris sendiri)
-                    $embed_html = "\n\nhttps://twitter.com/x/status/{$id}\n\n";
-                }
+        if ( preg_match_all( $regex, $content, $matches, PREG_SET_ORDER ) ) {
+            foreach ( $matches as $match ) {
+                $json_str = trim( $match[1] );
+                $json_str = str_replace( ["\x{201C}", "\x{201D}", "\x{2018}", "\x{2019}"], '"', $json_str );
+                $json_data = json_decode( $json_str, true );
 
-                if ( ! empty( $embed_html ) ) {
-                    // Hapus JSON block asli
-                    $content = str_replace( $matches[0], '', $content );
+                if ( $json_data && isset( $json_data['media'] ) ) {
+                    $media = $json_data['media'];
+                    $type = isset($media['type']) ? strtolower($media['type']) : '';
+                    $id = isset($media['id']) ? $media['id'] : '';
                     
-                    // Sisipkan di tengah artikel (Median Injection)
-                    $content = $this->inject_at_median( $content, $embed_html );
-                    Logger::log( "Media Embed ({$type}) Injected at Median Point.", 'info' );
+                    $embed_html = '';
+                    if ( $type === 'youtube' ) {
+                        // Extract ID if full URL passed
+                        if (strpos($id, 'youtu') !== false) {
+                            preg_match('%(?:youtube(?:-nocookie)?\.com/(?:[^/]+/.+/|(?:v|e(?:mbed)?)/|.*[?&]v=)|youtu\.be/)([^"&?/ ]{11})%i', $id, $m);
+                            $id = isset($m[1]) ? $m[1] : $id;
+                        }
+                        $embed_html = "<div class='autoblog-embed' style='margin: 25px 0;'><iframe width='100%' height='400' src='https://www.youtube.com/embed/{$id}' frameborder='0' allowfullscreen></iframe></div>";
+                    } elseif ( $type === 'twitter' || $type === 'x' ) {
+                        // X/Twitter oEmbed atau simple URL (WP akan auto-embed jika URL diletakkan di baris sendiri)
+                        $embed_html = "\n\nhttps://twitter.com/x/status/{$id}\n\n";
+                    }
+
+                    if ( ! empty( $embed_html ) ) {
+                        // Hapus JSON block asli
+                        $content = str_replace( $match[0], '', $content );
+                        
+                        // Sisipkan di tengah artikel (Median Injection)
+                        $content = $this->inject_at_median( $content, $embed_html );
+                        Logger::log( "Media Embed ({$type}) Injected at Median Point.", 'info' );
+                    }
                 }
-            } else {
-                $content = str_replace( $matches[0], '', $content );
             }
         }
         return $content;
@@ -467,23 +469,24 @@ class ArticleWriter {
      * Ekstrak data taksonomi (Category & Tags) dari output AI.
      */
     private function extract_taxonomy_json( &$content ) {
-        // Regex yang lebih robust untuk menangkap blok JSON taksonomi, 
-        // mendukung tanda petik miring (smart quotes), variasi markdown, dan teks sebelum/sesudah JSON.
-        $regex = '/(?:```(?:json)?\s*)?(\{[\s\r\n]*["\x{201C}\x{201D}]+taxonomy["\x{201C}\x{201D}]+.*?\})(?:\s*```)?/su';
+        // Regex yang lebih robust dengan recursive pattern \{(?:[^{}]+|(?R))*\} untuk menangkap blok JSON 
+        // meskipun ada nested braces (kurung kurawal bersarang).
+        $regex = '/(?:```(?:html|json)?\s*)?(\{(?:[^{}]+|(?R))*\})(?:\s*```)?/isu';
         
-        if ( preg_match( $regex, $content, $matches ) ) {
-            $json_str = trim( $matches[1] );
-            
-            // Konversi smart quotes ke tanda petik standar agar json_decode tidak gagal
-            $json_str = str_replace( ["\x{201C}", "\x{201D}", "\x{2018}", "\x{2019}"], '"', $json_str );
-            
-            $json_data = json_decode( $json_str, true );
-            
-            if ( $json_data && isset( $json_data['taxonomy'] ) ) {
-                // Hapus blok JSON dari konten (gunakan matches[0] untuk menghapus pembungkus markdown juga)
-                $content = str_replace( $matches[0], '', $content );
-                Logger::log( "Taxonomy JSON extracted: " . print_r($json_data['taxonomy'], true), 'debug' );
-                return $json_data['taxonomy'];
+        if ( preg_match_all( $regex, $content, $matches, PREG_SET_ORDER ) ) {
+            foreach ( $matches as $match ) {
+                $json_str = trim( $match[1] );
+                // Konversi smart quotes ke tanda petik standar agar json_decode tidak gagal
+                $json_str = str_replace( ["\x{201C}", "\x{201D}", "\x{2018}", "\x{2019}"], '"', $json_str );
+                
+                $json_data = json_decode( $json_str, true );
+                
+                if ( $json_data && isset( $json_data['taxonomy'] ) ) {
+                    // Hapus blok JSON dari konten (gunakan match[0] untuk menghapus pembungkus markdown juga)
+                    $content = str_replace( $match[0], '', $content );
+                    Logger::log( "Taxonomy JSON extracted: " . print_r($json_data['taxonomy'], true), 'debug' );
+                    return $json_data['taxonomy'];
+                }
             }
         }
         
