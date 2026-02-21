@@ -12,11 +12,18 @@
     <p>Gunakan alat ini untuk memindai postingan yang belum memiliki kategori/tag dan mencoba menetapkannya kembali menggunakan data JSON yang dihasilkan AI di dalam konten.</p>
 
     <div class="card" style="max-width: 100%; margin-top: 20px;">
-        <h2>Postingan Tanpa Kategori (Uncategorized)</h2>
+        <?php
+        $default_category_id   = get_option('default_category', 1);
+        $default_category_name = get_cat_name($default_category_id);
+        if (!$default_category_name) {
+            $default_category_name = 'Uncategorized';
+        }
+        ?>
+        <h2>Postingan Tanpa Kategori (<?php echo esc_html($default_category_name); ?>)</h2>
         <?php
         $args = array(
             'post_type'      => 'post',
-            'category_name'  => 'uncategorized',
+            'cat'            => $default_category_id,
             'posts_per_page' => 20,
             'post_status'    => 'any'
         );
@@ -50,7 +57,7 @@
             </div>
             <div id="taxonomy-result-msg" style="margin-top: 15px; font-weight: bold; padding: 10px; border-radius: 4px; display: none;"></div>
         <?php else : ?>
-            <p>Tidak ada postingan di kategori 'Uncategorized' saat ini. 🎉</p>
+            <p>Tidak ada postingan di kategori '<?php echo esc_html($default_category_name); ?>' saat ini. 🎉</p>
         <?php endif; 
         wp_reset_postdata(); ?>
     </div>
