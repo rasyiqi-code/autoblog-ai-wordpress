@@ -108,7 +108,8 @@ class AIClient {
         $system_content = ! empty( $system_prompt ) ? $system_prompt : 'You are a helpful assistant.';
 
 		try {
-			$response = $this->client->post( 'https://api.openai.com/v1/chat/completions', [
+			// Bug #9 Fix: Gunakan request_with_backoff untuk retry otomatis saat 429/500
+			$response = $this->request_with_backoff( 'POST', 'https://api.openai.com/v1/chat/completions', [
 				'headers' => [
 					'Authorization' => 'Bearer ' . $this->openai_key,
 					'Content-Type'  => 'application/json',
@@ -150,24 +151,31 @@ class AIClient {
             return false;
         }
 
+        // Bug #2 Fix: Anthropic API tidak mendukung role 'system' di messages array.
+        // System prompt harus dikirim via top-level 'system' parameter.
         $messages = [['role' => 'user', 'content' => $prompt]];
-        if (!empty($system_prompt)) {
-            array_unshift($messages, ['role' => 'system', 'content' => $system_prompt]);
+
+        $request_body = [
+            'model' => $model,
+            'max_tokens' => 2048,
+            'temperature' => (float) $temperature,
+            'messages' => $messages
+        ];
+
+        // Tambahkan system prompt sebagai top-level key (bukan di messages)
+        if ( ! empty( $system_prompt ) ) {
+            $request_body['system'] = $system_prompt;
         }
 
         try {
-            $response = $this->client->post( 'https://api.anthropic.com/v1/messages', [
+            // Bug #9 Fix: Gunakan request_with_backoff untuk retry otomatis
+            $response = $this->request_with_backoff( 'POST', 'https://api.anthropic.com/v1/messages', [
                 'headers' => [
                     'x-api-key' => $this->anthropic_key,
                     'anthropic-version' => '2023-06-01',
                     'Content-Type' => 'application/json',
                 ],
-                'json' => [
-                    'model' => $model,
-                    'max_tokens' => 2048,
-                    'temperature' => (float) $temperature,
-                    'messages' => $messages
-                ]
+                'json' => $request_body
             ]);
 
             $body = json_decode( (string) $response->getBody(), true );
@@ -369,7 +377,8 @@ class AIClient {
                 $fallback_depth[$call_id] = 0;
             }
 
-            if ( $fallback_depth[$call_id] < 10 ) {
+            // Bug #1 Fix: Batas fallback depth diperbaiki ke 3 (sesuai log message)
+            if ( $fallback_depth[$call_id] < 3 ) {
                 $fallback_model = $this->get_fallback_model( $model, $provider );
                 if ( $fallback_model ) {
                     $fallback_depth[$call_id]++;
@@ -485,7 +494,8 @@ class AIClient {
         }
 
         try {
-            $response = $this->client->post( 'https://api.groq.com/openai/v1/chat/completions', [
+            // Bug #9 Fix: Gunakan request_with_backoff untuk retry otomatis
+            $response = $this->request_with_backoff( 'POST', 'https://api.groq.com/openai/v1/chat/completions', [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $this->groq_key,
                     'Content-Type'  => 'application/json',
@@ -558,7 +568,8 @@ class AIClient {
         }
 
         try {
-            $response = $this->client->post( 'https://openrouter.ai/api/v1/chat/completions', [
+            // Bug #9 Fix: Gunakan request_with_backoff untuk retry otomatis
+            $response = $this->request_with_backoff( 'POST', 'https://openrouter.ai/api/v1/chat/completions', [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $this->openrouter_key,
                     'Content-Type'  => 'application/json',
@@ -629,7 +640,8 @@ class AIClient {
         }
 
         try {
-            $response = $this->client->post( 'https://api.openai.com/v1/embeddings', [
+            // Bug #9 Fix: Gunakan request_with_backoff untuk retry embedding juga
+            $response = $this->request_with_backoff( 'POST', 'https://api.openai.com/v1/embeddings', [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $this->openai_key,
                     'Content-Type'  => 'application/json',

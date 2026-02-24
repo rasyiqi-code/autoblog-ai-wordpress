@@ -322,22 +322,39 @@ class Admin {
 		// Prevent execution timeout and memory issues during long AI operations
 		@set_time_limit( 0 );
 		@ini_set( 'memory_limit', '512M' );
-		@ini_set( 'display_errors', 1 );
-		error_reporting( E_ALL );
+		// Bug #15 Fix: Dihapus display_errors dan error_reporting untuk keamanan production
+		// Informasi error PHP sudah dicatat ke error_log, tidak perlu dikirim ke response AJAX
 
 		try {
 			require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/Core/Runner.php';
-			$runner = new \Autoblog\Core\Runner();
-			
-			$overrides = isset( $_POST['overrides'] ) ? $_POST['overrides'] : array();
+			// Bug #8 Fix: Sanitasi overrides dari POST untuk mencegah injeksi parameter
+			$raw_overrides = isset( $_POST['overrides'] ) && is_array( $_POST['overrides'] ) ? $_POST['overrides'] : array();
+			$overrides = array_map( 'sanitize_text_field', $raw_overrides );
 
-			if ( method_exists( $runner, $method ) ) {
-				$runner->$method( $overrides );
+			// Petakan method ke hook internal
+			$hook_name = '';
+			if ( $method === 'run_pipeline' ) {
+				$hook_name = 'autoblog_run_pipeline';
+			} elseif ( $method === 'run_ingestion_phase' ) {
+				$hook_name = 'autoblog_run_collector';
+			} elseif ( $method === 'run_ideation_phase' ) {
+				$hook_name = 'autoblog_run_ideator';
+			} elseif ( $method === 'run_production_phase' ) {
+				$hook_name = 'autoblog_run_writer';
+			}
+
+			if ( $hook_name ) {
+				// Jadwalkan di background (asinkron) melalui WP-Cron agar Nginx tidak timeout (503)
+				wp_schedule_single_event( time(), $hook_name, array( $overrides ) );
+				spawn_cron(); // Pancing (trigger) cron untuk mulai bekerja sekarang juga
+
+				\Autoblog\Utils\Logger::log( "AJAX: Task '{$method}' dialihkan ke background processing via hook '{$hook_name}'.", 'info' );
+
 				wp_send_json_success( array(
-					'message' => 'Proses ' . $method . ' selesai!',
+					'message' => 'Proses dialihkan ke background. Silakan pantau Log di bawah.',
 				));
 			} else {
-				wp_send_json_error( array( 'message' => 'Method ' . $method . ' tidak ditemukan.' ) );
+				wp_send_json_error( array( 'message' => 'Method ' . $method . ' tidak siap untuk mode background.' ) );
 			}
 		} catch ( \Throwable $e ) {
 			\Autoblog\Utils\Logger::log( 'AJAX Pipeline Fatal Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(), 'error' );
@@ -361,7 +378,22 @@ class Admin {
 
 		$upload_dir = wp_upload_dir();
 		$log_file   = $upload_dir['basedir'] . '/autoblog-logs/debug.log';
-		$log_content = file_exists( $log_file ) ? file_get_contents( $log_file ) : 'No logs found.';
+		$log_content = 'No logs found.';
+
+		if ( file_exists( $log_file ) ) {
+			$max_bytes = 15360; // Ambil ~15KB terakhir agar tidak memory exhaustion
+			$size = filesize( $log_file );
+			if ( $size > $max_bytes ) {
+				$fp = fopen( $log_file, 'r' );
+				fseek( $fp, -$max_bytes, SEEK_END );
+				$log_content = fread( $fp, $max_bytes );
+				fclose( $fp );
+				// Potong baris pertama yang mungkin terpotong setengah
+				$log_content = substr( $log_content, strpos( $log_content, "\n" ) + 1 );
+			} else {
+				$log_content = file_get_contents( $log_file );
+			}
+		}
 
 		wp_send_json_success( array(
 			'html' => esc_textarea( $log_content ),
@@ -509,7 +541,7 @@ class Admin {
 					'name' => basename($movefile['file']),
 					'path' => $movefile['file'],
 					'url'  => $movefile['url'],
-					'date' => date('Y-m-d H:i:s')
+					'date' => current_time('mysql') // Bug #14 Fix: Gunakan timezone WordPress
 				);
 
 				$knowledge_base[] = $new_item;
@@ -524,7 +556,11 @@ class Admin {
 		}
 
 		// --- Handle: Hapus file Knowledge Base ---
+		// Bug #7 Fix: Tambahkan nonce check untuk mencegah CSRF
 		if ( isset( $_GET['delete_kb'] ) ) {
+			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( $_GET['_wpnonce'], 'autoblog_delete_kb' ) ) {
+				wp_die( 'Security check gagal.' );
+			}
 			$idx = intval( $_GET['delete_kb'] );
 			$kb = get_option( 'autoblog_knowledge', array() );
 			if ( isset( $kb[ $idx ] ) ) {
@@ -578,7 +614,11 @@ class Admin {
 		}
 
 		// --- Handle: Hapus Content Trigger ---
+		// Bug #7 Fix: Tambahkan nonce check untuk mencegah CSRF
 		if ( isset( $_GET['autoblog_delete_source'] ) ) {
+			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( $_GET['_wpnonce'], 'autoblog_delete_source' ) ) {
+				wp_die( 'Security check gagal.' );
+			}
 			$index   = intval( $_GET['autoblog_delete_source'] );
 			$sources = get_option( 'autoblog_sources', array() );
 			if ( ! is_array( $sources ) ) {

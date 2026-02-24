@@ -174,6 +174,9 @@ class Autoblog {
         require_once plugin_dir_path( dirname( __FILE__ ) ) . '../includes/Core/Runner.php';
         $runner = new \Autoblog\Core\Runner();
         $this->loader->add_action( 'autoblog_run_pipeline', $runner, 'run_pipeline' );
+        $this->loader->add_action( 'autoblog_run_collector', $runner, 'run_ingestion_phase' );
+        $this->loader->add_action( 'autoblog_run_ideator', $runner, 'run_ideation_phase' );
+        $this->loader->add_action( 'autoblog_run_writer', $runner, 'run_production_phase' );
 
         // Living Content (Content Refresher)
         require_once plugin_dir_path( dirname( __FILE__ ) ) . '../includes/Core/ContentRefresher.php';

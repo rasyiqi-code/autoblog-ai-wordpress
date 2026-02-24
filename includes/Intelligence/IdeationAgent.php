@@ -80,8 +80,12 @@ class IdeationAgent {
         $prompt .= "FORMAT OUTPUT: JSON valid berupa array of objects. Contoh: [{\"title\": \"...\", \"angle\": \"...\"}]\n";
         $prompt .= "Kembalikan HANYA JSON!";
 
+        // Bug #5 Fix: Gunakan provider/model dari konfigurasi, bukan hardcode OpenAI
+        $provider = get_option( 'autoblog_ai_provider', 'openai' );
+        $model_option = 'autoblog_' . $provider . '_model';
+        $model = get_option( $model_option, 'gpt-4o' );
         // Use higher temperature for brainstorming
-        $response = $this->ai_client->generate_text( $prompt, 'gpt-4o', 'openai', 0.85 );
+        $response = $this->ai_client->generate_text( $prompt, $model, $provider, 0.85 );
 
         if ( ! $response ) {
             Logger::log( "IdeationAgent: Gagal mendapatkan ide dari AI.", 'error' );
@@ -130,7 +134,11 @@ class IdeationAgent {
         }
         $prompt .= "Kembalikan HANYA kueri pencariannya saja tanpa penjelasan.";
 
-        $query = $this->ai_client->generate_text( $prompt );
+        // Bug #6 Fix: Gunakan provider/model dari konfigurasi
+        $provider = get_option( 'autoblog_ai_provider', 'openai' );
+        $model_option = 'autoblog_' . $provider . '_model';
+        $model = get_option( $model_option, 'gpt-4o' );
+        $query = $this->ai_client->generate_text( $prompt, $model, $provider );
         return trim( $query, " \"'" );
     }
 

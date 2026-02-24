@@ -34,6 +34,8 @@ class SearchSource implements SourceInterface {
      */
     private $provider;
     private $serpapi_key;
+    // Bug #12 Fix: Deklarasi property brave_key yang direferensikan di fetch_brave()
+    private $brave_key;
 
 
 
@@ -306,6 +308,7 @@ class SearchSource implements SourceInterface {
      * Fetch using Brave Search API.
      */
     private function fetch_brave() {
+        $items = []; // Bug #12 Fix: Deklarasi $items array
         if ( empty( $this->brave_key ) ) {
             Logger::log( 'Brave Search skipped: API Key is missing.', 'warning' );
             return array();
@@ -458,7 +461,8 @@ class SearchSource implements SourceInterface {
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
         
         // Cookie Jar (some sites need cookies to persist)
-        $cookie_file = sys_get_temp_dir() . '/cookie.txt';
+        // Bug #11 Fix: Cookie path unik per-request agar tidak race condition
+        $cookie_file = sys_get_temp_dir() . '/autoblog_cookie_' . uniqid() . '.txt';
         curl_setopt($ch, CURLOPT_COOKIEJAR, $cookie_file);
         curl_setopt($ch, CURLOPT_COOKIEFILE, $cookie_file);
 

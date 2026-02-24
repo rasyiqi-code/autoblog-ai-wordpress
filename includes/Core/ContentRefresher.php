@@ -100,7 +100,9 @@ class ContentRefresher {
             $full_context = "ORIGINAL CONTENT SUMMARY: " . mb_substr( strip_tags( get_the_content() ), 0, 500 ) . "\n\n";
             $full_context .= "NEW RESEARCH FINDINGS:\n" . $research_context;
             
-            $new_content_html = $writer->write_article( $title, $angle, $full_context );
+            // Bug #10 Fix: write_article() mengharapkan $data sebagai array, bukan string $title
+            $data = array( array( 'title' => $title, 'content' => $full_context, 'source_type' => 'refresh' ) );
+            $new_content_html = $writer->write_article( $data, $angle, $full_context );
 
             if ( $new_content_html ) {
                 // Add Update Notice

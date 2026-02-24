@@ -225,6 +225,10 @@ class VectorStore {
      * Calculate Cosine Similarity between two vectors.
      */
     private function cosine_similarity( $vec1, $vec2 ) {
+        // Bug #4 Fix: Pastikan kedua vektor memiliki dimensi yang sama
+        // Mencegah crash Undefined offset saat pindah embedding provider
+        if ( count( $vec1 ) !== count( $vec2 ) ) return 0;
+
         $dotProduct = 0;
         $normA = 0;
         $normB = 0;

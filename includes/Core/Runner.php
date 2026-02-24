@@ -326,7 +326,8 @@ class Runner {
         $thumb = new ThumbnailGenerator();
         $img_url = $thumb->generate_thumbnail( $topic );
             
-        $source_info = array( 'title' => $topic, 'source_url' => 'ai_modular_' . time() );
+        // Bug #16 Fix: Gunakan format deterministik agar PostManager bisa menemukan post existing
+        // time() selalu unik → post tidak pernah di-update, selalu buat baru\n        $source_info = array( 'title' => $topic, 'source_url' => 'ai_modular_' . sanitize_title( $topic ) );
         $post_id = $publisher->create_or_update_post( $source_info, $html, $img_url, $author_id, $writer->last_taxonomy, $overrides );
         
         update_option( 'autoblog_last_production_data', array(

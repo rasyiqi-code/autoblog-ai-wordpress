@@ -149,7 +149,7 @@ $kb_disabled = ( $current_mode === 'triggers_only' );
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <a href="?page=autoblog&tab=data_sources&delete_kb=<?php echo $index; ?>"
+                                <a href="<?php echo wp_nonce_url( '?page=autoblog&tab=data_sources&delete_kb=' . $index, 'autoblog_delete_kb' ); ?>"
                                    class="button button-small button-link-delete"
                                    onclick="return confirm('Hapus file ini dari Knowledge Base?')">Hapus</a>
                             </td>
@@ -265,7 +265,7 @@ $triggers_disabled = ( $current_mode === 'kb_only' );
                                 </td>
                                 <td><?php echo esc_html( isset( $source['selector'] ) ? $source['selector'] : '-' ); ?></td>
                                 <td>
-                                    <a href="?page=autoblog&tab=data_sources&autoblog_delete_source=<?php echo $index; ?>"
+                                    <a href="<?php echo wp_nonce_url( '?page=autoblog&tab=data_sources&autoblog_delete_source=' . $index, 'autoblog_delete_source' ); ?>"
                                        class="button button-small button-link-delete"
                                        onclick="return confirm('Hapus source ini?')">Hapus</a>
                                 </td>

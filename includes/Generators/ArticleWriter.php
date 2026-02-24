@@ -132,8 +132,16 @@ class ArticleWriter {
 
         $system_prompt .= "KEMBALIKAN HANYA ARTIKEL HTML (DAN BLOK JSON TAXONOMY DI AKHIR).";
 
+        // Bug #3 Fix: Ambil judul artikel dari data, karena $title belum didefinisikan di scope ini
+        $article_title = '';
+        if ( is_array( $data ) && ! isset( $data['content'] ) && ! empty( $data[0]['title'] ) ) {
+            $article_title = $data[0]['title'];
+        } elseif ( is_array( $data ) && isset( $data['title'] ) ) {
+            $article_title = $data['title'];
+        }
+
         $user_prompt = "### TASKS:\n";
-        $user_prompt .= "Write a deep, human-like article about: '{$title}'\n";
+        $user_prompt .= "Write a deep, human-like article about: '{$article_title}'\n";
         $user_prompt .= "Perspective/Angle: {$angle}\n\n";
 
         if ( ! empty( $context ) ) {

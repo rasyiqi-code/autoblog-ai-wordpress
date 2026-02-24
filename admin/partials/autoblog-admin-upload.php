@@ -76,7 +76,7 @@ if ( isset( $_POST['autoblog_upload_file'] ) && ! empty( $_FILES['autoblog_file'
                     <td><?php echo esc_html( isset($item['date']) ? $item['date'] : '-' ); ?></td>
                     <td><span class="dashicons dashicons-database"></span> Stored</td>
                     <td>
-                        <a href="?page=autoblog&tab=upload&delete_kb=<?php echo $index; ?>" class="button button-small button-link-delete" onclick="return confirm('Remove from Knowledge Base?')">Delete</a>
+                        <a href="<?php echo wp_nonce_url( '?page=autoblog&tab=upload&delete_kb=' . $index, 'autoblog_delete_kb' ); ?>" class="button button-small button-link-delete" onclick="return confirm('Remove from Knowledge Base?')">Delete</a>
                     </td>
                 </tr>
             <?php endforeach; else: ?>
@@ -89,6 +89,9 @@ if ( isset( $_POST['autoblog_upload_file'] ) && ! empty( $_FILES['autoblog_file'
 <?php 
 // Handle Deletion logic inline for simplicity
 if ( isset( $_GET['delete_kb'] ) ) {
+    if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( $_GET['_wpnonce'], 'autoblog_delete_kb' ) ) {
+        wp_die( 'Security check gagal.' );
+    }
     $idx = intval( $_GET['delete_kb'] );
     $kb = get_option('autoblog_knowledge', array());
     if ( isset( $kb[$idx] ) ) {

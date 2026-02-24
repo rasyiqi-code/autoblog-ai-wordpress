@@ -45,6 +45,9 @@ if ( isset( $_POST['autoblog_add_source'] ) ) {
 }
 
 if ( isset( $_GET['autoblog_delete_source'] ) ) {
+    if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( $_GET['_wpnonce'], 'autoblog_delete_source' ) ) {
+        wp_die( 'Security check gagal.' );
+    }
     $index = intval( $_GET['autoblog_delete_source'] );
     $sources = get_option( 'autoblog_sources', array() );
     if ( ! is_array( $sources ) ) {
@@ -197,7 +200,7 @@ if ( ! is_array( $sources ) ) {
                     </td>
                     <td><?php echo esc_html( isset( $source['selector'] ) ? $source['selector'] : '-' ); ?></td>
                     <td>
-                        <a href="?page=autoblog&tab=sources&autoblog_delete_source=<?php echo $index; ?>" class="button button-small button-link-delete" onclick="return confirm('Are you sure?')">Delete</a>
+                        <a href="<?php echo wp_nonce_url( '?page=autoblog&tab=sources&autoblog_delete_source=' . $index, 'autoblog_delete_source' ); ?>" class="button button-small button-link-delete" onclick="return confirm('Are you sure?')">Delete</a>
                     </td>
                 </tr>
             <?php endforeach; ?>
