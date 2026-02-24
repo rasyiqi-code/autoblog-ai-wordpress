@@ -340,7 +340,7 @@ class Admin {
 				wp_send_json_error( array( 'message' => 'Method ' . $method . ' tidak ditemukan.' ) );
 			}
 		} catch ( \Throwable $e ) {
-			Logger::log( 'AJAX Pipeline Fatal Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(), 'error' );
+			\Autoblog\Utils\Logger::log( 'AJAX Pipeline Fatal Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(), 'error' );
 			wp_send_json_error( array(
 				'message' => 'Fatal Error: ' . $e->getMessage() . ' (See debug.log for details)',
 			));
