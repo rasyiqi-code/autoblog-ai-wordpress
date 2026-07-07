@@ -31,12 +31,19 @@
         defaultApi = autoblog_ajax.dynamic_providers[provId].api || "";
       }
 
-      // Buat baris input baru dengan input Base URL
+      // Buat baris input baru dengan input Base URL & Radio Set Aktif
+      var isChecked = ($(".active-provider-radio:checked").length === 0) ? "checked" : "";
       var newRow =
         '<tr valign="top" class="custom-key-row" data-provider="' + provId + '">' +
-        '  <th scope="row">' +
-        '    <span class="provider-label-text">' + provName + '</span> API Key' +
-        '    <div class="provider-badge-container"></div>' +
+        '  <th scope="row" style="width: 220px; min-width: 220px;">' +
+        '    <span class="provider-label-text" style="font-weight:700; font-size:13px; color:#1d2327;">' + provName + '</span>' +
+        '    <div style="margin-top: 6px;">' +
+        '      <label style="font-weight: 600; font-size:12px; color:#1d2327; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">' +
+        '        <input type="radio" class="active-provider-radio" name="autoblog_ai_provider" value="' + provId + '" ' + isChecked + ' style="margin: 0;" />' +
+        '        <span>Set Aktif</span>' +
+        '      </label>' +
+        '    </div>' +
+        '    <div class="provider-badge-container" style="margin-top: 4px;"></div>' +
         '  </th>' +
         '  <td>' +
         '    <div style="display:flex; flex-direction:column; gap:8px;">' +

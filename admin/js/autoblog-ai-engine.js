@@ -14,18 +14,20 @@
   "use strict";
 
   $(document).ready(function () {
-    var $aiProvider = $("#autoblog_ai_provider");
-    if ($aiProvider.length === 0) return;
-
     // ================================================================
     // HELPER: Update dropdown model berdasarkan provider yang dipilih
     // ================================================================
     function updateAIModelDropdown() {
-      var provider    = $aiProvider.val();
+      var provider = $(".active-provider-radio:checked").val();
       var $modelSelect = $("#autoblog_ai_model");
       if ($modelSelect.length === 0) return;
 
       $modelSelect.empty();
+
+      if (!provider) {
+        $modelSelect.append($("<option></option>").val("").text("-- Harap Tambah & Aktifkan Provider --"));
+        return;
+      }
 
       // Mapping alias provider ke kunci katalog
       var devKey = provider;
@@ -83,8 +85,13 @@
     // HELPER: Cek active provider key, toggle warning, update badge
     // ================================================================
     function checkActiveKey() {
-      var provider = $aiProvider.val();
-      if (!provider) return;
+      var provider = $(".active-provider-radio:checked").val();
+      var $warning = $("#active_key_warning");
+
+      if (!provider) {
+        $warning.html('⚠️ Belum ada provider aktif. Silakan pilih / tambahkan provider di atas dan klik "Set Aktif".').show();
+        return;
+      }
 
       var checkKey = provider;
       if (provider === "gemini") {
@@ -98,7 +105,6 @@
         var $badgeContainer = $(this).find(".provider-badge-container");
         var provId = $(this).data("provider");
         
-        // Simulasikan get_key_badge versi JS
         var styleBase = 'display:inline-block; padding:2px 8px; border-radius:12px; font-size:9px; font-weight:600; letter-spacing:0.04em; margin-right:6px; margin-top:4px; text-transform:uppercase; vertical-align:middle;';
         
         if (provId === checkKey) {
@@ -110,18 +116,17 @@
 
       // Validasi apakah key-nya ada dan tidak kosong
       var $row = $('.custom-key-row[data-provider="' + checkKey + '"]');
-      var $warning = $("#active_key_warning");
 
       if ($row.length === 0 || !$row.find("textarea").val()) {
-        var provName = $aiProvider.find("option:selected").text();
-        $warning.html('⚠️ API Key untuk provider aktif (' + provName + ') belum ditambahkan atau masih kosong di bawah. Silakan tambahkan/isi kuncinya di bagian "LLM Provider Keys & Endpoints".').show();
+        var provLabelName = $row.find(".provider-label-text").text() || provider;
+        $warning.html('⚠️ API Key untuk provider aktif (' + provLabelName + ') belum ditambahkan atau masih kosong di atas. Silakan isi kuncinya.').show();
       } else {
         $warning.hide();
       }
     }
 
     // Bind event
-    $aiProvider.on("change", function() {
+    $(document).on("change", ".active-provider-radio", function() {
       updateAIModelDropdown();
       checkActiveKey();
     });
@@ -130,7 +135,14 @@
     // Monitoring input password custom keys
     $(document).on("input", ".custom-key-row textarea", checkActiveKey);
     $(document).on("click", "#btn-add-custom-key, .remove-custom-key", function() {
-      setTimeout(checkActiveKey, 50); // delay agar DOM selesai terupdate
+      setTimeout(function() {
+        // Jika provider aktif saat ini di-remove, aktifkan radio pertama yang tersisa
+        if ($(".active-provider-radio:checked").length === 0) {
+          $(".active-provider-radio").first().prop("checked", true);
+        }
+        updateAIModelDropdown();
+        checkActiveKey();
+      }, 50); // delay agar DOM selesai terupdate
     });
 
     // Inisialisasi awal

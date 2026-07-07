@@ -1,10 +1,10 @@
 <?php
 /**
- * Tab AI & API Settings (Unified Form with Dynamic Keys List at the Top)
+ * Tab AI & API Settings (Unified Form with Dynamic Keys List as Primary Selector)
  *
  * Menggabungkan tab AI Engine dan API Keys menjadi satu halaman terpadu.
- * Seluruh konfigurasi LLM (Active Provider, Model, dan Multi-Provider Keys Pool)
- * disatukan di dalam box teratas untuk UX yang sangat linier dan teratur.
+ * Memilih Active AI Provider menggunakan Radio Button langsung di setiap baris provider
+ * di dalam pool daftar kunci, merapikan UX secara total.
  *
  * @package    Autoblog
  * @subpackage Autoblog/admin/partials
@@ -48,7 +48,7 @@ if ( ! function_exists( 'get_key_badge' ) ) {
         $style_base = 'display:inline-block; padding:2px 8px; border-radius:12px; font-size:9px; font-weight:600; letter-spacing:0.04em; margin-right:6px; margin-top:4px; text-transform:uppercase; vertical-align:middle;';
 
         if ( $key_provider === $active_key_id ) {
-            $badges[] = '<span class="active-badge-' . esc_attr($key_provider) . '" style="' . $style_base . ' background:#fee2e2; color:#b91c1c; border: 1px solid #fecaca;">WAJIB - AKTIF</span>';
+            $badges[] = '<span class="active-badge-' . esc_attr($key_provider) . '" style="' . $style_base . ' background:#fee2e2; color:#b91c1c; border: 1px solid #fecaca;">AKTIF</span>';
         }
         if ( $key_provider === $embedding_key_name ) {
             $badges[] = '<span style="' . $style_base . ' background:#fef3c7; color:#b45309; border: 1px solid #fde68a;">WAJIB UNTUK RAG</span>';
@@ -76,42 +76,9 @@ if ( ! function_exists( 'get_key_badge' ) ) {
         <h2 class="hndle">🤖 AI Engine & Model Settings</h2>
     </div>
     <div class="inside">
-        <p class="description">Pilih provider utama, tentukan model LLM penulisan, dan kelola seluruh API Key untuk provider di bawah.</p>
+        <p class="description">Kelola API Key, Base URL kustom untuk provider LLM Anda, dan pilih satu provider aktif menulis pos menggunakan tombol radio <strong>Set Aktif</strong> di bawah.</p>
         
-        <table class="form-table">
-            <!-- Active AI Provider -->
-            <tr valign="top">
-                <th scope="row">Active AI Provider</th>
-                <td>
-                    <select name="autoblog_ai_provider" id="autoblog_ai_provider" style="min-width: 250px;">
-                        <?php foreach ( $providers as $p_id => $p_data ) : ?>
-                            <option value="<?php echo esc_attr( $p_id ); ?>" <?php selected( $selected_provider, $p_id ); ?>><?php echo esc_html( $p_data['name'] ); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <p class="description">Layanan AI utama yang memproses penulisan konten blog Anda.</p>
-                    <!-- Warning Area jika key provider aktif belum ada di list bawah -->
-                    <div id="active_key_warning" style="display:none; color:#d63638; font-weight:bold; margin-top:8px; font-size:11.5px;"></div>
-                </td>
-            </tr>
-
-            <!-- AI Model -->
-            <tr valign="top">
-                <th scope="row">AI Model</th>
-                <td>
-                    <select name="autoblog_ai_model" id="autoblog_ai_model" style="min-width: 250px;">
-                        <!-- JS dinamis populate -->
-                    </select>
-                    <p class="description">Model bahasa spesifik yang digunakan untuk generate artikel.</p>
-                </td>
-            </tr>
-        </table>
-
-        <hr style="margin: 25px 0; border: 0; border-top: 1px solid #f0f0f1;">
-
-        <h3 style="font-size:13.5px; font-weight:700; margin-bottom:5px;">🔑 LLM Provider Keys & Endpoints (Multi-Provider Pool)</h3>
-        <p class="description" style="margin-bottom:15px;">Tambahkan kunci API (bisa multi-key, satu per baris) dan Base URL kustom untuk masing-masing provider. Jika Smart Fallback aktif, sistem otomatis merotasi kunci/provider cadangan di bawah jika provider aktif utama limit.</p>
-
-        <table class="form-table" id="custom-keys-table">
+        <table class="form-table" id="custom-keys-table" style="margin-top: 15px;">
             <?php
             if ( is_array( $custom_keys ) && ! empty( $custom_keys ) ) {
                 foreach ( $custom_keys as $prov_id => $prov_key ) {
@@ -128,9 +95,15 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                     $current_endpoint = isset( $custom_endpoints[$prov_id] ) ? $custom_endpoints[$prov_id] : ( isset( $providers[$prov_id]['api'] ) ? $providers[$prov_id]['api'] : '' );
                     ?>
                     <tr valign="top" class="custom-key-row" data-provider="<?php echo esc_attr($prov_id); ?>">
-                        <th scope="row">
-                            <span class="provider-label-text"><?php echo esc_html($prov_name); ?></span> API Key
-                            <div class="provider-badge-container"><?php echo $badge_html; ?></div>
+                        <th scope="row" style="width: 220px; min-width: 220px;">
+                            <span class="provider-label-text" style="font-weight:700; font-size:13px; color:#1d2327;"><?php echo esc_html($prov_name); ?></span>
+                            <div style="margin-top: 6px;">
+                                <label style="font-weight: 600; font-size:12px; color:#1d2327; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">
+                                    <input type="radio" class="active-provider-radio" name="autoblog_ai_provider" value="<?php echo esc_attr($prov_id); ?>" <?php checked($selected_provider, $prov_id); ?> style="margin: 0;" />
+                                    <span>Set Aktif</span>
+                                </label>
+                            </div>
+                            <div class="provider-badge-container" style="margin-top: 4px;"><?php echo $badge_html; ?></div>
                         </th>
                         <td>
                             <div style="display:flex; flex-direction:column; gap:8px;">
@@ -163,7 +136,7 @@ if ( ! function_exists( 'get_key_badge' ) ) {
             ?>
         </table>
 
-        <div style="margin-top: 15px; display: flex; gap: 8px; align-items: center; padding-top: 12px; border-top: 1px solid #f0f0f1;">
+        <div style="margin-top: 15px; display: flex; gap: 8px; align-items: center; padding-top: 12px; border-top: 1px solid #f0f0f1; padding-bottom: 20px;">
             <select id="new-custom-provider-select" style="max-width: 200px; padding: 4px 6px; font-size:12px;">
                 <option value="">-- Pilih Provider Baru --</option>
                 <?php
@@ -172,13 +145,29 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                         continue;
                     }
                     ?>
-                    <option value="<?php echo esc_attr($p_id); ?>"><?php echo esc_html($p_data['name']); ?></option>
+                    <option value="<?php echo esc_attr( $p_id ); ?>"><?php echo esc_html( $p_data['name'] ); ?></option>
                     <?php
                 }
                 ?>
             </select>
             <button type="button" class="button button-secondary" id="btn-add-custom-key" style="padding: 2px 8px; font-size:12px;">+ Tambah Key</button>
         </div>
+
+        <hr style="margin: 0; border: 0; border-top: 1px solid #f0f0f1;">
+
+        <table class="form-table" style="margin-top: 15px;">
+            <!-- AI Model selection -->
+            <tr valign="top">
+                <th scope="row" style="width: 220px; min-width: 220px;">AI Model</th>
+                <td>
+                    <select name="autoblog_ai_model" id="autoblog_ai_model" style="min-width: 250px;">
+                        <!-- JS dinamis populate -->
+                    </select>
+                    <p class="description">Pilih model bahasa spesifik dari provider aktif terpilih.</p>
+                    <div id="active_key_warning" style="display:none; color:#d63638; font-weight:bold; margin-top:8px; font-size:11.5px;"></div>
+                </td>
+            </tr>
+        </table>
     </div>
 </div>
 
@@ -229,7 +218,7 @@ if ( ! function_exists( 'get_key_badge' ) ) {
 </div>
 
 <!-- ================================================================ -->
-<!-- SECTION 3: Advanced AI & Media Settings -->
+<!-- SECTION 3: Advanced Settings -->
 <!-- ================================================================ -->
 <div class="postbox">
     <div class="postbox-header">
