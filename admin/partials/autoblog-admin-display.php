@@ -172,4 +172,23 @@
         }
         ?>
     </div>
+
+    <!-- CredibleMark Promo Box at the Bottom of Settings -->
+    <div class="postbox" style="margin-top: 25px; border-left: 4px solid #22c55e; background: #fff;">
+        <div class="postbox-header" style="border-bottom: 1px solid #c3c4c7;">
+            <h2 class="hndle" style="font-size: 14px; font-weight: 600; padding: 12px 15px; margin: 0; color: #1d2327;">🚀 Hubungi Developer / Jasa Pembuatan Website & App - CredibleMark</h2>
+        </div>
+        <div class="inside" style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap; justify-content: space-between; padding: 15px 20px;">
+            <div style="flex: 1; min-width: 300px;">
+                <p style="font-size: 14px; font-weight: 700; color: #1d2327; margin-top: 0; margin-bottom: 8px;">Butuh Website Kustom Premium, CRM, ERP, atau Aplikasi Automasi Bisnis?</p>
+                <p style="margin: 0; color: #50575e; line-height: 1.5;"><strong>CredibleMark</strong> membangun sistem digital kustom berkinerja tinggi yang disesuaikan 100% untuk alur kerja bisnis Anda. Tanpa biaya lisensi bulanan, keamanan tingkat tinggi, dan performa maksimal.</p>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <a href="https://crediblemark.com" target="_blank" class="button button-secondary" style="font-weight: 600; padding: 6px 12px; height: auto; line-height: 1.4;">Kunjungi crediblemark.com</a>
+                <a href="https://wa.me/6285183131249?text=Halo%20CredibleMark,%20saya%20tertarik%20tanya%20jasa%20pembuatan%20website" target="_blank" class="button button-primary" style="background: #22c55e; border-color: #16a34a; color: #fff; font-weight: 600; padding: 6px 12px; height: auto; line-height: 1.4;">
+                    💬 Chat WhatsApp (0851-8313-1249)
+                </a>
+            </div>
+        </div>
+    </div>
 </div>

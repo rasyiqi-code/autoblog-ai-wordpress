@@ -146,6 +146,42 @@ class Admin {
     }
 
     /**
+     * Daftarkan widget kustom di Dashboard utama WordPress.
+     */
+    public function add_dashboard_widgets() {
+        wp_add_dashboard_widget(
+            'autoblog_crediblemark_promo_widget',
+            '🚀 Custom Web & App Development - CredibleMark',
+            [ $this, 'render_crediblemark_promo_widget' ]
+        );
+    }
+
+    /**
+     * Render isi widget promosi CredibleMark.
+     */
+    public function render_crediblemark_promo_widget() {
+        ?>
+        <div style="padding: 5px 0;">
+            <p style="font-size: 14px; font-weight: 700; color: #1d2327; margin-top: 0;">Butuh Website Premium atau Sistem Automasi Bisnis?</p>
+            <p><strong>CredibleMark</strong> adalah mitra teknologi terpercaya Anda untuk membangun solusi digital berkualitas tinggi tanpa biaya lisensi bulanan (100% milik Anda).</p>
+            
+            <ul style="list-style-type: disc; padding-left: 20px; margin: 12px 0; color: #50575e;">
+                <li><strong>WordPress Kustom:</strong> Sangat cepat, aman, dan UI/UX bespoke yang disesuaikan khusus untuk bisnis Anda.</li>
+                <li><strong>Sistem Operasional Khusus:</strong> Pembangunan CRM, Pelacakan Inventaris, Portal Klien, dan Integrasi Database kustom.</li>
+                <li><strong>Automasi Proses Bisnis:</strong> Kurangi dokumen manual dan otomatiskan alur kerja harian untuk meningkatkan penjualan.</li>
+            </ul>
+
+            <p style="margin-top: 15px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <a href="https://crediblemark.com" target="_blank" class="button button-primary" style="font-weight: 600;">Kunjungi Website Kami</a>
+                <a href="https://wa.me/6285183131249?text=Halo%20CredibleMark,%20saya%20tertarik%20tanya%20jasa%20pembuatan%20website" target="_blank" class="button button-secondary" style="font-weight: 600; color: #22c55e; border-color: #22c55e;">
+                    💬 Chat WhatsApp (0851-8313-1249)
+                </a>
+            </p>
+        </div>
+        <?php
+    }
+
+    /**
      * Render halaman Taxonomy Tools.
      */
     public function display_taxonomy_tools_page() {
