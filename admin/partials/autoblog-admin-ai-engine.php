@@ -147,10 +147,11 @@ if ( empty( $selected_model ) ) {
 </table>
 
 <?php
+$custom_keys = get_option( 'autoblog_custom_api_keys', array() );
 $keys_filled = array(
-    'openai'     => ! empty( get_option( 'autoblog_openai_key' ) ),
-    'gemini_001' => ! empty( get_option( 'autoblog_gemini_key' ) ),
-    'hf'         => ! empty( get_option( 'autoblog_hf_key' ) ),
+    'openai'     => ! empty( $custom_keys['openai'] ) ? true : ! empty( get_option( 'autoblog_openai_key' ) ),
+    'gemini_001' => ! empty( $custom_keys['google'] ) ? true : ! empty( get_option( 'autoblog_gemini_key' ) ),
+    'hf'         => ! empty( $custom_keys['huggingface'] ) ? true : ( ! empty( $custom_keys['hf'] ) ? true : ! empty( get_option( 'autoblog_hf_key' ) ) ),
 );
 $merged_models = \Autoblog\Admin\Admin::get_merged_models();
 ?>

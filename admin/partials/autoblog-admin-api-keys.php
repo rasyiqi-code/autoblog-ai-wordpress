@@ -57,72 +57,6 @@ function get_key_badge( $key_provider, $active_provider, $embedding_key_name, $s
 ?>
 
 <table class="form-table">
-    <!-- OpenAI -->
-    <tr valign="top">
-        <th scope="row">OpenAI API Key <?php echo get_key_badge('openai', $active_provider, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></th>
-        <td>
-            <input type="password" name="autoblog_openai_key"
-                   value="<?php echo esc_attr( get_option('autoblog_openai_key') ); ?>"
-                   class="regular-text" />
-            <p class="description">Digunakan untuk GPT-4o, text-embedding-3-small, dan DALL·E.</p>
-        </td>
-    </tr>
-
-    <!-- Anthropic -->
-    <tr valign="top">
-        <th scope="row">Anthropic API Key <?php echo get_key_badge('anthropic', $active_provider, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></th>
-        <td>
-            <input type="password" name="autoblog_anthropic_key"
-                   value="<?php echo esc_attr( get_option('autoblog_anthropic_key') ); ?>"
-                   class="regular-text" />
-            <p class="description">Untuk Claude 3.5 Sonnet, Opus, Haiku.</p>
-        </td>
-    </tr>
-
-    <!-- Google Gemini -->
-    <tr valign="top">
-        <th scope="row">Google Gemini API Key <?php echo get_key_badge('gemini', $active_provider, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></th>
-        <td>
-            <input type="password" name="autoblog_gemini_key"
-                   value="<?php echo esc_attr( get_option('autoblog_gemini_key') ); ?>"
-                   class="regular-text" />
-            <p class="description">Untuk Gemini Pro/Flash dan embedding-001.</p>
-        </td>
-    </tr>
-
-    <!-- Groq -->
-    <tr valign="top">
-        <th scope="row">Groq API Key <?php echo get_key_badge('groq', $active_provider, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></th>
-        <td>
-            <input type="password" name="autoblog_groq_key"
-                   value="<?php echo esc_attr( get_option('autoblog_groq_key') ); ?>"
-                   class="regular-text" />
-            <p class="description">Untuk Llama 3.3 dan Mixtral via Groq inference.</p>
-        </td>
-    </tr>
-
-    <!-- Hugging Face -->
-    <tr valign="top">
-        <th scope="row">Hugging Face API Key <?php echo get_key_badge('hf', $active_provider, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></th>
-        <td>
-            <input type="password" name="autoblog_hf_key"
-                   value="<?php echo esc_attr( get_option('autoblog_hf_key') ); ?>"
-                   class="regular-text" />
-            <p class="description">Untuk model MiniLM-L6-v2 embedding dan model HF lainnya.</p>
-        </td>
-    </tr>
-
-    <!-- OpenRouter -->
-    <tr valign="top">
-        <th scope="row">OpenRouter API Key <?php echo get_key_badge('openrouter', $active_provider, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></th>
-        <td>
-            <input type="password" name="autoblog_openrouter_key"
-                   value="<?php echo esc_attr( get_option('autoblog_openrouter_key') ); ?>"
-                   class="regular-text" />
-            <p class="description">Akses ke berbagai model via OpenRouter (Qwen, Gemma, Llama, dll).</p>
-        </td>
-    </tr>
-
     <!-- SerpApi -->
     <tr valign="top">
         <th scope="row">SerpApi Key <?php echo get_key_badge('serpapi', $active_provider, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></th>
@@ -147,8 +81,8 @@ function get_key_badge( $key_provider, $active_provider, $embedding_key_name, $s
 </table>
 
 <div class="card" style="margin-top: 30px; max-width: 100%; border: 1px solid #ccd0d4; border-radius: 4px; padding: 20px; background: #fff;">
-    <h2 style="margin-top:0; font-size:16px;">🔑 Custom/Additional Provider API Keys</h2>
-    <p class="description" style="margin-bottom:20px;">Tambahkan API key untuk provider lain yang ada di database models.dev secara dinamis.</p>
+    <h2 style="margin-top:0; font-size:16px;">🔑 AI Provider API Keys</h2>
+    <p class="description" style="margin-bottom:20px;">Tambahkan API key untuk provider LLM/AI Anda dari models.dev. Status prioritas akan muncul dinamis.</p>
     
     <table class="form-table" id="custom-keys-table">
         <?php
@@ -158,9 +92,22 @@ function get_key_badge( $key_provider, $active_provider, $embedding_key_name, $s
         if ( is_array( $custom_keys ) && ! empty( $custom_keys ) ) {
             foreach ( $custom_keys as $prov_id => $prov_key ) {
                 $prov_name = isset( $dynamic_providers[$prov_id]['name'] ) ? $dynamic_providers[$prov_id]['name'] : $prov_id;
+                
+                // Normalisasi ID untuk pencocokan status badge prioritas
+                $check_id = $prov_id;
+                if ( $prov_id === 'google' ) {
+                    $check_id = 'gemini';
+                } elseif ( $prov_id === 'huggingface' ) {
+                    $check_id = 'hf';
+                }
+                
+                $badge_html = get_key_badge( $check_id, $active_provider, $embedding_key_name, $search_provider, $need_search_key, $need_pexels );
                 ?>
                 <tr valign="top" class="custom-key-row" data-provider="<?php echo esc_attr($prov_id); ?>">
-                    <th scope="row" style="width: 200px;"><?php echo esc_html($prov_name); ?> API Key</th>
+                    <th scope="row" style="width: 280px;">
+                        <?php echo esc_html($prov_name); ?> API Key
+                        <div style="margin-top: 5px;"><?php echo $badge_html; ?></div>
+                    </th>
                     <td>
                         <input type="password" name="autoblog_custom_api_keys[<?php echo esc_attr($prov_id); ?>]" value="<?php echo esc_attr($prov_key); ?>" class="regular-text" style="width:25em;" />
                         <button type="button" class="button remove-custom-key" style="margin-left: 10px; color:#d63638; border-color:#d63638;">Remove</button>
@@ -183,10 +130,6 @@ function get_key_badge( $key_provider, $active_provider, $embedding_key_name, $s
             <option value="">-- Pilih Provider Baru --</option>
             <?php
             foreach ( $dynamic_providers as $p_id => $p_data ) {
-                // Lewati provider utama yang sudah ada kolom input statisnya
-                if ( in_array( $p_id, array( 'openai', 'anthropic', 'google', 'groq', 'openrouter', 'huggingface' ) ) ) {
-                    continue;
-                }
                 // Lewati yang sudah ditambahkan key-nya
                 if ( isset( $custom_keys[$p_id] ) ) {
                     continue;
