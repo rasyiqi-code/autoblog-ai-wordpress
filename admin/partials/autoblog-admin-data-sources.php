@@ -194,7 +194,7 @@ $triggers_disabled = ( $current_mode === 'kb_only' );
                             <select name="source_type" id="autoblog_source_type">
                                 <option value="rss">RSS Feed</option>
                                 <option value="web">Web Scraper</option>
-                                <option value="web_search">Web Search (SerpApi/Brave)</option>
+                                <option value="web_search">Web Search (DuckDuckGo/SerpApi)</option>
                             </select>
                         </td>
                     </tr>
@@ -302,7 +302,7 @@ $triggers_disabled = ( $current_mode === 'kb_only' );
                 $('#row_selector').hide();
                 $('#label_url').text('Search Query');
                 $('#input_url').attr('placeholder', 'latest AI trends, wordpress tips');
-                $('#desc_url').text('Masukkan query pencarian (pisah koma). Menggunakan SerpApi/Brave sesuai pengaturan AI Engine.');
+                $('#desc_url').text('Masukkan query pencarian (pisah koma). Menggunakan DuckDuckGo/SerpApi sesuai pengaturan AI Engine.');
             } else {
                 // Default: RSS
                 $('#row_selector').hide();
