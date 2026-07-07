@@ -329,6 +329,4 @@
     // Pemuatan log pertama kali secara instan saat document ready
     refreshLogs();
   });
-
-  });
 })(jQuery);
