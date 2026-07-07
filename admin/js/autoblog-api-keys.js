@@ -13,23 +13,90 @@
 
   $(document).ready(function () {
     // ================================================================
+    // INTERACTION: Tambah Custom API Key
+    // ================================================================
+    $("#btn-add-custom-key").on("click", function () {
+      var $select  = $("#new-custom-provider-select");
+      var provId   = $select.val();
+      var provName = $select.find("option:selected").text();
+
+      if (!provId) return;
+
+      // Hapus baris placeholder "belum ada key" jika ada
+      $("#no-custom-keys-row").remove();
+
+      // Dapatkan default API endpoint dari dynamic_providers
+      var defaultApi = "";
+      if (autoblog_ajax.dynamic_providers && autoblog_ajax.dynamic_providers[provId]) {
+        defaultApi = autoblog_ajax.dynamic_providers[provId].api || "";
+      }
+
+      // Buat baris input baru dengan input Base URL
+      var newRow =
+        '<tr valign="top" class="custom-key-row" data-provider="' + provId + '">' +
+        '  <th scope="row">' +
+        '    <span class="provider-label-text">' + provName + '</span> API Key' +
+        '    <div class="provider-badge-container"></div>' +
+        '  </th>' +
+        '  <td>' +
+        '    <div style="display:flex; flex-direction:column; gap:8px;">' +
+        '      <div style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap;">' +
+        '        <label style="font-weight:600; min-width:80px; font-size:11px; margin-top:4px;">API Key(s):</label>' +
+        '        <textarea name="autoblog_custom_api_keys[' + provId + ']" style="flex-grow:1; max-width:400px; height:60px; -webkit-text-security: disc; font-family: monospace; resize: vertical;" placeholder="Masukkan satu atau lebih API key (satu per baris)..."></textarea>' +
+        '        <button type="button" class="button test-connection-btn" data-provider="' + provId + '" style="margin-top:2px;">Test Connection</button>' +
+        '        <button type="button" class="button remove-custom-key" style="color:#d63638; border-color:#d63638; margin-top:2px;">Remove</button>' +
+        '        <span class="test-connection-status" style="font-weight:600; font-size:11px; margin-top:6px;"></span>' +
+        '      </div>' +
+        '      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">' +
+        '        <label style="font-weight:600; min-width:80px; font-size:11px;">Base URL:</label>' +
+        '        <input type="text" name="autoblog_custom_api_endpoints[' + provId + ']" value="' + defaultApi + '" placeholder="e.g. https://api.openai.com/v1" style="flex-grow:1; max-width:400px;" />' +
+        '        <p class="description" style="margin:0; font-size:11px; color:#64748b;">Kosongkan jika ingin menggunakan default models.dev.</p>' +
+        '      </div>' +
+        '    </div>' +
+        '  </td>' +
+        '</tr>';
+
+      $("#custom-keys-table").append(newRow);
+
+      // Hapus opsi ini dari select dropdown
+      $select.find("option:selected").remove();
+      $select.val("");
+    });
+
+    // ================================================================
+    // INTERACTION: Hapus Custom API Key
+    // ================================================================
+    $(document).on("click", ".remove-custom-key", function () {
+      var $row    = $(this).closest("tr");
+      var provId  = $row.data("provider");
+      var provName = $row.find("th .provider-label-text").text().trim();
+
+      $row.remove();
+
+      // Kembalikan provider ke dropdown select
+      var $select = $("#new-custom-provider-select");
+      $select.append($("<option></option>").val(provId).text(provName));
+
+      // Jika tabel kosong, tampilkan baris placeholder
+      if ($("#custom-keys-table tr.custom-key-row").length === 0) {
+        $("#custom-keys-table").append(
+          '<tr id="no-custom-keys-row">' +
+          '  <td colspan="2" style="padding:10px 0; color:#64748b; font-style:italic; font-size:12px;">Belum ada custom provider key yang ditambahkan. Gunakan menu di bawah untuk menambahkannya.</td>' +
+          '</tr>'
+        );
+      }
+    });
+
+    // ================================================================
     // AJAX: Test Connection API Key
     // ================================================================
     $(document).on("click", ".test-connection-btn", function () {
       var $btn     = $(this);
       var provider = $btn.data("provider");
-      var apiKey, apiEndpoint, $status;
-
-      if ($btn.attr("id") === "active_test_connection_btn") {
-        apiKey      = $("#active_provider_api_key").val();
-        apiEndpoint = $("#active_provider_api_endpoint").val();
-        $status     = $("#active_connection_status");
-      } else {
-        var $row    = $btn.closest("tr");
-        apiKey      = $row.find("textarea[name*='key'], input[name*='key']").val();
-        apiEndpoint = $row.find("input[name*='endpoints']").val();
-        $status     = $row.find(".test-connection-status");
-      }
+      var $row     = $btn.closest("tr");
+      var apiKey      = $row.find("textarea[name*='key'], input[name*='key']").val();
+      var apiEndpoint = $row.find("input[name*='endpoints']").val();
+      var $status     = $row.find(".test-connection-status");
 
       if (!apiKey) {
         $status.css("color", "#d63638").text("⚠️ Masukkan API Key!");
