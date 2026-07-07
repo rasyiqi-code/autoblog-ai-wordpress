@@ -31,6 +31,9 @@
         defaultApi = autoblog_ajax.dynamic_providers[provId].api || "";
       }
 
+      var defaultDesc = defaultApi ? 'Base URL bawaan dari models.dev. Anda dapat mengeditnya jika diperlukan.' : 'Masukkan Base URL endpoint API kustom untuk provider ini.';
+      var placeholderVal = 'e.g. https://api.openai.com/v1';
+
       // Buat baris input baru dengan input Base URL & Radio Set Aktif
       var isChecked = ($(".active-provider-radio:checked").length === 0) ? "checked" : "";
       var newRow =
@@ -56,8 +59,8 @@
         '      </div>' +
         '      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">' +
         '        <label style="font-weight:600; min-width:80px; font-size:11px;">Base URL:</label>' +
-        '        <input type="text" name="autoblog_custom_api_endpoints[' + provId + ']" value="' + defaultApi + '" placeholder="e.g. https://api.openai.com/v1" style="flex-grow:1; max-width:400px;" />' +
-        '        <p class="description" style="margin:0; font-size:11px; color:#64748b;">Kosongkan jika ingin menggunakan default models.dev.</p>' +
+        '        <input type="text" name="autoblog_custom_api_endpoints[' + provId + ']" value="' + defaultApi + '" placeholder="' + placeholderVal + '" style="flex-grow:1; max-width:400px;" />' +
+        '        <p class="description" style="margin:0; font-size:11px; color:#64748b;">' + defaultDesc + '</p>' +
         '      </div>' +
         '    </div>' +
         '  </td>' +

@@ -92,7 +92,14 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                     }
                     
                     $badge_html = get_key_badge( $prov_id, $active_key_id, $embedding_key_name, $search_provider, $need_search_key, $need_pexels );
-                    $current_endpoint = isset( $custom_endpoints[$prov_id] ) ? $custom_endpoints[$prov_id] : ( isset( $providers[$prov_id]['api'] ) ? $providers[$prov_id]['api'] : '' );
+                    
+                    $default_endpoint = isset( $providers[$prov_id]['api'] ) ? trim( $providers[$prov_id]['api'] ) : '';
+                    $current_endpoint = isset( $custom_endpoints[$prov_id] ) ? trim( $custom_endpoints[$prov_id] ) : '';
+                    
+                    // Pre-fill dengan default endpoint jika data kustom masih kosong
+                    if ( empty( $current_endpoint ) ) {
+                        $current_endpoint = $default_endpoint;
+                    }
                     ?>
                     <tr valign="top" class="custom-key-row" data-provider="<?php echo esc_attr($prov_id); ?>">
                         <th scope="row" style="width: 220px; min-width: 220px;">
@@ -117,7 +124,13 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                                     <label style="font-weight:600; min-width:80px; font-size:11px;">Base URL:</label>
                                     <input type="text" name="autoblog_custom_api_endpoints[<?php echo esc_attr($prov_id); ?>]" value="<?php echo esc_attr($current_endpoint); ?>" placeholder="e.g. https://api.openai.com/v1" style="flex-grow:1; max-width:400px;" />
-                                    <p class="description" style="margin:0; font-size:11px; color:#64748b;">Kosongkan jika ingin menggunakan default models.dev.</p>
+                                    <p class="description" style="margin:0; font-size:11px; color:#64748b;">
+                                        <?php if ( ! empty( $default_endpoint ) ) : ?>
+                                            Base URL bawaan dari models.dev. Anda dapat mengeditnya jika diperlukan.
+                                        <?php else : ?>
+                                            Masukkan Base URL endpoint API kustom untuk provider ini.
+                                        <?php endif; ?>
+                                    </p>
                                 </div>
                             </div>
                         </td>
