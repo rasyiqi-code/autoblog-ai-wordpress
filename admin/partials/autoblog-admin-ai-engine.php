@@ -35,7 +35,7 @@
 
     <!-- AI Model (dynamic berdasarkan provider) -->
     <?php
-    $merged_models = AgencyOS_Autoblog_Admin::get_merged_models();
+    $merged_models = \Autoblog\Admin\Admin::get_merged_models();
     ?>
     <tr valign="top">
         <th scope="row">AI Model</th>
