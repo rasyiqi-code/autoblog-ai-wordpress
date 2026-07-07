@@ -469,6 +469,10 @@ class SearchSource implements SourceInterface {
         $html = curl_exec($ch);
         $error = curl_error($ch);
         curl_close($ch);
+        
+        if ( file_exists( $cookie_file ) ) {
+            @unlink( $cookie_file );
+        }
 
         if ( ! $html || $error ) {
              Logger::log( "cURL failed for {$url}: {$error}", 'warning' );

@@ -522,6 +522,10 @@ class Admin {
 			$idx = intval( $_GET['delete_kb'] );
 			$kb = get_option( 'autoblog_knowledge', array() );
 			if ( isset( $kb[ $idx ] ) ) {
+				$file_path = isset( $kb[ $idx ]['path'] ) ? $kb[ $idx ]['path'] : '';
+				if ( ! empty( $file_path ) && file_exists( $file_path ) ) {
+					@unlink( $file_path );
+				}
 				unset( $kb[ $idx ] );
 				update_option( 'autoblog_knowledge', array_values( $kb ) );
 				set_transient( 'autoblog_admin_notice', 'File dihapus dari Knowledge Base.', 30 );

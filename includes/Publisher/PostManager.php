@@ -84,10 +84,11 @@ class PostManager {
 
 		// Check if post exists
 		$existing_post_id = $this->get_post_by_source_url( $source_url );
+		$post_id_to_pass = $existing_post_id ? $existing_post_id : 0;
 
 		$post_data = array(
 			'post_title'   => wp_strip_all_tags( $title ),
-			'post_content' => $this->convert_to_gutenberg_blocks( $html_content ),
+			'post_content' => $this->convert_to_gutenberg_blocks( $html_content, $post_id_to_pass ),
 			'post_status'  => get_option( 'autoblog_post_status', 'draft' ),
 			'post_type'    => 'post',
 			'post_author'  => $author_id ? $author_id : (get_current_user_id() ? get_current_user_id() : 1), // Priority to provided author_id
@@ -221,7 +222,7 @@ class PostManager {
      * @param string $html The HTML content.
      * @return string Validated content with block comments.
      */
-    private function convert_to_gutenberg_blocks( $html ) {
+    private function convert_to_gutenberg_blocks( $html, $post_id = 0 ) {
         if ( empty( $html ) ) {
             return '';
         }
@@ -263,7 +264,7 @@ class PostManager {
         }
 
         foreach ( $dom->childNodes as $node ) {
-            $blocks .= $this->process_dom_node( $node );
+            $blocks .= $this->process_dom_node( $node, $post_id );
         }
 
         // Clean up decoding (blocks are now strings with entities? No, process_dom_node uses textContent which decodes entities)
@@ -281,7 +282,7 @@ class PostManager {
      * @param \DOMNode $node
      * @return string
      */
-    private function process_dom_node( $node ) {
+    private function process_dom_node( $node, $post_id = 0 ) {
         if ( $node instanceof \DOMProcessingInstruction ) {
             return '';
         }
@@ -308,7 +309,7 @@ class PostManager {
             case 'footer':
                 // Container tags: Recurse into their children to preserve inner paragraphs and headings
                 foreach ( $node->childNodes as $child ) {
-                    $content .= $this->process_dom_node( $child );
+                    $content .= $this->process_dom_node( $child, $post_id );
                 }
                 break;
 
@@ -317,7 +318,7 @@ class PostManager {
                 $img = $node->getElementsByTagName('img')->item(0);
                 if ( $img ) {
                     // Process image separately
-                    $content .= $this->process_image_node( $img );
+                    $content .= $this->process_image_node( $img, $post_id );
                     // Process remaining text if any
                     $text = trim( str_replace( $node->ownerDocument->saveHTML($img), '', $node->ownerDocument->saveHTML($node) ) ); // simplified logic
                     if ( ! empty( $text ) ) {
@@ -355,7 +356,7 @@ class PostManager {
                 break;
 
             case 'img':
-                $content .= $this->process_image_node( $node );
+                $content .= $this->process_image_node( $node, $post_id );
                 break;
 
             case 'blockquote':
@@ -386,9 +387,20 @@ class PostManager {
     /**
      * Helper to process image nodes
      */
-    private function process_image_node( $node ) {
+    private function process_image_node( $node, $post_id = 0 ) {
         $src = $node->getAttribute('src');
         $alt = $node->getAttribute('alt');
+
+        if ( ! empty( $src ) && filter_var( $src, FILTER_VALIDATE_URL ) ) {
+            $attach_id = $this->thumbnail_generator->save_to_media_library( $src, $post_id );
+            if ( $attach_id && ! is_wp_error( $attach_id ) ) {
+                $local_url = wp_get_attachment_url( $attach_id );
+                if ( $local_url ) {
+                    $src = $local_url;
+                }
+            }
+        }
+
         return "<!-- wp:image -->\n<figure class=\"wp-block-image\"><img src=\"$src\" alt=\"$alt\"/></figure>\n<!-- /wp:image -->\n\n";
     }
 

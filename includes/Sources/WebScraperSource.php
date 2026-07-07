@@ -138,8 +138,20 @@ class WebScraperSource implements SourceInterface {
         }
 
         try {
-            $html = file_get_contents( $this->url );
-            if ( ! $html ) return array();
+            $client = new Client();
+            $response = $client->request( 'GET', $this->url, [
+                'headers' => [
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+                ],
+                'timeout' => 20
+            ] );
+
+            if ( $response->getStatusCode() !== 200 ) {
+                return array();
+            }
+
+            $html = (string) $response->getBody();
+            if ( empty( $html ) ) return array();
 
             $readability = new \FiveFilters\Readability\Readability( new \FiveFilters\Readability\Configuration() );
             $readability->parse( $html );

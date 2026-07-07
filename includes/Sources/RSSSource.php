@@ -60,8 +60,22 @@ class RSSSource implements SourceInterface {
 		}
 
 		try {
-			
-			$rss = simplexml_load_file( $this->url );
+			$response = wp_remote_get( $this->url, array(
+				'timeout'    => 20,
+				'user-agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+			) );
+
+			if ( is_wp_error( $response ) ) {
+				Logger::log( 'Error fetching RSS feed via WordPress API: ' . $response->get_error_message(), 'error' );
+				return $data;
+			}
+
+			$html = wp_remote_retrieve_body( $response );
+			if ( empty( $html ) ) {
+				return $data;
+			}
+
+			$rss = @simplexml_load_string( $html );
 
 			if ( $rss ) {
 				foreach ( $rss->channel->item as $item ) {
@@ -146,7 +160,17 @@ class RSSSource implements SourceInterface {
         }
 
         try {
-            $html = file_get_contents( $url );
+            $response = wp_remote_get( $url, array(
+                'timeout'    => 20,
+                'user-agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+            ) );
+
+            if ( is_wp_error( $response ) ) {
+                Logger::log( 'Error fetching full content via WordPress API: ' . $response->get_error_message(), 'warning' );
+                return false;
+            }
+
+            $html = wp_remote_retrieve_body( $response );
             if ( ! $html ) return false;
 
             $readability = new \FiveFilters\Readability\Readability( new \FiveFilters\Readability\Configuration() );
