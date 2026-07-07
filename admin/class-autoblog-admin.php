@@ -884,7 +884,6 @@ class Admin {
 		register_setting( 'autoblog_ai', 'autoblog_openrouter_model' );
 		register_setting( 'autoblog_ai', 'autoblog_hf_model' );
 		register_setting( 'autoblog_ai', 'autoblog_embedding_provider' );
-		register_setting( 'autoblog_ai', 'autoblog_search_provider' );
 		register_setting( 'autoblog_ai', 'autoblog_gemini_grounding' );
 		register_setting( 'autoblog_ai', 'autoblog_thumbnail_source' );
 		register_setting( 'autoblog_ai', 'autoblog_enable_dalle' );
@@ -895,6 +894,7 @@ class Admin {
 
 		// ── Tab: Data Sources (group: autoblog_ds) ──
 		register_setting( 'autoblog_ds', 'autoblog_data_source_mode' );
+		register_setting( 'autoblog_ds', 'autoblog_search_provider' );
 
 		// ── Tab: Writing Style — Personality (group: autoblog_style) ──
 		register_setting( 'autoblog_style', 'autoblog_enable_personality' );

@@ -63,18 +63,6 @@ if ( empty( $selected_model ) ) {
         </td>
     </tr>
 
-    <!-- Search Provider -->
-    <tr valign="top">
-        <th scope="row">Default Search Provider</th>
-        <td>
-            <select name="autoblog_search_provider">
-                <option value="duckduckgo_free" <?php selected( get_option('autoblog_search_provider', 'serpapi'), 'duckduckgo_free' ); ?>>DuckDuckGo (Free / No API Key)</option>
-                <option value="serpapi" <?php selected( get_option('autoblog_search_provider', 'serpapi'), 'serpapi' ); ?>>SerpApi (Google AI/Bing Copilot)</option>
-            </select>
-            <p class="description">Provider pencarian web untuk trigger Web Search dan Deep Research.</p>
-        </td>
-    </tr>
-
     <!-- Thumbnail Source -->
     <tr valign="top">
         <th scope="row">Post Thumbnail Source</th>
