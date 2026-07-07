@@ -73,15 +73,107 @@ class SearchSource implements SourceInterface {
 			return $data;
 		}
 
-        // Only SerpApi is supported now
-        try {
-            $data = $this->fetch_serpapi();
-        } catch ( \Exception $e ) {
-            Logger::log( "SerpApi failed: " . $e->getMessage(), 'error' );
+        if ( $this->provider === 'duckduckgo_free' ) {
+            $data = $this->fetch_duckduckgo_free();
+        } else {
+            try {
+                $data = $this->fetch_serpapi();
+            } catch ( \Exception $e ) {
+                Logger::log( "SerpApi failed: " . $e->getMessage(), 'error' );
+            }
         }
 
 		return $data;
 	}
+
+    /**
+     * Fetch using DuckDuckGo HTML (Free, no API key).
+     */
+    private function fetch_duckduckgo_free() {
+        $client = new Client( array( 'timeout' => 15, 'http_errors' => false ) );
+        $url = "https://html.duckduckgo.com/html/?q=" . urlencode( $this->query );
+        
+        $ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36";
+        
+        try {
+            $response = $client->get( $url, array(
+                'headers' => array(
+                    'User-Agent' => $ua,
+                    'Accept'     => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                )
+            ));
+
+            if ( $response->getStatusCode() !== 200 ) {
+                Logger::log( "DuckDuckGo Free HTTP Status: " . $response->getStatusCode(), 'warning' );
+                return array();
+            }
+
+            $html = (string) $response->getBody();
+            if ( empty( $html ) ) {
+                return array();
+            }
+
+            $dom = new \DOMDocument();
+            @$dom->loadHTML( mb_convert_encoding( $html, 'HTML-ENTITIES', 'UTF-8' ) );
+            $xpath = new \DOMXPath( $dom );
+            
+            $nodes = $xpath->query( "//div[contains(@class, 'web-result')]" );
+            $items = array();
+            $count = 0;
+
+            foreach ( $nodes as $node ) {
+                if ( $count >= 5 ) {
+                    break;
+                }
+
+                $title_node = $xpath->query( ".//a[contains(@class, 'result__a')]", $node );
+                $snippet_node = $xpath->query( ".//a[contains(@class, 'result__snippet')]", $node );
+
+                if ( $title_node->length > 0 ) {
+                    $title = trim( $title_node->item(0)->textContent );
+                    $link = $title_node->item(0)->getAttribute('href');
+                    
+                    if ( preg_match( '/uddg=(https?[^&]+)/', $link, $matches ) ) {
+                        $link = urldecode( $matches[1] );
+                    }
+
+                    $snippet = '';
+                    if ( $snippet_node->length > 0 ) {
+                        $snippet = trim( $snippet_node->item(0)->textContent );
+                    }
+
+                    $full_content = '';
+                    if ( ! empty( $link ) ) {
+                        $full_content = $this->fetch_full_content( $link );
+                    }
+
+                    if ( empty( $full_content ) ) {
+                        $full_content = $snippet;
+                    }
+
+                    if ( $this->passes_filters( $title . ' ' . $full_content ) ) {
+                        $items[] = array(
+                            'title'       => $title,
+                            'link'        => $link,
+                            'description' => $snippet,
+                            'content'     => $full_content,
+                            'source_type' => 'duckduckgo_free',
+                            'source_url'  => $this->query
+                        );
+                        $count++;
+                    }
+                }
+            }
+
+            Logger::log( "Fetched DuckDuckGo Free (No API): Berhasil memuat " . count($items) . " hasil.", 'info' );
+            return $items;
+
+        } catch ( \Exception $e ) {
+            Logger::log( "DuckDuckGo Free failed: " . $e->getMessage(), 'error' );
+        }
+
+        return array();
+    }
 
     /**
      * Fetch using SerpApi with Context Aggregation.
@@ -516,10 +608,7 @@ class SearchSource implements SourceInterface {
     }
 
 	public function validate_source() {
-        // We don't enforce strict key check here because we support fallback.
-        // If Primary Key is missing, we want execution to proceed to fetch_data() so it can try Secondary.
-        
-        if ( empty( $this->serpapi_key ) ) {
+        if ( $this->provider !== 'duckduckgo_free' && empty( $this->serpapi_key ) ) {
              Logger::log( 'SerpApi Key is missing. Search will fail.', 'error' );
              return false;
         }
@@ -531,5 +620,7 @@ class SearchSource implements SourceInterface {
 		return true;
 	}
 
-	public function get_display_name() { return 'Web Search (SerpApi)'; }
+	public function get_display_name() { 
+        return ( $this->provider === 'duckduckgo_free' ) ? 'Web Search (DuckDuckGo Free)' : 'Web Search (SerpApi)'; 
+    }
 }

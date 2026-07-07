@@ -68,6 +68,7 @@ if ( empty( $selected_model ) ) {
         <th scope="row">Default Search Provider</th>
         <td>
             <select name="autoblog_search_provider">
+                <option value="duckduckgo_free" <?php selected( get_option('autoblog_search_provider', 'serpapi'), 'duckduckgo_free' ); ?>>DuckDuckGo (Free / No API Key)</option>
                 <option value="serpapi" <?php selected( get_option('autoblog_search_provider', 'serpapi'), 'serpapi' ); ?>>SerpApi (Google AI/Bing Copilot)</option>
                 <option value="brave" <?php selected( get_option('autoblog_search_provider'), 'brave' ); ?>>Brave Search (Free)</option>
                 <option value="google_cse" <?php selected( get_option('autoblog_search_provider'), 'google_cse' ); ?>>Google Custom Search</option>
