@@ -93,6 +93,8 @@ class Admin {
             'catalog_models'    => ModelCatalog::get_merged_models(),
             'selected_model'    => get_option( 'autoblog_ai_model', 'gemini-1.5-flash' ),
             'dynamic_providers' => ModelCatalog::get_dynamic_providers(),
+            'custom_keys'       => $custom_keys,
+            'custom_endpoints'  => get_option( 'autoblog_custom_api_endpoints', [] ),
         ];
 
         // 1. Pipeline runner + log polling + agent flow diagram

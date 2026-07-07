@@ -76,51 +76,98 @@
         $("#rag_key_warning").show();
       } else {
         $("#rag_key_warning").hide();
+    // ================================================================
+    // STATE: Caching keys & endpoints untuk Active Provider Sync
+    // ================================================================
+    var activeProviderState = {
+      keys: {},
+      endpoints: {}
+    };
+
+    function initActiveProviderState() {
+      // Inisialisasi cache dari data yang dilewatkan oleh PHP (autoblog_ajax)
+      activeProviderState.keys = autoblog_ajax.custom_keys || {};
+      activeProviderState.endpoints = autoblog_ajax.custom_endpoints || {};
+
+      // Tambahkan key aktif dari input (jika user mengetik sesuatu sebelum ganti provider)
+      var activeProv = $aiProvider.val();
+      if (activeProv) {
+        var activeKeyId = activeProv === "gemini" ? "google" : (activeProv === "hf" ? "huggingface" : activeProv);
+        activeProviderState.keys[activeKeyId] = $("#active_provider_api_key").val();
+        activeProviderState.endpoints[activeKeyId] = $("#active_provider_api_endpoint").val();
       }
     }
 
-    // ================================================================
-    // HELPER: Cek apakah API key untuk Active Provider terisi
-    // ================================================================
-    function checkActiveKey() {
-      var provider = $aiProvider.val();
-      if (!provider) return;
+    function syncActiveProviderFields() {
+      var newProv = $aiProvider.val();
+      if (!newProv) return;
+      var newKeyId = newProv === "gemini" ? "google" : (newProv === "hf" ? "huggingface" : newProv);
 
-      var checkKey = provider;
-      if (provider === "gemini") {
-        checkKey = "google";
-      } else if (provider === "hf") {
-        checkKey = "huggingface";
+      // Simpan input aktif lama ke state
+      var nameAttr = $("#active_provider_api_key").attr("name") || "";
+      var match = nameAttr.match(/\[(.*?)\]/);
+      if (match && match[1]) {
+        var oldKeyId = match[1];
+        activeProviderState.keys[oldKeyId] = $("#active_provider_api_key").val();
+        activeProviderState.endpoints[oldKeyId] = $("#active_provider_api_endpoint").val();
       }
 
-      var $row = $('.custom-key-row[data-provider="' + checkKey + '"]');
-      var $warning = $("#active_key_warning");
+      // Update input aktif dengan data baru dari cache
+      var newKeyVal = activeProviderState.keys[newKeyId] || "";
+      var newApiVal = activeProviderState.endpoints[newKeyId] || "";
 
-      if ($row.length === 0 || !$row.find("textarea[name*='key']").val()) {
-        var provName = $aiProvider.find("option:selected").text();
-        $warning.html('⚠️ API Key untuk provider aktif (' + provName + ') belum ditambahkan atau masih kosong di bawah. Silakan tambahkan/isi di bagian "Custom LLM Provider Keys".').show();
-      } else {
-        $warning.hide();
+      if (!newApiVal && autoblog_ajax.dynamic_providers && autoblog_ajax.dynamic_providers[newKeyId]) {
+        newApiVal = autoblog_ajax.dynamic_providers[newKeyId].api || "";
       }
+
+      $("#active_provider_api_key")
+        .attr("name", "autoblog_custom_api_keys[" + newKeyId + "]")
+        .val(newKeyVal);
+
+      $("#active_provider_api_endpoint")
+        .attr("name", "autoblog_custom_api_endpoints[" + newKeyId + "]")
+        .val(newApiVal);
+
+      $("#active_test_connection_btn").attr("data-provider", newKeyId);
+      $("#active_connection_status").text("");
     }
 
     // Bind event
     $aiProvider.on("change", function() {
       updateAIModelDropdown();
-      checkActiveKey();
+      syncActiveProviderFields();
     });
     $("#autoblog_embedding_provider").on("change", checkRAGKey);
 
     // Monitoring input password custom keys
-    $(document).on("input", ".custom-key-row textarea", checkActiveKey);
-    $(document).on("click", "#btn-add-custom-key, .remove-custom-key", function() {
-      setTimeout(checkActiveKey, 50); // delay agar DOM selesai terupdate
+    $(document).on("input", ".custom-key-row textarea", function () {
+      var prov = $(this).closest("tr").data("provider");
+      if (prov) {
+        activeProviderState.keys[prov] = $(this).val();
+      }
+    });
+
+    $(document).on("input", "#active_provider_api_key", function () {
+      var nameAttr = $(this).attr("name") || "";
+      var match = nameAttr.match(/\[(.*?)\]/);
+      if (match && match[1]) {
+        activeProviderState.keys[match[1]] = $(this).val();
+      }
+    });
+
+    $(document).on("input", "#active_provider_api_endpoint", function () {
+      var nameAttr = $(this).attr("name") || "";
+      var match = nameAttr.match(/\[(.*?)\]/);
+      if (match && match[1]) {
+        activeProviderState.endpoints[match[1]] = $(this).val();
+      }
     });
 
     // Inisialisasi awal
     updateAIModelDropdown();
     checkRAGKey();
-    checkActiveKey();
+    initActiveProviderState();
+    syncActiveProviderFields();
 
     // ================================================================
     // AJAX: Test Gemini Grounding

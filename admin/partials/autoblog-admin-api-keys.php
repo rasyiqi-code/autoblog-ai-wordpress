@@ -1,9 +1,9 @@
 <?php
 /**
- * Tab AI & API Settings (Unified Form)
+ * Tab AI & API Settings (Unified & Streamlined Layout)
  *
- * Menggabungkan tab AI Engine dan API Keys menjadi satu halaman terpadu
- * untuk pengalaman pengguna (UX) yang jauh lebih intuitif dan rapi.
+ * Menghilangkan ambiguitas UX dengan menaruh input API Key & Base URL
+ * secara linier langsung di bawah dropdown pemilihan Active AI Provider.
  *
  * @package    Autoblog
  * @subpackage Autoblog/admin/partials
@@ -29,14 +29,17 @@ $need_search_key       = $enable_deep_research || $enable_dynamic_search;
 $thumbnail_source = get_option( 'autoblog_thumbnail_source', 'pexels' );
 $need_pexels      = ( $thumbnail_source === 'pexels' || $thumbnail_source === 'random_stock' );
 
-// Badge prioritas key
+$custom_keys      = get_option( 'autoblog_custom_api_keys', [] );
+$custom_endpoints = get_option( 'autoblog_custom_api_endpoints', [] );
+
+// Helper badge
 if ( ! function_exists( 'get_key_badge' ) ) {
     function get_key_badge( $key_provider, $active_provider, $embedding_key_name, $search_provider, $need_search_key, $need_pexels ) {
         $badges     = [];
         $style_base = 'display:inline-block; padding:2px 8px; border-radius:12px; font-size:9px; font-weight:600; letter-spacing:0.04em; margin-left:6px; text-transform:uppercase; vertical-align:middle;';
 
         if ( $key_provider === $active_provider ) {
-            $badges[] = '<span style="' . $style_base . ' background:#fee2e2; color:#b91c1c;">WAJIB - AKTIF</span>';
+            $badges[] = '<span style="' . $style_base . ' background:#fee2e2; color:#b91c1c;">AKTIF</span>';
         }
         if ( $key_provider === $embedding_key_name ) {
             $badges[] = '<span style="' . $style_base . ' background:#fef3c7; color:#b45309;">WAJIB UNTUK RAG</span>';
@@ -49,22 +52,34 @@ if ( ! function_exists( 'get_key_badge' ) ) {
         }
 
         if ( empty( $badges ) ) {
-            return '<span style="' . $style_base . ' background:#f1f5f9; color:#64748b;">OPSIONAL</span>';
+            return '<span style="' . $style_base . ' background:#f1f5f9; color:#64748b;">CADANGAN</span>';
         }
         return implode( ' ', $badges );
     }
 }
+
+// Normalisasi key name untuk provider aktif
+$active_key_id = $selected_provider;
+if ( $selected_provider === 'gemini' ) {
+    $active_key_id = 'google';
+} elseif ( $selected_provider === 'hf' ) {
+    $active_key_id = 'huggingface';
+}
+
+// Ambil nilai API Key & Endpoint provider aktif dari data custom keys
+$active_key_val = isset( $custom_keys[$active_key_id] ) ? $custom_keys[$active_key_id] : '';
+$active_api_val = isset( $custom_endpoints[$active_key_id] ) ? $custom_endpoints[$active_key_id] : ( isset( $providers[$active_key_id]['api'] ) ? $providers[$active_key_id]['api'] : '' );
 ?>
 
 <!-- ================================================================ -->
-<!-- SECTION 1: AI Engine & Model Settings -->
+<!-- SECTION 1: Active AI Engine & Credentials -->
 <!-- ================================================================ -->
 <div class="postbox">
     <div class="postbox-header">
-        <h2 class="hndle">🤖 AI Engine & Model Settings</h2>
+        <h2 class="hndle">🤖 Active AI Engine & Credentials</h2>
     </div>
     <div class="inside">
-        <p class="description">Pilih provider utama dan model LLM untuk proses generate konten artikel blog Anda.</p>
+        <p class="description">Pilih provider utama yang aktif, isi API key beserta endpoint-nya, dan tentukan model LLM penulisan.</p>
         
         <table class="form-table">
             <!-- Active AI Provider -->
@@ -76,8 +91,32 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                             <option value="<?php echo esc_attr( $p_id ); ?>" <?php selected( $selected_provider, $p_id ); ?>><?php echo esc_html( $p_data['name'] ); ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <p class="description">Provider utama yang digunakan untuk penulisan artikel pos.</p>
-                    <div id="active_key_warning" style="display:none; color:#d63638; font-weight:bold; margin-top:5px; font-size:11px;"></div>
+                    <p class="description">Layanan AI utama yang memproses penulisan konten blog Anda.</p>
+                </td>
+            </tr>
+
+            <!-- API Key for Active Provider -->
+            <tr valign="top" id="row_active_api_key">
+                <th scope="row">
+                    <span id="active_key_label_name">API Key(s)</span>
+                    <div style="margin-top:4px;"><span style="display:inline-block; padding:2px 8px; border-radius:12px; font-size:9px; font-weight:600; background:#fee2e2; color:#b91c1c; text-transform:uppercase;">WAJIB - AKTIF</span></div>
+                </th>
+                <td>
+                    <div style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap;">
+                        <!-- Kita simpan ke dalam array autoblog_custom_api_keys agar backend membaca dari satu tempat -->
+                        <textarea id="active_provider_api_key" name="autoblog_custom_api_keys[<?php echo esc_attr($active_key_id); ?>]" style="width: 25em; height: 55px; -webkit-text-security: disc; font-family: monospace; resize: vertical;" placeholder="Masukkan API Key utama Anda (bisa multi-key, satu per baris)..."><?php echo esc_textarea($active_key_val); ?></textarea>
+                        <button type="button" class="button test-connection-btn" id="active_test_connection_btn" data-provider="<?php echo esc_attr($active_key_id); ?>" style="margin-top:2px;">Test Connection</button>
+                        <span class="test-connection-status" id="active_connection_status" style="font-weight:600; font-size:11px; margin-top:6px;"></span>
+                    </div>
+                </td>
+            </tr>
+
+            <!-- Base URL for Active Provider -->
+            <tr valign="top" id="row_active_api_endpoint">
+                <th scope="row">Base URL (Endpoint)</th>
+                <td>
+                    <input type="text" id="active_provider_api_endpoint" name="autoblog_custom_api_endpoints[<?php echo esc_attr($active_key_id); ?>]" value="<?php echo esc_attr($active_api_val); ?>" placeholder="e.g. https://api.openai.com/v1" style="width: 25em;" />
+                    <p class="description" style="margin-top:5px;">Alamat endpoint API. Kosongkan jika ingin menggunakan default bawaan models.dev.</p>
                 </td>
             </tr>
 
@@ -88,7 +127,7 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                     <select name="autoblog_ai_model" id="autoblog_ai_model" style="min-width: 250px;">
                         <!-- JS dinamis populate -->
                     </select>
-                    <p class="description">Pilih model spesifik dari provider terpilih.</p>
+                    <p class="description">Model bahasa spesifik yang digunakan untuk generate artikel.</p>
                 </td>
             </tr>
         </table>
@@ -96,14 +135,14 @@ if ( ! function_exists( 'get_key_badge' ) ) {
 </div>
 
 <!-- ================================================================ -->
-<!-- SECTION 2: API Credentials & Custom Keys -->
+<!-- SECTION 2: Helper Services API Keys -->
 <!-- ================================================================ -->
 <div class="postbox">
     <div class="postbox-header">
-        <h2 class="hndle">🔑 API Credentials & Custom Keys</h2>
+        <h2 class="hndle">🔑 Helper Services Credentials</h2>
     </div>
     <div class="inside">
-        <p class="description">Masukkan kredensial API untuk pencarian web, stock image, dan model LLM kustom Anda.</p>
+        <p class="description">Kredensial API untuk fitur tambahan seperti pencarian internet dan stock photo.</p>
         
         <table class="form-table">
             <!-- SerpApi -->
@@ -114,11 +153,11 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                 </th>
                 <td>
                     <div style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap;">
-                        <textarea name="autoblog_serpapi_key" style="width: 25em; height: 55px; -webkit-text-security: disc; font-family: monospace; resize: vertical;" placeholder="Masukkan satu atau lebih API key (satu per baris)..."><?php echo esc_textarea( get_option('autoblog_serpapi_key') ); ?></textarea>
+                        <textarea name="autoblog_serpapi_key" style="width: 25em; height: 55px; -webkit-text-security: disc; font-family: monospace; resize: vertical;" placeholder="Masukkan SerpApi key (bisa multi-key, satu per baris)..."><?php echo esc_textarea( get_option('autoblog_serpapi_key') ); ?></textarea>
                         <button type="button" class="button test-connection-btn" data-provider="serpapi" style="margin-top:2px;">Test Connection</button>
                         <span class="test-connection-status" style="font-weight:600; font-size:11px; margin-top:6px;"></span>
                     </div>
-                    <p class="description">Untuk integrasi Google AI Overview, AI Mode, dan Bing Copilot. Bisa multi-key (satu per baris) untuk rotasi otomatis.</p>
+                    <p class="description">Untuk integrasi Google AI Overview, AI Mode, dan Bing Copilot. Bisa multi-key (satu per baris).</p>
                 </td>
             </tr>
 
@@ -130,103 +169,26 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                 </th>
                 <td>
                     <div style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap;">
-                        <textarea name="autoblog_pexels_key" style="width: 25em; height: 55px; -webkit-text-security: disc; font-family: monospace; resize: vertical;" placeholder="Masukkan satu atau lebih API key (satu per baris)..."><?php echo esc_textarea( get_option('autoblog_pexels_key') ); ?></textarea>
+                        <textarea name="autoblog_pexels_key" style="width: 25em; height: 55px; -webkit-text-security: disc; font-family: monospace; resize: vertical;" placeholder="Masukkan Pexels API key (bisa multi-key, satu per baris)..."><?php echo esc_textarea( get_option('autoblog_pexels_key') ); ?></textarea>
                         <button type="button" class="button test-connection-btn" data-provider="pexels" style="margin-top:2px;">Test Connection</button>
                         <span class="test-connection-status" style="font-weight:600; font-size:11px; margin-top:6px;"></span>
                     </div>
-                    <p class="description">Untuk pencarian stock photo gratis berkualitas sebagai featured image. Bisa multi-key (satu per baris) untuk rotasi otomatis.</p>
+                    <p class="description">Untuk pencarian stock photo gratis berkualitas tinggi sebagai featured image.</p>
                 </td>
             </tr>
         </table>
-
-        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #f0f0f1;">
-
-        <h3 style="font-size:13px; font-weight:700; margin-bottom:5px;">🔑 Custom LLM Provider Keys & Endpoints</h3>
-        <p class="description" style="margin-bottom:15px;">Kelola API key (bisa multi-key, satu per baris) dan Base URL kustom untuk provider LLM kustom (OpenRouter, Groq, Hugging Face, dll.).</p>
-
-        <table class="form-table" id="custom-keys-table">
-            <?php
-            $custom_keys      = get_option( 'autoblog_custom_api_keys', [] );
-            $custom_endpoints = get_option( 'autoblog_custom_api_endpoints', [] );
-            
-            if ( is_array( $custom_keys ) && ! empty( $custom_keys ) ) {
-                foreach ( $custom_keys as $prov_id => $prov_key ) {
-                    $prov_name = isset( $providers[$prov_id]['name'] ) ? $providers[$prov_id]['name'] : $prov_id;
-                    
-                    $check_id = $prov_id;
-                    if ( $prov_id === 'google' ) {
-                        $check_id = 'gemini';
-                    } elseif ( $prov_id === 'huggingface' ) {
-                        $check_id = 'hf';
-                    }
-                    
-                    $badge_html = get_key_badge( $check_id, $selected_provider, $embedding_key_name, $search_provider, $need_search_key, $need_pexels );
-                    $current_endpoint = isset( $custom_endpoints[$prov_id] ) ? $custom_endpoints[$prov_id] : ( isset( $providers[$prov_id]['api'] ) ? $providers[$prov_id]['api'] : '' );
-                    ?>
-                    <tr valign="top" class="custom-key-row" data-provider="<?php echo esc_attr($prov_id); ?>">
-                        <th scope="row">
-                            <?php echo esc_html($prov_name); ?> API Key
-                            <div><?php echo $badge_html; ?></div>
-                        </th>
-                        <td>
-                            <div style="display:flex; flex-direction:column; gap:8px;">
-                                <div style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap;">
-                                    <label style="font-weight:600; min-width:80px; font-size:11px; margin-top:4px;">API Key(s):</label>
-                                    <textarea name="autoblog_custom_api_keys[<?php echo esc_attr($prov_id); ?>]" style="flex-grow:1; max-width:400px; height:60px; -webkit-text-security: disc; font-family: monospace; resize: vertical;" placeholder="Masukkan satu atau lebih API key (satu per baris)..."><?php echo esc_textarea($prov_key); ?></textarea>
-                                    <button type="button" class="button test-connection-btn" data-provider="<?php echo esc_attr($prov_id); ?>" style="margin-top:2px;">Test Connection</button>
-                                    <button type="button" class="button remove-custom-key" style="color:#d63638; border-color:#d63638; margin-top:2px;">Remove</button>
-                                    <span class="test-connection-status" style="font-weight:600; font-size:11px; margin-top:6px;"></span>
-                                </div>
-                                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                                    <label style="font-weight:600; min-width:80px; font-size:11px;">Base URL:</label>
-                                    <input type="text" name="autoblog_custom_api_endpoints[<?php echo esc_attr($prov_id); ?>]" value="<?php echo esc_attr($current_endpoint); ?>" placeholder="e.g. https://api.openai.com/v1" style="flex-grow:1; max-width:400px;" />
-                                    <p class="description" style="margin:0; font-size:11px; color:#64748b;">Kosongkan jika ingin menggunakan default models.dev.</p>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php
-                }
-            } else {
-                ?>
-                <tr id="no-custom-keys-row">
-                    <td colspan="2" style="padding:10px 0; color:#64748b; font-style:italic; font-size:12px;">
-                        Belum ada custom provider key yang ditambahkan. Gunakan menu di bawah untuk menambahkannya.
-                    </td>
-                </tr>
-                <?php
-            }
-            ?>
-        </table>
-
-        <div style="margin-top: 15px; display: flex; gap: 8px; align-items: center; padding-top: 12px; border-top: 1px solid #f0f0f1;">
-            <select id="new-custom-provider-select" style="max-width: 200px; padding: 4px 6px; font-size:12px;">
-                <option value="">-- Pilih Provider Baru --</option>
-                <?php
-                foreach ( $providers as $p_id => $p_data ) {
-                    if ( isset( $custom_keys[$p_id] ) ) {
-                        continue;
-                    }
-                    ?>
-                    <option value="<?php echo esc_attr($p_id); ?>"><?php echo esc_html($p_data['name']); ?></option>
-                    <?php
-                }
-                ?>
-            </select>
-            <button type="button" class="button button-secondary" id="btn-add-custom-key" style="padding: 2px 8px; font-size:12px;">+ Tambah Key</button>
-        </div>
     </div>
 </div>
 
 <!-- ================================================================ -->
-<!-- SECTION 3: Advanced AI & Media Settings -->
+<!-- SECTION 3: Smart Fallback & Backup Keys -->
 <!-- ================================================================ -->
 <div class="postbox">
     <div class="postbox-header">
-        <h2 class="hndle">⚙️ Advanced AI & Media Settings</h2>
+        <h2 class="hndle">🔄 Smart Fallback & Backup Keys</h2>
     </div>
     <div class="inside">
-        <p class="description">Konfigurasi RAG (Knowledge Base), fallback provider, search grounding, dan stock photo fallback.</p>
+        <p class="description">Konfigurasi RAG (Knowledge Base), sistem fallback otomatis, dan manajemen API key cadangan.</p>
         
         <table class="form-table">
             <!-- Embedding Provider (RAG) -->
@@ -240,7 +202,7 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                     </select>
                     <p class="description">Model untuk memvektorkan berkas rujukan Knowledge Base.</p>
                     <div id="rag_key_warning" style="display:none; color:#d63638; font-weight:bold; margin-top:5px; font-size:11px;">
-                        ⚠️ Peringatan: API Key untuk provider RAG terpilih masih kosong. Silakan isi di atas agar Knowledge Base aktif!
+                        ⚠️ Peringatan: API Key untuk provider RAG terpilih belum diisi di tab ini agar RAG berfungsi!
                     </div>
                 </td>
             </tr>
@@ -259,15 +221,15 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                 </td>
             </tr>
 
-            <!-- Smart Fallback -->
+            <!-- Smart Fallback Toggle -->
             <tr valign="top">
                 <th scope="row">Smart Fallback</th>
                 <td>
                     <label for="autoblog_enable_fallback">
                         <input name="autoblog_enable_fallback" type="checkbox" id="autoblog_enable_fallback" value="1" <?php checked( '1', get_option( 'autoblog_enable_fallback' ) ); ?> />
-                        Enable Smart Model Switching
+                        Enable Smart Model Switching (Cross-Provider Fallback)
                     </label>
-                    <p class="description">Otomatis dialihkan ke provider cadangan jika provider utama mengalami limit/error.</p>
+                    <p class="description">Otomatis dialihkan ke provider cadangan di bawah jika provider aktif kehabisan kuota.</p>
                 </td>
             </tr>
 
