@@ -269,7 +269,18 @@ class AdminAjax {
      * @return array [ success => bool, message => string ]
      */
     private function validate_api_key( $provider, $api_key ) {
-        $client = new \GuzzleHttp\Client( [ 'http_errors' => false, 'timeout' => 8 ] );
+        // Normalisasi nama provider agar sesuai dengan key di models.dev catalog
+        if ( $provider === 'google' ) {
+            $provider = 'gemini';
+        } elseif ( $provider === 'huggingface' ) {
+            $provider = 'hf';
+        }
+
+        $client = new \GuzzleHttp\Client( [ 
+            'http_errors' => false, 
+            'timeout'     => 8,
+            'verify'      => false // Nonaktifkan SSL verification untuk outgoing API key test
+        ] );
 
         // SerpApi
         if ( $provider === 'serpapi' ) {
