@@ -211,16 +211,16 @@ $triggers_disabled = ( $current_mode === 'kb_only' );
                         <th scope="row">Match Keywords (Opsional)</th>
                         <td>
                             <input type="text" name="match_keywords" class="regular-text"
-                                   placeholder="contoh: AI, WordPress, coding" />
-                            <p class="description">Hanya proses artikel yang mengandung kata-kata ini (pisah koma).</p>
+                                   placeholder="AI, WordPress, coding (pisahkan dengan koma)" />
+                            <p class="description">Hanya proses artikel yang mengandung salah satu kata kunci di atas. Pisahkan beberapa kata kunci menggunakan tanda koma (contoh: <code>apple, google, microsoft</code>).</p>
                         </td>
                     </tr>
                     <tr valign="top">
                         <th scope="row">Negative Keywords (Opsional)</th>
                         <td>
                             <input type="text" name="negative_keywords" class="regular-text"
-                                   placeholder="contoh: promo, sponsored, gambling" />
-                            <p class="description">Abaikan artikel yang mengandung kata-kata ini (pisah koma).</p>
+                                   placeholder="promo, sponsored, gambling (pisahkan dengan koma)" />
+                            <p class="description">Abaikan/skip artikel yang mengandung salah satu kata kunci di atas. Pisahkan menggunakan tanda koma (contoh: <code>sponsored, ads, affiliate</code>).</p>
                         </td>
                     </tr>
                     <tr valign="top" id="row_selector" style="display:none;">

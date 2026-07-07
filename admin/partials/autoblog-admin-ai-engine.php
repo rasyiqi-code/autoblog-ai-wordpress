@@ -144,12 +144,16 @@
     <tr valign="top">
         <th scope="row">Embedding Provider (RAG)</th>
         <td>
-            <select name="autoblog_embedding_provider">
+            <select name="autoblog_embedding_provider" id="autoblog_embedding_provider">
                 <option value="openai" <?php selected( get_option('autoblog_embedding_provider'), 'openai' ); ?>>OpenAI (text-embedding-3-small)</option>
                 <option value="gemini_001" <?php selected( get_option('autoblog_embedding_provider'), 'gemini_001' ); ?>>Google Gemini (gemini-embedding-001)</option>
                 <option value="hf" <?php selected( get_option('autoblog_embedding_provider'), 'hf' ); ?>>Hugging Face (MiniLM-L6-v2)</option>
             </select>
             <p class="description">Model untuk vektorisasi file Knowledge Base (RAG).</p>
+            
+            <div id="rag_key_warning" style="display:none; color:#d63638; font-weight:bold; margin-top:5px; font-size:12.5px;">
+                ⚠️ Peringatan: API Key untuk provider RAG terpilih masih kosong. Silakan isi di tab API Keys agar Knowledge Base berfungsi!
+            </div>
         </td>
     </tr>
 
@@ -166,48 +170,17 @@
         </td>
     </tr>
 
-    <!-- Thumbnail Methods Selection -->
-    <tr valign="top">
-        <th scope="row">Enabled Thumbnail Methods</th>
-        <td>
-            <fieldset>
-                <label>
-                    <input name="autoblog_enable_dalle" type="checkbox" value="1" <?php checked( '1', get_option( 'autoblog_enable_dalle', '1' ) ); ?> />
-                    OpenAI DALL-E 3 (AI Generated)
-                </label><br>
-                <label>
-                    <input name="autoblog_enable_stock_pexels" type="checkbox" value="1" <?php checked( '1', get_option( 'autoblog_enable_stock_pexels', '1' ) ); ?> />
-                    Pexels (Stock Photos)
-                </label><br>
-                <label>
-                    <input name="autoblog_enable_stock_openverse" type="checkbox" value="1" <?php checked( '1', get_option( 'autoblog_enable_stock_openverse', '1' ) ); ?> />
-                    Openverse (Open Source Media)
-                </label>
-            </fieldset>
-            <p class="description">Aktifkan metode yang ingin Anda gunakan. Jika dimatikan, metode tersebut tidak akan muncul di pilihan "Post Thumbnail Source" di bawah.</p>
-        </td>
-    </tr>
-
     <!-- Thumbnail Source -->
     <tr valign="top">
         <th scope="row">Post Thumbnail Source</th>
         <td>
             <select name="autoblog_thumbnail_source" id="autoblog_thumbnail_source">
-                <?php if ( get_option( 'autoblog_enable_dalle', '1' ) === '1' ) : ?>
-                    <option value="openai" <?php selected( get_option('autoblog_thumbnail_source'), 'openai' ); ?>>OpenAI DALL-E 3</option>
-                <?php endif; ?>
-
-                <?php if ( get_option( 'autoblog_enable_stock_pexels', '1' ) === '1' ) : ?>
-                    <option value="pexels" <?php selected( get_option('autoblog_thumbnail_source', 'pexels'), 'pexels' ); ?>>Pexels (Stock Photos)</option>
-                <?php endif; ?>
-
-                <?php if ( get_option( 'autoblog_enable_stock_openverse', '1' ) === '1' ) : ?>
-                    <option value="openverse" <?php selected( get_option('autoblog_thumbnail_source'), 'openverse' ); ?>>Openverse</option>
-                <?php endif; ?>
-
+                <option value="openai" <?php selected( get_option('autoblog_thumbnail_source'), 'openai' ); ?>>OpenAI DALL-E 3</option>
+                <option value="pexels" <?php selected( get_option('autoblog_thumbnail_source', 'pexels'), 'pexels' ); ?>>Pexels (Stock Photos)</option>
+                <option value="openverse" <?php selected( get_option('autoblog_thumbnail_source'), 'openverse' ); ?>>Openverse (Creative Commons)</option>
                 <option value="random_stock" <?php selected( get_option('autoblog_thumbnail_source'), 'random_stock' ); ?>>Mix: Pexels -> Openverse (Fallback chain)</option>
             </select>
-            <p class="description">Pilih sumber gambar utama. Pexels disarankan sebagai default untuk menghindari biaya AI tambahan.</p>
+            <p class="description">Pilih sumber gambar utama untuk featured image artikel Anda.</p>
         </td>
     </tr>
 
@@ -269,8 +242,17 @@
 </table>
 
 <!-- JavaScript untuk toggle model dropdown berdasarkan provider -->
+<?php
+$keys_filled = array(
+    'openai'     => ! empty( get_option( 'autoblog_openai_key' ) ),
+    'gemini_001' => ! empty( get_option( 'autoblog_gemini_key' ) ),
+    'hf'         => ! empty( get_option( 'autoblog_hf_key' ) ),
+);
+?>
 <script>
     jQuery(document).ready(function($) {
+        var filledKeys = <?php echo json_encode( $keys_filled ); ?>;
+
         /**
          * Toggle visibility dropdown model dan opsi khusus provider.
          */
@@ -291,12 +273,29 @@
             }
         }
 
+        /**
+         * Cek ketersediaan API key untuk Embedding Provider
+         */
+        function checkRAGKey() {
+            var provider = $('#autoblog_embedding_provider').val();
+            if ( ! filledKeys[provider] ) {
+                $('#rag_key_warning').show();
+            } else {
+                $('#rag_key_warning').hide();
+            }
+        }
+
         // Bind event change
         $('#autoblog_ai_provider').change(function() {
             toggleModelDropdowns();
         });
+        
+        $('#autoblog_embedding_provider').change(function() {
+            checkRAGKey();
+        });
 
         // Jalankan saat halaman dimuat
         toggleModelDropdowns();
+        checkRAGKey();
     });
 </script>

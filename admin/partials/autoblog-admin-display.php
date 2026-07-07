@@ -94,14 +94,24 @@
                     <h2>Manual Trigger</h2>
                     <p>Jalankan seluruh pipeline autoblog secara manual.</p>
                     
+                    <?php
+                    // Helper status global
+                    $get_global_status = function( $option_name ) {
+                        $is_active = ( get_option( $option_name, '0' ) === '1' );
+                        if ( $is_active ) {
+                            return ' <span style="color: #46b450; font-size: 11px; font-weight: bold;">[Aktif secara global]</span>';
+                        }
+                        return ' <span style="color: #64748b; font-size: 11px;">[Nonaktif secara global]</span>';
+                    };
+                    ?>
                     <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 20px;">
                         <p style="margin-top:0;"><strong>Opsi Cepat (Overrides):</strong></p>
                         <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px;">
-                            <li><label><input type="checkbox" class="autoblog-override" data-feature="dynamic_search" <?php checked( get_option('autoblog_enable_dynamic_search'), true ); ?>> <span style="margin-left:5px;">🔍 Dynamic Search Agent (Brainstorm Query)</span></label></li>
-                            <li><label><input type="checkbox" class="autoblog-override" data-feature="deep_research" <?php checked( get_option('autoblog_enable_deep_research'), true ); ?>> <span style="margin-left:5px;">🧠 Deep Research Agent (Multi-hop Search)</span></label></li>
-                            <li><label><input type="checkbox" class="autoblog-override" data-feature="interlinking" <?php checked( get_option('autoblog_enable_interlinking'), true ); ?>> <span style="margin-left:5px;">🔗 Autonomous Interlinking (Smart Linking)</span></label></li>
-                            <li><label><input type="checkbox" class="autoblog-override" data-feature="multi_modal" <?php checked( get_option('autoblog_enable_charts'), true ); ?>> <span style="margin-left:5px;">📊 Multi-Modal Content (Charts & Embeds)</span></label></li>
-                            <li><label><input type="checkbox" class="autoblog-override" data-feature="living_content" <?php checked( get_option('autoblog_enable_living_content'), true ); ?>> <span style="margin-left:5px;">🔄 Living Content Refresh (Update 1 stale post)</span></label></li>
+                            <li><label><input type="checkbox" class="autoblog-override" data-feature="dynamic_search" <?php checked( get_option('autoblog_enable_dynamic_search'), true ); ?>> <span style="margin-left:5px;">🔍 Dynamic Search Agent (Brainstorm Query) <?php echo $get_global_status('autoblog_enable_dynamic_search'); ?></span></label></li>
+                            <li><label><input type="checkbox" class="autoblog-override" data-feature="deep_research" <?php checked( get_option('autoblog_enable_deep_research'), true ); ?>> <span style="margin-left:5px;">🧠 Deep Research Agent (Multi-hop Search) <?php echo $get_global_status('autoblog_enable_deep_research'); ?></span></label></li>
+                            <li><label><input type="checkbox" class="autoblog-override" data-feature="interlinking" <?php checked( get_option('autoblog_enable_interlinking'), true ); ?>> <span style="margin-left:5px;">🔗 Autonomous Interlinking (Smart Linking) <?php echo $get_global_status('autoblog_enable_interlinking'); ?></span></label></li>
+                            <li><label><input type="checkbox" class="autoblog-override" data-feature="multi_modal" <?php checked( get_option('autoblog_enable_multimodal'), true ); ?>> <span style="margin-left:5px;">📊 Multi-Modal Content (Charts & Embeds) <?php echo $get_global_status('autoblog_enable_multimodal'); ?></span></label></li>
+                            <li><label><input type="checkbox" class="autoblog-override" data-feature="living_content" <?php checked( get_option('autoblog_enable_living_content'), true ); ?>> <span style="margin-left:5px;">🔄 Living Content Refresh (Update 1 stale post) <?php echo $get_global_status('autoblog_enable_living_content'); ?></span></label></li>
                         </ul>
                         <p class="description" style="margin-top: 15px; margin-bottom:0;">Catatan: Centang untuk mengaktifkan fitur tersebut pada pemicuan manual ini (tidak merubah pengaturan global).</p>
                     </div>
