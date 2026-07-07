@@ -52,7 +52,13 @@ if ( ! function_exists( 'get_current_user_id' ) ) {
 }
 
 if ( ! function_exists( 'get_option' ) ) {
-    function get_option( $option, $default = false ) { return $default; }
+    function get_option( $option, $default = false ) {
+        global $_autoblog_mock_options;
+        if ( isset( $_autoblog_mock_options[ $option ] ) ) {
+            return $_autoblog_mock_options[ $option ];
+        }
+        return $default;
+    }
 }
 
 if ( ! function_exists( 'update_option' ) ) {
