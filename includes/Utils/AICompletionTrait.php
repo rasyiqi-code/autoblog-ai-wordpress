@@ -23,11 +23,15 @@ trait AICompletionTrait {
      */
     private function get_keys_pool( $provider ) {
         // Normalisasi key name untuk backward compatibility
-        $check_id = $provider;
-        if ( $provider === 'gemini' ) {
-            $check_id = 'google';
-        } elseif ( $provider === 'hf' ) {
-            $check_id = 'huggingface';
+        $check_id           = $provider;
+        $legacy_option_name = $provider;
+
+        if ( $provider === 'gemini' || $provider === 'google' ) {
+            $check_id           = 'google';
+            $legacy_option_name = 'gemini';
+        } elseif ( $provider === 'hf' || $provider === 'huggingface' ) {
+            $check_id           = 'huggingface';
+            $legacy_option_name = 'hf';
         }
 
         // Ambil dari custom keys
@@ -36,7 +40,7 @@ trait AICompletionTrait {
         
         // Fallback ke option standard
         if ( empty( $raw_keys ) ) {
-            $raw_keys = get_option( "autoblog_{$provider}_key" );
+            $raw_keys = get_option( "autoblog_{$legacy_option_name}_key" );
         }
 
         if ( empty( $raw_keys ) ) {
