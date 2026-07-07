@@ -2,7 +2,7 @@
 
 [![WordPress Version](https://img.shields.io/badge/WordPress-6.0+-blue.svg)](https://wordpress.org)
 [![PHP Version](https://img.shields.io/badge/PHP-8.0+-8892BF.svg)](https://php.net)
-[![License](https://img.shields.io/badge/License-GPL--2.0+-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-MIT%20Attribution-orange.svg)](LICENSE)
 [![Build Status](https://img.shields.io/badge/tests-29%20passed-success.svg)](#)
 
 An intelligent, agentic autoblogging plugin for WordPress that automates content scraping, brainstorming, deep research, and high-quality SEO-optimized article publishing using advanced LLMs (OpenAI, Google Gemini, Hugging Face, etc.) and semantic search pipelines.
@@ -80,4 +80,4 @@ Due to environmental constraints (e.g., local PHP compilation or FPM-only contex
 
 ## 📄 License
 
-This project is licensed under the GPL-2.0+ License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Custom MIT License with Mandatory Original Repository Attribution - see the [LICENSE](LICENSE) file for details.
