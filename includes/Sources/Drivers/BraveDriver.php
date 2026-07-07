@@ -42,7 +42,7 @@ trait BraveDriver {
                 ],
                 'query' => [
                     'q'       => $this->query,
-                    'count'   => 5,
+                    'count'   => 3,
                     'summary' => 1,
                 ],
             ]);

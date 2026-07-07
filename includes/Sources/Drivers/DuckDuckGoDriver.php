@@ -67,7 +67,10 @@ trait DuckDuckGoDriver {
                     'Accept-Language' => 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
                     'Referer'         => 'https://duckduckgo.com/',
                 ],
-                'sslverify'  => false, // Nonaktifkan utk outgoing request ke domain publik
+                'sslverify'  => false,
+                'decompress' => true,
+                // Paksa IPv4 — cURL kadang prefer ::1 (localhost) di environment Local by Flywheel
+                'curl'       => [ CURLOPT_IPRESOLVE => CURLOPT_IPRESOLVE_V4 ],
             ]);
 
             if ( ! is_wp_error( $response ) ) {
@@ -98,7 +101,9 @@ trait DuckDuckGoDriver {
             $client   = new \GuzzleHttp\Client( [
                 'timeout'     => 20,
                 'http_errors' => false,
-                'verify'      => false, // Nonaktifkan utk outgoing request ke domain publik
+                'verify'      => false,
+                // Paksa IPv4 — hindari ::1 dari DNS Local by Flywheel
+                'curl'        => [ CURLOPT_IPRESOLVE => CURLOPT_IPRESOLVE_V4 ],
             ]);
             $response = $client->get( $url, [
                 'headers' => [
@@ -174,7 +179,7 @@ trait DuckDuckGoDriver {
         $count = 0;
 
         foreach ( $nodes as $node ) {
-            if ( $count >= 5 ) {
+            if ( $count >= 3 ) {
                 break;
             }
 

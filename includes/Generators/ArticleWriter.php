@@ -129,21 +129,21 @@ class ArticleWriter {
         $data_string = '';
 
         if ( is_array( $data ) && ! isset( $data['content'] ) ) {
-            // List of items (Context Bundle)
+            // List of items (Context Bundle) — potong 800 karakter per sumber untuk hemat token
             foreach ( $data as $index => $item ) {
                 $title   = isset( $item['title'] ) ? $item['title'] : 'Source ' . ( $index + 1 );
                 $content = isset( $item['content'] ) ? $item['content'] : '';
                 $type    = isset( $item['source_type'] ) ? $item['source_type'] : 'article';
 
                 $data_string .= "--- SOURCE {$index} ({$type}): {$title} ---\n";
-                $data_string .= substr( $this->clean_text( $content ), 0, 1200 ) . "\n\n";
+                $data_string .= substr( $this->clean_text( $content ), 0, 800 ) . "\n\n";
             }
         } elseif ( is_array( $data ) ) {
-            // Single item (legacy/RSS)
+            // Single item (legacy/RSS) — potong 2500 karakter
             $content     = isset( $data['content'] ) ? $data['content'] : json_encode( $data );
-            $data_string = substr( $this->clean_text( $content ), 0, 4000 );
+            $data_string = substr( $this->clean_text( $content ), 0, 2500 );
         } else {
-            $data_string = substr( $this->clean_text( $data ), 0, 4000 );
+            $data_string = substr( $this->clean_text( $data ), 0, 2500 );
         }
 
         return $data_string;
@@ -224,7 +224,7 @@ class ArticleWriter {
         $p .= "1. Awali dengan Judul Utama (<h1>) sesuai Manifesto.\n";
         $p .= "2. Gunakan tag HTML MURNI (<p>, <ul>, <h2>, <h3>). JANGAN gunakan Markdown.\n";
         $p .= "3. PARAGRAF PENDEK (maks 2-3 kalimat).\n";
-        $p .= "4. Panjang artikel minimal 800 kata.\n\n";
+        $p .= "4. Panjang artikel sekitar 600 kata (ringkas, padat, dan to-the-point untuk menghemat token).\n\n";
 
         $p .= "KEMBALIKAN HANYA ARTIKEL HTML (DAN BLOK JSON TAXONOMY DI AKHIR).";
 

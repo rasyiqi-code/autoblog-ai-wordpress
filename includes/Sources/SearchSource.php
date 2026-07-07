@@ -173,6 +173,8 @@ class SearchSource implements SourceInterface {
         // Nonaktifkan SSL verify utk outgoing request scraping ke domain publik
         curl_setopt( $ch, CURLOPT_SSL_VERIFYPEER, false );
         curl_setopt( $ch, CURLOPT_SSL_VERIFYHOST, 0 );
+        // Paksa IPv4 — hindari ::1 dari DNS Local by Flywheel
+        curl_setopt( $ch, CURLOPT_IPRESOLVE, CURLOPT_IPRESOLVE_V4 );
 
         // Rotasi User-Agent untuk menghindari blokir sederhana
         $user_agents = [

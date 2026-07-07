@@ -41,8 +41,18 @@ trait ContentCleaner {
         // Strip semua HTML tags
         $text = strip_tags( $text );
 
-        // Decode HTML entities (&nbsp; → spasi, &amp; → &, dll)
+        // Decode HTML entities
         $text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5 );
+
+        // Hapus common sharing boilerplate untuk menghemat token
+        $boilerplate_patterns = [
+            '/(share|follow|tweet|like)\s+(us|on|this|page|twitter|facebook|linkedin|instagram)\b/i',
+            '/read\s+more\b.*/i',
+            '/subscribe\s+to\s+our\s+newsletter\b/i',
+            '/all\s+rights\s+reserved\b/i',
+            '/copyright\s+©\s*\d{4}/i',
+        ];
+        $text = preg_replace($boilerplate_patterns, '', $text);
 
         // Normalisasi whitespace ganda
         $text = preg_replace( '/\s+/', ' ', $text );
