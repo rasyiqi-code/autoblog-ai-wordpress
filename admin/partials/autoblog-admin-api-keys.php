@@ -1,10 +1,10 @@
 <?php
 /**
- * Tab AI & API Settings (Unified Form with Dynamic Keys List as Primary Selector)
+ * Tab AI & API Settings (Unified Form with Dynamic Keys List at the Top - Compact Layout)
  *
  * Menggabungkan tab AI Engine dan API Keys menjadi satu halaman terpadu.
- * Memilih Active AI Provider menggunakan Radio Button langsung di setiap baris provider
- * di dalam pool daftar kunci, merapikan UX secara total.
+ * Menggunakan tata letak tabel terstruktur lebar penuh (compact & grid-like)
+ * untuk menghemat ruang vertikal dan menjaga antarmuka tetap bersih.
  *
  * @package    Autoblog
  * @subpackage Autoblog/admin/partials
@@ -51,13 +51,13 @@ if ( ! function_exists( 'get_key_badge' ) ) {
             $badges[] = '<span class="active-badge-' . esc_attr($key_provider) . '" style="' . $style_base . ' background:#fee2e2; color:#b91c1c; border: 1px solid #fecaca;">AKTIF</span>';
         }
         if ( $key_provider === $embedding_key_name ) {
-            $badges[] = '<span style="' . $style_base . ' background:#fef3c7; color:#b45309; border: 1px solid #fde68a;">WAJIB UNTUK RAG</span>';
+            $badges[] = '<span style="' . $style_base . ' background:#fef3c7; color:#b45309; border: 1px solid #fde68a;">RAG</span>';
         }
         if ( $key_provider === $search_provider && $need_search_key ) {
-            $badges[] = '<span style="' . $style_base . ' background:#dbeafe; color:#1d4ed8; border: 1px solid #bfdbfe;">WAJIB UNTUK SEARCH</span>';
+            $badges[] = '<span style="' . $style_base . ' background:#dbeafe; color:#1d4ed8; border: 1px solid #bfdbfe;">SEARCH</span>';
         }
         if ( $key_provider === 'pexels' && $need_pexels ) {
-            $badges[] = '<span style="' . $style_base . ' background:#e0f2fe; color:#0369a1; border: 1px solid #bae6fd;">WAJIB UNTUK THUMBNAIL</span>';
+            $badges[] = '<span style="' . $style_base . ' background:#e0f2fe; color:#0369a1; border: 1px solid #bae6fd;">IMAGE</span>';
         }
 
         if ( empty( $badges ) ) {
@@ -76,81 +76,89 @@ if ( ! function_exists( 'get_key_badge' ) ) {
         <h2 class="hndle">🤖 AI Engine & Model Settings</h2>
     </div>
     <div class="inside">
-        <p class="description">Kelola API Key, Base URL kustom untuk provider LLM Anda, dan pilih satu provider aktif menulis pos menggunakan tombol radio <strong>Set Aktif</strong> di bawah.</p>
+        <p class="description">Kelola kredensial API Key, Base URL kustom untuk provider LLM Anda, dan tentukan provider aktif menggunakan kolom <strong>Aktif</strong> di bawah.</p>
         
-        <table class="form-table" id="custom-keys-table" style="margin-top: 15px;">
-            <?php
-            if ( is_array( $custom_keys ) && ! empty( $custom_keys ) ) {
-                foreach ( $custom_keys as $prov_id => $prov_key ) {
-                    $prov_name = isset( $providers[$prov_id]['name'] ) ? $providers[$prov_id]['name'] : $prov_id;
-                    
-                    $check_id = $prov_id;
-                    if ( $prov_id === 'google' ) {
-                        $check_id = 'gemini';
-                    } elseif ( $prov_id === 'huggingface' ) {
-                        $check_id = 'hf';
+        <!-- Table Dinamis Custom Keys (Compact Grid Layout) -->
+        <table class="wp-list-table widefat fixed striped" style="margin-top: 15px; border: 1px solid #c3c4c7; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th scope="col" style="width: 65px; text-align: center; font-weight: 700; padding: 10px;">Aktif</th>
+                    <th scope="col" style="width: 130px; font-weight: 700; padding: 10px;">Provider</th>
+                    <th scope="col" style="font-weight: 700; padding: 10px;">API Key(s) (Satu per baris)</th>
+                    <th scope="col" style="font-weight: 700; padding: 10px;">Base URL (Custom / Bawaan)</th>
+                    <th scope="col" style="width: 150px; font-weight: 700; padding: 10px;">Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="custom-keys-tbody">
+                <?php
+                if ( is_array( $custom_keys ) && ! empty( $custom_keys ) ) {
+                    foreach ( $custom_keys as $prov_id => $prov_key ) {
+                        $prov_name = isset( $providers[$prov_id]['name'] ) ? $providers[$prov_id]['name'] : $prov_id;
+                        
+                        $check_id = $prov_id;
+                        if ( $prov_id === 'google' ) {
+                            $check_id = 'gemini';
+                        } elseif ( $prov_id === 'huggingface' ) {
+                            $check_id = 'hf';
+                        }
+                        
+                        $badge_html = get_key_badge( $prov_id, $active_key_id, $embedding_key_name, $search_provider, $need_search_key, $need_pexels );
+                        
+                        $default_endpoint = isset( $providers[$prov_id]['api'] ) ? trim( $providers[$prov_id]['api'] ) : '';
+                        $current_endpoint = isset( $custom_endpoints[$prov_id] ) ? trim( $custom_endpoints[$prov_id] ) : '';
+                        
+                        if ( empty( $current_endpoint ) ) {
+                            $current_endpoint = $default_endpoint;
+                        }
+                        ?>
+                        <tr class="custom-key-row" data-provider="<?php echo esc_attr($prov_id); ?>">
+                            <!-- Col 1: Active Radio -->
+                            <td style="text-align: center; vertical-align: middle; padding: 10px;">
+                                <input type="radio" class="active-provider-radio" name="autoblog_ai_provider" value="<?php echo esc_attr($prov_id); ?>" <?php checked($selected_provider, $prov_id); ?> style="margin: 0; cursor: pointer;" />
+                            </td>
+                            <!-- Col 2: Provider Name & Badge -->
+                            <td style="vertical-align: middle; padding: 10px;">
+                                <span class="provider-label-text" style="font-weight: 700; font-size: 13px; color: #1d2327;"><?php echo esc_html($prov_name); ?></span>
+                                <div class="provider-badge-container" style="margin-top: 4px;"><?php echo $badge_html; ?></div>
+                            </td>
+                            <!-- Col 3: API Key Textarea -->
+                            <td style="vertical-align: middle; padding: 10px;">
+                                <textarea name="autoblog_custom_api_keys[<?php echo esc_attr($prov_id); ?>]" style="width: 100%; height: 38px; -webkit-text-security: disc; font-family: monospace; padding: 5px; font-size: 12px; resize: vertical; margin: 0;" placeholder="Masukkan satu atau lebih API key (satu per baris)..."><?php echo esc_textarea($prov_key); ?></textarea>
+                            </td>
+                            <!-- Col 4: Base URL Input -->
+                            <td style="vertical-align: middle; padding: 10px;">
+                                <input type="text" name="autoblog_custom_api_endpoints[<?php echo esc_attr($prov_id); ?>]" value="<?php echo esc_attr($current_endpoint); ?>" placeholder="e.g. https://api.openai.com/v1" style="width: 100%; font-size: 12px; padding: 4px; margin: 0;" />
+                                <span style="font-size: 10px; color: #64748b; display: block; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Bawaan: <?php echo esc_attr($default_endpoint); ?>">
+                                    <?php echo $default_endpoint ? 'Bawaan: <code>' . esc_html($default_endpoint) . '</code>' : ''; ?>
+                                </span>
+                            </td>
+                            <!-- Col 5: Actions & Status -->
+                            <td style="vertical-align: middle; padding: 10px;">
+                                <div style="display: flex; gap: 6px; align-items: center;">
+                                    <button type="button" class="button button-small test-connection-btn" data-provider="<?php echo esc_attr($prov_id); ?>">Test</button>
+                                    <button type="button" class="button button-small remove-custom-key" style="color: #d63638; border-color: #d63638;">Remove</button>
+                                </div>
+                                <div class="test-connection-status" style="font-weight: 600; font-size: 11px; margin-top: 4px; display: block;"></div>
+                            </td>
+                        </tr>
+                        <?php
                     }
-                    
-                    $badge_html = get_key_badge( $prov_id, $active_key_id, $embedding_key_name, $search_provider, $need_search_key, $need_pexels );
-                    
-                    $default_endpoint = isset( $providers[$prov_id]['api'] ) ? trim( $providers[$prov_id]['api'] ) : '';
-                    $current_endpoint = isset( $custom_endpoints[$prov_id] ) ? trim( $custom_endpoints[$prov_id] ) : '';
-                    
-                    // Pre-fill dengan default endpoint jika data kustom masih kosong
-                    if ( empty( $current_endpoint ) ) {
-                        $current_endpoint = $default_endpoint;
-                    }
+                } else {
                     ?>
-                    <tr valign="top" class="custom-key-row" data-provider="<?php echo esc_attr($prov_id); ?>">
-                        <th scope="row" style="width: 220px; min-width: 220px;">
-                            <span class="provider-label-text" style="font-weight:700; font-size:13px; color:#1d2327;"><?php echo esc_html($prov_name); ?></span>
-                            <div style="margin-top: 6px;">
-                                <label style="font-weight: 600; font-size:12px; color:#1d2327; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">
-                                    <input type="radio" class="active-provider-radio" name="autoblog_ai_provider" value="<?php echo esc_attr($prov_id); ?>" <?php checked($selected_provider, $prov_id); ?> style="margin: 0;" />
-                                    <span>Set Aktif</span>
-                                </label>
-                            </div>
-                            <div class="provider-badge-container" style="margin-top: 4px;"><?php echo $badge_html; ?></div>
-                        </th>
-                        <td>
-                            <div style="display:flex; flex-direction:column; gap:8px;">
-                                <div style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap;">
-                                    <label style="font-weight:600; min-width:80px; font-size:11px; margin-top:4px;">API Key(s):</label>
-                                    <textarea name="autoblog_custom_api_keys[<?php echo esc_attr($prov_id); ?>]" style="flex-grow:1; max-width:400px; height:60px; -webkit-text-security: disc; font-family: monospace; resize: vertical;" placeholder="Masukkan satu atau lebih API key (satu per baris)..."><?php echo esc_textarea($prov_key); ?></textarea>
-                                    <button type="button" class="button test-connection-btn" data-provider="<?php echo esc_attr($prov_id); ?>" style="margin-top:2px;">Test Connection</button>
-                                    <button type="button" class="button remove-custom-key" style="color:#d63638; border-color:#d63638; margin-top:2px;">Remove</button>
-                                    <span class="test-connection-status" style="font-weight:600; font-size:11px; margin-top:6px;"></span>
-                                </div>
-                                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                                    <label style="font-weight:600; min-width:80px; font-size:11px;">Base URL:</label>
-                                    <input type="text" name="autoblog_custom_api_endpoints[<?php echo esc_attr($prov_id); ?>]" value="<?php echo esc_attr($current_endpoint); ?>" placeholder="e.g. https://api.openai.com/v1" style="flex-grow:1; max-width:400px;" />
-                                    <p class="description" style="margin:0; font-size:11px; color:#64748b;">
-                                        <?php if ( ! empty( $default_endpoint ) ) : ?>
-                                            Base URL bawaan dari models.dev. Anda dapat mengeditnya jika diperlukan.
-                                        <?php else : ?>
-                                            Masukkan Base URL endpoint API kustom untuk provider ini.
-                                        <?php endif; ?>
-                                    </p>
-                                </div>
-                            </div>
+                    <tr id="no-custom-keys-row">
+                        <td colspan="5" style="padding: 15px; color: #64748b; font-style: italic; font-size: 12px; text-align: center;">
+                            Belum ada custom provider key yang ditambahkan. Gunakan menu di bawah untuk menambahkannya.
                         </td>
                     </tr>
                     <?php
                 }
-            } else {
                 ?>
-                <tr id="no-custom-keys-row">
-                    <td colspan="2" style="padding:10px 0; color:#64748b; font-style:italic; font-size:12px;">
-                        Belum ada custom provider key yang ditambahkan. Gunakan menu di bawah untuk menambahkannya.
-                    </td>
-                </tr>
-                <?php
-            }
-            ?>
+            </tbody>
         </table>
 
+        <!-- Tambah Key Action Area -->
         <div style="margin-top: 15px; display: flex; gap: 8px; align-items: center; padding-top: 12px; border-top: 1px solid #f0f0f1; padding-bottom: 20px;">
-            <select id="new-custom-provider-select" style="max-width: 200px; padding: 4px 6px; font-size:12px;">
+            <select id="new-custom-provider-select" style="max-width: 200px; padding: 4px 6px; font-size: 12px;">
                 <option value="">-- Pilih Provider Baru --</option>
                 <?php
                 foreach ( $providers as $p_id => $p_data ) {
@@ -171,7 +179,7 @@ if ( ! function_exists( 'get_key_badge' ) ) {
         <table class="form-table" style="margin-top: 15px;">
             <!-- AI Model selection -->
             <tr valign="top">
-                <th scope="row" style="width: 220px; min-width: 220px;">AI Model</th>
+                <th scope="row" style="width: 200px; min-width: 200px;">AI Model</th>
                 <td>
                     <select name="autoblog_ai_model" id="autoblog_ai_model" style="min-width: 250px;">
                         <!-- JS dinamis populate -->
@@ -197,13 +205,13 @@ if ( ! function_exists( 'get_key_badge' ) ) {
         <table class="form-table">
             <!-- SerpApi -->
             <tr valign="top">
-                <th scope="row">
+                <th scope="row" style="width: 200px;">
                     SerpApi Key
-                    <div><?php echo get_key_badge('serpapi', $active_key_id, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></div>
+                    <div style="margin-top:4px;"><?php echo get_key_badge('serpapi', $active_key_id, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></div>
                 </th>
                 <td>
                     <div style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap;">
-                        <textarea name="autoblog_serpapi_key" style="width: 25em; height: 55px; -webkit-text-security: disc; font-family: monospace; resize: vertical;" placeholder="Masukkan SerpApi key (bisa multi-key, satu per baris)..."><?php echo esc_textarea( get_option('autoblog_serpapi_key') ); ?></textarea>
+                        <textarea name="autoblog_serpapi_key" style="width: 25em; height: 38px; -webkit-text-security: disc; font-family: monospace; resize: vertical;" placeholder="Masukkan SerpApi key (bisa multi-key, satu per baris)..."><?php echo esc_textarea( get_option('autoblog_serpapi_key') ); ?></textarea>
                         <button type="button" class="button test-connection-btn" data-provider="serpapi" style="margin-top:2px;">Test Connection</button>
                         <span class="test-connection-status" style="font-weight:600; font-size:11px; margin-top:6px;"></span>
                     </div>
@@ -213,13 +221,13 @@ if ( ! function_exists( 'get_key_badge' ) ) {
 
             <!-- Pexels -->
             <tr valign="top">
-                <th scope="row">
+                <th scope="row" style="width: 200px;">
                     Pexels API Key
-                    <div><?php echo get_key_badge('pexels', $active_key_id, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></div>
+                    <div style="margin-top:4px;"><?php echo get_key_badge('pexels', $active_key_id, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></div>
                 </th>
                 <td>
                     <div style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap;">
-                        <textarea name="autoblog_pexels_key" style="width: 25em; height: 55px; -webkit-text-security: disc; font-family: monospace; resize: vertical;" placeholder="Masukkan Pexels API key (bisa multi-key, satu per baris)..."><?php echo esc_textarea( get_option('autoblog_pexels_key') ); ?></textarea>
+                        <textarea name="autoblog_pexels_key" style="width: 25em; height: 38px; -webkit-text-security: disc; font-family: monospace; resize: vertical;" placeholder="Masukkan Pexels API key (bisa multi-key, satu per baris)..."><?php echo esc_textarea( get_option('autoblog_pexels_key') ); ?></textarea>
                         <button type="button" class="button test-connection-btn" data-provider="pexels" style="margin-top:2px;">Test Connection</button>
                         <span class="test-connection-status" style="font-weight:600; font-size:11px; margin-top:6px;"></span>
                     </div>
@@ -231,7 +239,7 @@ if ( ! function_exists( 'get_key_badge' ) ) {
 </div>
 
 <!-- ================================================================ -->
-<!-- SECTION 3: Advanced Settings -->
+<!-- SECTION 3: Advanced AI & Media Settings -->
 <!-- ================================================================ -->
 <div class="postbox">
     <div class="postbox-header">
@@ -243,7 +251,7 @@ if ( ! function_exists( 'get_key_badge' ) ) {
         <table class="form-table">
             <!-- Embedding Provider (RAG) -->
             <tr valign="top">
-                <th scope="row">Embedding Provider (RAG)</th>
+                <th scope="row" style="width: 200px;">Embedding Provider (RAG)</th>
                 <td>
                     <select name="autoblog_embedding_provider" id="autoblog_embedding_provider" style="min-width: 250px;">
                         <option value="openai" <?php selected( $embedding_provider, 'openai' ); ?>>OpenAI (text-embedding-3-small)</option>
@@ -259,7 +267,7 @@ if ( ! function_exists( 'get_key_badge' ) ) {
 
             <!-- Thumbnail Source -->
             <tr valign="top">
-                <th scope="row">Post Thumbnail Source</th>
+                <th scope="row" style="width: 200px;">Post Thumbnail Source</th>
                 <td>
                     <select name="autoblog_thumbnail_source" id="autoblog_thumbnail_source" style="min-width: 250px;">
                         <option value="openai" <?php selected( $thumbnail_source, 'openai' ); ?>>OpenAI DALL-E 3</option>
@@ -273,7 +281,7 @@ if ( ! function_exists( 'get_key_badge' ) ) {
 
             <!-- Smart Fallback -->
             <tr valign="top">
-                <th scope="row">Smart Fallback</th>
+                <th scope="row" style="width: 200px;">Smart Fallback</th>
                 <td>
                     <label for="autoblog_enable_fallback">
                         <input name="autoblog_enable_fallback" type="checkbox" id="autoblog_enable_fallback" value="1" <?php checked( '1', get_option( 'autoblog_enable_fallback' ) ); ?> />
@@ -285,7 +293,7 @@ if ( ! function_exists( 'get_key_badge' ) ) {
 
             <!-- Gemini Grounding -->
             <tr valign="top" id="row_gemini_grounding" style="display:none;">
-                <th scope="row">Gemini Search Grounding</th>
+                <th scope="row" style="width: 200px;">Gemini Search Grounding</th>
                 <td>
                     <label for="autoblog_gemini_grounding">
                         <input name="autoblog_gemini_grounding" type="checkbox" id="autoblog_gemini_grounding" value="1" <?php checked( '1', get_option( 'autoblog_gemini_grounding' ) ); ?> />

@@ -31,42 +31,39 @@
         defaultApi = autoblog_ajax.dynamic_providers[provId].api || "";
       }
 
-      var defaultDesc = defaultApi ? 'Base URL bawaan dari models.dev. Anda dapat mengeditnya jika diperlukan.' : 'Masukkan Base URL endpoint API kustom untuk provider ini.';
-      var placeholderVal = 'e.g. https://api.openai.com/v1';
+      var defaultDesc = defaultApi ? 'Bawaan: <code>' + defaultApi + '</code>' : '';
+      var placeholderVal = 'Default models.dev';
 
       // Buat baris input baru dengan input Base URL & Radio Set Aktif
       var isChecked = ($(".active-provider-radio:checked").length === 0) ? "checked" : "";
       var newRow =
-        '<tr valign="top" class="custom-key-row" data-provider="' + provId + '">' +
-        '  <th scope="row" style="width: 220px; min-width: 220px;">' +
-        '    <span class="provider-label-text" style="font-weight:700; font-size:13px; color:#1d2327;">' + provName + '</span>' +
-        '    <div style="margin-top: 6px;">' +
-        '      <label style="font-weight: 600; font-size:12px; color:#1d2327; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">' +
-        '        <input type="radio" class="active-provider-radio" name="autoblog_ai_provider" value="' + provId + '" ' + isChecked + ' style="margin: 0;" />' +
-        '        <span>Set Aktif</span>' +
-        '      </label>' +
-        '    </div>' +
+        '<tr class="custom-key-row" data-provider="' + provId + '">' +
+        '  <td style="text-align: center; vertical-align: middle; padding: 10px;">' +
+        '    <input type="radio" class="active-provider-radio" name="autoblog_ai_provider" value="' + provId + '" ' + isChecked + ' style="margin: 0; cursor: pointer;" />' +
+        '  </td>' +
+        '  <td style="vertical-align: middle; padding: 10px;">' +
+        '    <span class="provider-label-text" style="font-weight: 700; font-size: 13px; color: #1d2327;">' + provName + '</span>' +
         '    <div class="provider-badge-container" style="margin-top: 4px;"></div>' +
-        '  </th>' +
-        '  <td>' +
-        '    <div style="display:flex; flex-direction:column; gap:8px;">' +
-        '      <div style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap;">' +
-        '        <label style="font-weight:600; min-width:80px; font-size:11px; margin-top:4px;">API Key(s):</label>' +
-        '        <textarea name="autoblog_custom_api_keys[' + provId + ']" style="flex-grow:1; max-width:400px; height:60px; -webkit-text-security: disc; font-family: monospace; resize: vertical;" placeholder="Masukkan satu atau lebih API key (satu per baris)..."></textarea>' +
-        '        <button type="button" class="button test-connection-btn" data-provider="' + provId + '" style="margin-top:2px;">Test Connection</button>' +
-        '        <button type="button" class="button remove-custom-key" style="color:#d63638; border-color:#d63638; margin-top:2px;">Remove</button>' +
-        '        <span class="test-connection-status" style="font-weight:600; font-size:11px; margin-top:6px;"></span>' +
-        '      </div>' +
-        '      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">' +
-        '        <label style="font-weight:600; min-width:80px; font-size:11px;">Base URL:</label>' +
-        '        <input type="text" name="autoblog_custom_api_endpoints[' + provId + ']" value="' + defaultApi + '" placeholder="' + placeholderVal + '" style="flex-grow:1; max-width:400px;" />' +
-        '        <p class="description" style="margin:0; font-size:11px; color:#64748b;">' + defaultDesc + '</p>' +
-        '      </div>' +
+        '  </td>' +
+        '  <td style="vertical-align: middle; padding: 10px;">' +
+        '    <textarea name="autoblog_custom_api_keys[' + provId + ']" style="width: 100%; height: 38px; -webkit-text-security: disc; font-family: monospace; padding: 5px; font-size: 12px; resize: vertical; margin: 0;" placeholder="Masukkan satu atau lebih API key (satu per baris)..."></textarea>' +
+        '  </td>' +
+        '  <td style="vertical-align: middle; padding: 10px;">' +
+        '    <input type="text" name="autoblog_custom_api_endpoints[' + provId + ']" value="' + defaultApi + '" placeholder="' + placeholderVal + '" style="width: 100%; font-size: 12px; padding: 4px; margin: 0;" />' +
+        '    <span style="font-size: 10px; color: #64748b; display: block; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Bawaan: ' + defaultApi + '">' +
+        defaultDesc +
+        '    </span>' +
+        '  </td>' +
+        '  <td style="vertical-align: middle; padding: 10px;">' +
+        '    <div style="display: flex; gap: 6px; align-items: center;">' +
+        '      <button type="button" class="button button-small test-connection-btn" data-provider="' + provId + '">Test</button>' +
+        '      <button type="button" class="button button-small remove-custom-key" style="color: #d63638; border-color: #d63638;">Remove</button>' +
         '    </div>' +
+        '    <div class="test-connection-status" style="font-weight: 600; font-size: 11px; margin-top: 4px; display: block;"></div>' +
         '  </td>' +
         '</tr>';
 
-      $("#custom-keys-table").append(newRow);
+      $("#custom-keys-tbody").append(newRow);
 
       // Hapus opsi ini dari select dropdown
       $select.find("option:selected").remove();
