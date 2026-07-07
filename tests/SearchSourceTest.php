@@ -95,15 +95,15 @@ class SearchSourceTest extends TestCase {
         update_option( 'autoblog_search_provider', 'serpapi' );
         
         $source = new SearchSource( 'test' );
-        $this->assertEquals( 'Google/Bing AI Overview (SerpApi)', $source->get_display_name() );
+        $this->assertEquals( 'Web Search (SerpApi)', $source->get_display_name() );
     }
 
     public function test_get_display_name_brave() {
         remove_all_filters( 'option_autoblog_search_provider' );
-        update_option( 'autoblog_search_provider', 'brave_search' );
+        update_option( 'autoblog_search_provider', 'brave' );
 
         $source = new SearchSource( 'test' );
-        $this->assertEquals( 'Brave Search API', $source->get_display_name() );
+        $this->assertEquals( 'Web Search (Brave)', $source->get_display_name() );
     }
 
     // ================================================================
