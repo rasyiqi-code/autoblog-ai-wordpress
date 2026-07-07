@@ -42,6 +42,7 @@ function get_status_badge( $status ) {
             $label = '⚠️ SKIPPED';
             break;
         default:
+            $color = '#999';
             $label = '💤 IDLE';
     }
     
@@ -52,25 +53,27 @@ function get_status_badge( $status ) {
 <div class="card" style="margin-top: 10px;">
     <h2 style="margin-bottom: 20px;">🚀 Pipeline Dashboard (Agentic Command Center)</h2>
     <p style="margin-top:-10px; margin-bottom: 25px; color: #64748b; font-size: 13.5px;">Pantau aktivitas Agen AI Anda secara real-time melalui alur kerja 3 fase.</p>
-
+    
     <div class="agent-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
         <!-- Phase 1: Collector Agent -->
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; position: relative;">
             <div style="font-size: 24px; margin-bottom: 10px;">📥</div>
             <h3 style="margin-top: 0; font-size: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #cbd5e1; padding-bottom: 10px;">
                 Collector Agent 
-                <?php echo get_status_badge( $ingestion['status'] ); ?>
+                <span id="autoblog-collector-status-container"><?php echo get_status_badge( $ingestion['status'] ); ?></span>
             </h3>
             <div style="font-size: 13px; color: #475569; margin-top: 15px; line-height: 1.6;">
-                <p style="margin: 0 0 8px;"><strong>Last Sync:</strong> <?php echo isset($ingestion['timestamp']) ? $ingestion['timestamp'] : '-'; ?></p>
-                <p style="margin: 0 0 8px;"><strong>Ingested:</strong> <?php echo isset($ingestion['count']) ? $ingestion['count'] : 0; ?> source(s)</p>
-                <?php if ( ! empty( $ingestion['sources'] ) ) : ?>
-                    <ul style="font-size: 11px; color: #64748b; background: #ffffff; padding: 8px; border: 1px solid #e2e8f0; border-radius: 4px; margin: 10px 0 0;">
-                        <?php foreach ( array_slice($ingestion['sources'], -3) as $src ) : ?>
-                            <li style="margin-bottom: 4px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 4px;"><?php echo esc_html( $src ); ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-                <?php endif; ?>
+                <p style="margin: 0 0 8px;"><strong>Last Sync:</strong> <span id="autoblog-collector-last-sync"><?php echo isset($ingestion['timestamp']) ? esc_html($ingestion['timestamp']) : '-'; ?></span></p>
+                <p style="margin: 0 0 8px;"><strong>Ingested:</strong> <span id="autoblog-collector-ingested"><?php echo isset($ingestion['count']) ? intval($ingestion['count']) : 0; ?></span> source(s)</p>
+                <div id="autoblog-collector-sources-container">
+                    <?php if ( ! empty( $ingestion['sources'] ) ) : ?>
+                        <ul style="font-size: 11px; color: #64748b; background: #ffffff; padding: 8px; border: 1px solid #e2e8f0; border-radius: 4px; margin: 10px 0 0;">
+                            <?php foreach ( array_slice($ingestion['sources'], -3) as $src ) : ?>
+                                <li style="margin-bottom: 4px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 4px;"><?php echo esc_html( $src ); ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
+                </div>
             </div>
             <div style="margin-top: 20px;">
                 <button type="button" class="button run-agent" style="width: 100%; border-radius: 6px; padding: 5px;" data-agent="collector">Run Collector</button>
@@ -82,16 +85,12 @@ function get_status_badge( $status ) {
             <div style="font-size: 24px; margin-bottom: 10px;">🧠</div>
             <h3 style="margin-top: 0; font-size: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #cbd5e1; padding-bottom: 10px;">
                 Ideator Agent 
-                <?php echo get_status_badge( $ideation['status'] ); ?>
+                <span id="autoblog-ideator-status-container"><?php echo get_status_badge( $ideation['status'] ); ?></span>
             </h3>
             <div style="font-size: 13px; color: #475569; margin-top: 15px; line-height: 1.6;">
-                <p style="margin: 0 0 8px;"><strong>Last Brainstorm:</strong> <?php echo isset($ideation['timestamp']) ? $ideation['timestamp'] : '-'; ?></p>
-                <?php if ( isset( $ideation['title'] ) ) : ?>
-                    <p style="margin: 0;"><strong>Selected Topic:</strong><br>
-                    <span style="font-style: italic; color: #2563eb;">"<?php echo esc_html( $ideation['title'] ); ?>"</span></p>
-                <?php else : ?>
-                    <p style="margin: 0;">Waiting for next brainstorm session...</p>
-                <?php endif; ?>
+                <p style="margin: 0 0 8px;"><strong>Last Brainstorm:</strong> <span id="autoblog-ideator-last-brainstorm"><?php echo isset($ideation['timestamp']) ? esc_html($ideation['timestamp']) : '-'; ?></span></p>
+                <p style="margin: 0;"><strong>Selected Topic:</strong><br>
+                <span id="autoblog-ideator-topic" style="font-style: italic; color: #2563eb;"><?php echo isset( $ideation['title'] ) ? '"' . esc_html( $ideation['title'] ) . '"' : 'Waiting for next brainstorm session...'; ?></span></p>
             </div>
             <div style="margin-top: 20px;">
                 <button type="button" class="button run-agent" style="width: 100%; border-radius: 6px; padding: 5px;" data-agent="ideator">Run Ideator</button>
@@ -103,20 +102,20 @@ function get_status_badge( $status ) {
             <div style="font-size: 24px; margin-bottom: 10px;">✍️</div>
             <h3 style="margin-top: 0; font-size: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #cbd5e1; padding-bottom: 10px;">
                 Writer Agent 
-                <?php echo get_status_badge( $production['status'] ); ?>
+                <span id="autoblog-writer-status-container"><?php echo get_status_badge( $production['status'] ); ?></span>
             </h3>
             <div style="font-size: 13px; color: #475569; margin-top: 15px; line-height: 1.6;">
-                <p style="margin: 0 0 8px;"><strong>Last Published:</strong> <?php echo isset($production['timestamp']) ? $production['timestamp'] : '-'; ?></p>
-                <?php if ( isset( $production['topic'] ) ) : ?>
-                    <p style="margin: 0 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="<?php echo esc_attr( $production['topic'] ); ?>"><strong>Target:</strong> <?php echo esc_html( $production['topic'] ); ?></p>
-                    <p style="margin: 0;"><strong>Result:</strong> 
-                        <?php if ( isset( $production['post_id'] ) ) : ?>
+                <p style="margin: 0 0 8px;"><strong>Last Published:</strong> <span id="autoblog-writer-last-published"><?php echo isset($production['timestamp']) ? esc_html($production['timestamp']) : '-'; ?></span></p>
+                <p style="margin: 0 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="autoblog-writer-topic-container" title="<?php echo isset($production['topic']) ? esc_attr( $production['topic'] ) : ''; ?>"><strong>Target:</strong> <span id="autoblog-writer-topic"><?php echo isset($production['topic']) ? esc_html( $production['topic'] ) : '-'; ?></span></p>
+                <p style="margin: 0;"><strong>Result:</strong> 
+                    <span id="autoblog-writer-result">
+                        <?php if ( isset( $production['post_id'] ) && $production['post_id'] > 0 ) : ?>
                             <a href="<?php echo get_edit_post_link( $production['post_id'] ); ?>" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 600;">View Post ID: <?php echo $production['post_id']; ?> ↗</a>
                         <?php else : ?>
-                            <?php echo esc_html( $production['status'] ); ?>
+                            <?php echo esc_html( strtoupper($production['status']) ); ?>
                         <?php endif; ?>
-                    </p>
-                <?php endif; ?>
+                    </span>
+                </p>
             </div>
             <div style="margin-top: 20px;">
                 <button type="button" class="button run-agent" style="width: 100%; border-radius: 6px; padding: 5px;" data-agent="writer">Run Writer</button>
@@ -128,7 +127,7 @@ function get_status_badge( $status ) {
 <div class="card" style="margin-top: 30px;">
     <h2 style="margin-bottom: 15px;">📟 System Logs (Debug Console)</h2>
     <div style="position: relative;">
-        <textarea class="autoblog-log-viewer" style="width: 100%; height: 250px; font-family: 'Courier New', Courier, monospace; background: #0f172a; color: #10b981; padding: 15px; border-radius: 8px; border: 1px solid #334155; font-size: 12.5px; line-height: 1.5; resize: vertical; box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);" readonly><?php echo esc_textarea( $log_content ); ?></textarea>
+        <div class="autoblog-log-viewer" style="width: 100%; height: 350px; font-family: 'Courier New', Courier, monospace; background: #0f172a; color: #f1f5f9; padding: 15px; border-radius: 8px; border: 1px solid #334155; font-size: 12.5px; line-height: 1.6; overflow-y: scroll; box-shadow: inset 0 2px 8px rgba(0,0,0,0.2); white-space: pre-wrap; word-wrap: break-word; box-sizing: border-box;"></div>
     </div>
     
     <form method="post" style="margin-top: 15px;">

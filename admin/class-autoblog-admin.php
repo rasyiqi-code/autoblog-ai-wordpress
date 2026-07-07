@@ -383,8 +383,72 @@ class Admin {
 			}
 		}
 
+		// Helper rendering untuk asinkron status agen di dashboard
+		$ingestion = get_option( 'autoblog_last_ingestion_data', array( 'status' => 'idle' ) );
+		$ideation  = get_option( 'autoblog_last_ideation_data', array( 'status' => 'idle' ) );
+		$production = get_option( 'autoblog_last_production_data', array( 'status' => 'idle' ) );
+
+		// Render list sources terakhir secara aman
+		$sources_html = '';
+		if ( ! empty( $ingestion['sources'] ) ) {
+			$sources_html .= '<ul style="font-size: 11px; color: #64748b; background: #ffffff; padding: 8px; border: 1px solid #e2e8f0; border-radius: 4px; margin: 10px 0 0;">';
+			foreach ( array_slice($ingestion['sources'], -3) as $src ) {
+				$sources_html .= '<li style="margin-bottom: 4px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 4px;">' . esc_html( $src ) . '</li>';
+			}
+			$sources_html .= '</ul>';
+		}
+
+		// Status badge helper function locally
+		$get_badge = function( $status ) {
+			$color = '#999';
+			$label = strtoupper( $status );
+			switch ( $status ) {
+				case 'running':
+					$color = '#2271b1';
+					$label = '🔄 RUNNING';
+					break;
+				case 'completed':
+					$color = '#46b450';
+					$label = '✅ COMPLETED';
+					break;
+				case 'failed':
+					$color = '#d63638';
+					$label = '❌ FAILED';
+					break;
+				case 'skipped':
+					$color = '#dba617';
+					$label = '⚠️ SKIPPED';
+					break;
+				default:
+					$label = '💤 IDLE';
+			}
+			return "<span style='background: {$color}; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: bold;'>{$label}</span>";
+		};
+
 		wp_send_json_success( array(
 			'html' => esc_textarea( $log_content ),
+			'statuses' => array(
+				'collector' => array(
+					'badge'     => $get_badge( $ingestion['status'] ),
+					'last_sync' => isset($ingestion['timestamp']) ? esc_html($ingestion['timestamp']) : '-',
+					'ingested'  => isset($ingestion['count']) ? intval($ingestion['count']) : 0,
+					'sources'   => $sources_html,
+				),
+				'ideator' => array(
+					'badge'           => $get_badge( $ideation['status'] ),
+					'last_brainstorm' => isset($ideation['timestamp']) ? esc_html($ideation['timestamp']) : '-',
+					'topic'           => isset( $ideation['title'] ) ? '"' . esc_html( $ideation['title'] ) . '"' : 'Waiting for next brainstorm session...',
+				),
+				'writer' => array(
+					'badge'          => $get_badge( $production['status'] ),
+					'last_published' => isset($production['timestamp']) ? esc_html($production['timestamp']) : '-',
+					'topic'          => isset($production['topic']) ? esc_html( $production['topic'] ) : '-',
+					'topic_attr'     => isset($production['topic']) ? esc_attr( $production['topic'] ) : '',
+					'result'         => ( isset( $production['post_id'] ) && $production['post_id'] > 0 )
+						? '<a href="' . get_edit_post_link( $production['post_id'] ) . '" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 600;">View Post ID: ' . $production['post_id'] . ' ↗</a>'
+						: esc_html( strtoupper($production['status']) )
+				)
+			)
 		));
 	}
 

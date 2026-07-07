@@ -79,10 +79,7 @@
               (response.data.message || "Proses selesai!") +
               "</p></div>"
             );
-            // Reload page after a short delay to show updated status badges
-            setTimeout(function () {
-              location.reload();
-            }, 2000);
+            // Dynamic updates are handled by log polling. No page reload.
           } else {
             $statusArea.html(
               '<div class="notice notice-error is-dismissible">' +
@@ -141,6 +138,29 @@
     }
 
     /**
+     * Parse raw log texts to format HTML color spans based on severity levels.
+     */
+    function colorizeLogs(rawLogText) {
+      if (!rawLogText) return '';
+      
+      // Escape HTML tags to prevent XSS
+      var escaped = rawLogText
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+      var colored = escaped
+        .replace(/(\[ERROR\]|\[error\]|ERROR:)/g, '<span style="color: #ef4444; font-weight: bold;">$1</span>')
+        .replace(/(\[WARNING\]|\[warning\]|WARNING:)/g, '<span style="color: #f59e0b; font-weight: bold;">$1</span>')
+        .replace(/(\[INFO\]|\[info\]|INFO:)/g, '<span style="color: #10b981;">$1</span>')
+        .replace(/(\[DEBUG\]|\[debug\]|DEBUG:)/g, '<span style="color: #3b82f6;">$1</span>');
+
+      return colored;
+    }
+
+    /**
      * Refresh area log via AJAX
      */
     function refreshLogs() {
@@ -155,13 +175,49 @@
           nonce: autoblog_ajax.nonce
         },
         success: function (response) {
-          if (response.success && response.data.html) {
-            var previousHtml = $logArea.val();
-            // Hanya update jika ada perubahan konten (hindari kedip)
-            if (previousHtml !== response.data.html) {
-              $logArea.val(response.data.html);
-              // Auto scroll ke bawah
-              $logArea.scrollTop($logArea[0].scrollHeight);
+          if (response.success) {
+            // 1. Render logs as colored HTML
+            if (response.data.html) {
+              var previousRawHtml = $logArea.html();
+              var coloredHtml = colorizeLogs(response.data.html);
+              if (previousRawHtml !== coloredHtml) {
+                $logArea.html(coloredHtml);
+                // Auto scroll
+                $logArea.scrollTop($logArea[0].scrollHeight);
+              }
+            }
+
+            // 2. Real-time Status Badge & Metadata update
+            if (response.data.statuses) {
+              var s = response.data.statuses;
+
+              // Collector Agent
+              if (s.collector) {
+                $("#autoblog-collector-status-container").html(s.collector.badge);
+                $("#autoblog-collector-last-sync").text(s.collector.last_sync);
+                $("#autoblog-collector-ingested").text(s.collector.ingested);
+                if (s.collector.sources) {
+                  $("#autoblog-collector-sources-container").html(s.collector.sources);
+                } else {
+                  $("#autoblog-collector-sources-container").html('');
+                }
+              }
+
+              // Ideator Agent
+              if (s.ideator) {
+                $("#autoblog-ideator-status-container").html(s.ideator.badge);
+                $("#autoblog-ideator-last-brainstorm").text(s.ideator.last_brainstorm);
+                $("#autoblog-ideator-topic").html(s.ideator.topic);
+              }
+
+              // Writer Agent
+              if (s.writer) {
+                $("#autoblog-writer-status-container").html(s.writer.badge);
+                $("#autoblog-writer-last-published").text(s.writer.last_published);
+                $("#autoblog-writer-topic").text(s.writer.topic);
+                $("#autoblog-writer-topic-container").attr('title', s.writer.topic_attr);
+                $("#autoblog-writer-result").html(s.writer.result);
+              }
             }
           }
         },
@@ -215,7 +271,10 @@
           $btn.prop("disabled", false).text("Run Test");
         }
       });
-    });
+
+    // Pemuatan log pertama kali secara instan saat document ready
+    refreshLogs();
+  });
 
   });
 })(jQuery);
