@@ -1,16 +1,9 @@
 <?php
 /**
  * Unit Test untuk VectorStore::get_recent_topics()
- *
- * Memverifikasi bahwa method get_recent_topics() bekerja dengan benar
- * untuk fitur Data Source Mode = kb_only, dimana topik diambil dari
- * chunk terakhir di vector store.
- *
- * @package    Autoblog
- * @subpackage Autoblog/tests
  */
 
-require_once dirname(__FILE__) . '/bootstrap.php';
+namespace Autoblog\Tests;
 
 use PHPUnit\Framework\TestCase;
 use Autoblog\Intelligence\VectorStore;

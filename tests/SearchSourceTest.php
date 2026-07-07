@@ -82,21 +82,25 @@ class SearchSourceTest extends TestCase {
     // ================================================================
 
     public function test_get_display_name_default() {
+        // Hapus filter dan paksa option ke duckduckgo_free
+        remove_all_filters( 'option_autoblog_search_provider' );
+        update_option( 'autoblog_search_provider', 'duckduckgo_free' );
+        
         $source = new SearchSource( 'test' );
         $this->assertEquals( 'Web Search (DuckDuckGo Free)', $source->get_display_name() );
     }
 
     public function test_get_display_name_serpapi() {
-        global $_autoblog_mock_options;
-        $_autoblog_mock_options['autoblog_search_provider'] = 'serpapi';
+        remove_all_filters( 'option_autoblog_search_provider' );
+        update_option( 'autoblog_search_provider', 'serpapi' );
         
         $source = new SearchSource( 'test' );
         $this->assertEquals( 'Google/Bing AI Overview (SerpApi)', $source->get_display_name() );
     }
 
     public function test_get_display_name_brave() {
-        global $_autoblog_mock_options;
-        $_autoblog_mock_options['autoblog_search_provider'] = 'brave_search';
+        remove_all_filters( 'option_autoblog_search_provider' );
+        update_option( 'autoblog_search_provider', 'brave_search' );
 
         $source = new SearchSource( 'test' );
         $this->assertEquals( 'Brave Search API', $source->get_display_name() );

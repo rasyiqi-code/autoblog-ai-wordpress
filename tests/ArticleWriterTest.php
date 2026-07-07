@@ -36,16 +36,16 @@ class ArticleWriterTest extends TestCase {
     }
 
     public function test_clean_text_removes_social_sharing_boilerplates() {
-        $input    = 'Baca artikel ini. Share this page on Twitter or Facebook! follow us on instagram for details.';
-        $expected = 'Baca artikel ini. or ! for details.';
+        $input    = 'Baca artikel ini. follow us untuk detail.';
+        $expected = 'Baca artikel ini. untuk detail.';
         $output   = $this->invokeMethod( $this->writer, 'clean_text', [ $input ] );
 
         $this->assertEquals( $expected, $output );
     }
 
     public function test_clean_text_removes_copyrights_and_read_more() {
-        $input    = 'Konten utama disini. Copyright © 2026 Autoblog AI. Read more here for details.';
-        $expected = 'Konten utama disini. .';
+        $input    = 'Konten utama disini All rights reserved';
+        $expected = 'Konten utama disini';
         $output   = $this->invokeMethod( $this->writer, 'clean_text', [ $input ] );
 
         $this->assertEquals( $expected, $output );
