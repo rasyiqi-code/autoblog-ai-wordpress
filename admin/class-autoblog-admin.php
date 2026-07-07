@@ -992,11 +992,6 @@ class Admin {
 			);
 		}
 
-		// Masukkan huggingface jika tidak terdeteksi
-		if ( ! isset( $providers['huggingface'] ) ) {
-			$providers['huggingface'] = array( 'name' => 'Hugging Face', 'api' => 'https://api-inference.huggingface.co' );
-		}
-
 		set_transient( 'autoblog_providers_cache_v2', $providers, DAY_IN_SECONDS );
 		return $providers;
 	}
