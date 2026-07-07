@@ -170,6 +170,9 @@ class SearchSource implements SourceInterface {
         curl_setopt( $ch, CURLOPT_MAXREDIRS, 5 );
         curl_setopt( $ch, CURLOPT_TIMEOUT, 20 );
         curl_setopt( $ch, CURLOPT_CONNECTTIMEOUT, 10 );
+        // Nonaktifkan SSL verify utk outgoing request scraping ke domain publik
+        curl_setopt( $ch, CURLOPT_SSL_VERIFYPEER, false );
+        curl_setopt( $ch, CURLOPT_SSL_VERIFYHOST, 0 );
 
         // Rotasi User-Agent untuk menghindari blokir sederhana
         $user_agents = [

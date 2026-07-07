@@ -67,7 +67,7 @@ trait DuckDuckGoDriver {
                     'Accept-Language' => 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
                     'Referer'         => 'https://duckduckgo.com/',
                 ],
-                'sslverify'  => true,
+                'sslverify'  => false, // Nonaktifkan utk outgoing request ke domain publik
             ]);
 
             if ( ! is_wp_error( $response ) ) {
@@ -98,7 +98,7 @@ trait DuckDuckGoDriver {
             $client   = new \GuzzleHttp\Client( [
                 'timeout'     => 20,
                 'http_errors' => false,
-                'verify'      => true,
+                'verify'      => false, // Nonaktifkan utk outgoing request ke domain publik
             ]);
             $response = $client->get( $url, [
                 'headers' => [
