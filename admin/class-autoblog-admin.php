@@ -953,74 +953,12 @@ class Admin {
 	}
 
 	/**
-	 * Fallback list static model jika API models.dev down.
-	 *
-	 * @return array
-	 */
-	public static function get_fallback_models() {
-		return array(
-			'openai' => array(
-				'gpt-4o'        => 'GPT-4o (Most Capable)',
-				'gpt-4-turbo'   => 'GPT-4 Turbo',
-				'gpt-3.5-turbo' => 'GPT-3.5 Turbo (Fast/Cheap)',
-			),
-			'anthropic' => array(
-				'claude-3-5-sonnet-20240620' => 'Claude 3.5 Sonnet',
-				'claude-3-opus-20240229'     => 'Claude 3 Opus',
-				'claude-3-haiku-20240307'    => 'Claude 3 Haiku',
-			),
-			'google' => array(
-				'auto'                 => 'Auto (Best for request)',
-				'gemini-3.1-pro'       => 'Gemini 3.1 Pro',
-				'gemini-3.0-pro'       => 'Gemini 3 Pro',
-				'gemini-3.0-flash'     => 'Gemini 3 Flash',
-				'gemini-2.5-pro'       => 'Gemini 2.5 Pro',
-				'gemini-2.5-flash'     => 'Gemini 2.5 Flash',
-				'gemini-2.5-flash-lite'=> 'Gemini 2.5 Flash Lite',
-				'gemini-2.0-flash'     => 'Gemini 2 Flash',
-				'gemini-2.0-flash-lite'=> 'Gemini 2 Flash Lite',
-			),
-			'groq' => array(
-				'auto'                     => 'Auto (Best for request)',
-				'llama-3.3-70b-versatile'  => 'Llama 3.3 70B',
-				'mixtral-8x7b-32768'       => 'Mixtral 8x7B',
-				'gemma-7b-it'              => 'Gemma 7B (Google)',
-			),
-			'openrouter' => array(
-				'openrouter/auto'                        => 'Auto (Best for request)',
-				'qwen/qwen3-vl-30b-a3b-thinking'         => 'Qwen: Qwen3 VL 30B A3B Thinking ($0/1M)',
-				'qwen/qwen3-vl-235b-a22b-thinking'        => 'Qwen: Qwen3 VL 235B A22B Thinking ($0/1M)',
-				'qwen/qwen3-next-80b-a3b-instruct:free'  => 'Qwen: Qwen3 Next 80B A3B Instruct (Free)',
-				'meta-llama/llama-3.3-70b-instruct:free' => 'Meta: Llama 3.3 70B Instruct (Free)',
-				'meta-llama/llama-3.2-3b-instruct:free'  => 'Meta: Llama 3.2 3B Instruct (Free)',
-			),
-		);
-	}
-
-	/**
-	 * Menggabungkan model dynamic dan fallback static secara aman.
+	 * Mengembalikan data catalog model dinamis dari models.dev.
 	 *
 	 * @return array
 	 */
 	public static function get_merged_models() {
-		$dynamic = self::get_dynamic_models();
-		$fallback = self::get_fallback_models();
-		
-		$merged = array();
-		
-		// Kumpulkan seluruh key provider unik secara dinamis
-		$all_provider_keys = array_unique( array_merge( array_keys( $fallback ), array_keys( $dynamic ) ) );
-		
-		foreach ( $all_provider_keys as $p ) {
-			$merged[$p] = isset( $fallback[$p] ) ? $fallback[$p] : array();
-			if ( isset( $dynamic[$p] ) && is_array( $dynamic[$p] ) ) {
-				foreach ( $dynamic[$p] as $m_id => $m_name ) {
-					$merged[$p][$m_id] = $m_name;
-				}
-			}
-		}
-		
-		return $merged;
+		return self::get_dynamic_models();
 	}
 
 	/**
@@ -1036,13 +974,13 @@ class Admin {
 
 		$response = wp_remote_get( 'https://models.dev/api.json', array( 'timeout' => 15 ) );
 		if ( is_wp_error( $response ) ) {
-			return self::get_fallback_providers();
+			return array();
 		}
 
 		$body = wp_remote_retrieve_body( $response );
 		$data = json_decode( $body, true );
 		if ( ! is_array( $data ) ) {
-			return self::get_fallback_providers();
+			return array();
 		}
 
 		$providers = array();
@@ -1054,29 +992,13 @@ class Admin {
 			);
 		}
 
-		// Masukkan huggingface/hf jika tidak terdeteksi lengkap
+		// Masukkan huggingface jika tidak terdeteksi
 		if ( ! isset( $providers['huggingface'] ) ) {
 			$providers['huggingface'] = array( 'name' => 'Hugging Face', 'api' => 'https://api-inference.huggingface.co' );
 		}
 
 		set_transient( 'autoblog_providers_cache_v2', $providers, DAY_IN_SECONDS );
 		return $providers;
-	}
-
-	/**
-	 * Fallback static providers jika models.dev down.
-	 *
-	 * @return array
-	 */
-	public static function get_fallback_providers() {
-		return array(
-			'openai'     => array( 'name' => 'OpenAI', 'api' => 'https://api.openai.com/v1' ),
-			'anthropic'  => array( 'name' => 'Anthropic', 'api' => 'https://api.anthropic.com/v1' ),
-			'google'     => array( 'name' => 'Google Gemini (google)', 'api' => 'https://generativelanguage.googleapis.com' ),
-			'groq'       => array( 'name' => 'Groq', 'api' => 'https://api.groq.com/openai/v1' ),
-			'openrouter' => array( 'name' => 'OpenRouter', 'api' => 'https://openrouter.ai/api/v1' ),
-			'huggingface'=> array( 'name' => 'Hugging Face', 'api' => 'https://api-inference.huggingface.co' ),
-		);
 	}
 
 }
