@@ -67,9 +67,8 @@ if ( ! is_array( $sources ) ) { $sources = array(); }
 <!-- ================================================================ -->
 <!-- DATA SOURCE MODE SELECTOR                                        -->
 <!-- ================================================================ -->
-<div class="autoblog-card">
-    <h2>📥 Data Source Mode & settings</h2>
-    <p class="description">Tentukan sumber data dan pencarian web untuk pipeline artikel.</p>
+<h2>📥 Data Source Mode & settings</h2>
+<p class="description">Tentukan sumber data dan pencarian web untuk pipeline artikel.</p>
 
     <form method="post" action="options.php">
         <?php settings_fields( 'autoblog_ds' ); ?>
@@ -100,7 +99,7 @@ if ( ! is_array( $sources ) ) { $sources = array(); }
             <?php submit_button( 'Simpan Pengaturan', 'secondary' ); ?>
         </div>
     </form>
-</div>
+<hr>
 
 <!-- ================================================================ -->
 <!-- SECTION 1: KNOWLEDGE BASE (Internal)                             -->
@@ -118,9 +117,8 @@ $kb_disabled = ( $current_mode === 'triggers_only' );
 <?php else : ?>
 
     <div id="section-knowledge-base">
-        <div class="autoblog-card">
-            <h2>📚 Knowledge Base (Internal)</h2>
-            <p class="description">Upload file Excel, PDF, Word, atau Text untuk diproses dan dijadikan sumber konteks RAG.</p>
+<h2>📚 Knowledge Base (Internal)</h2>
+<p class="description">Upload file Excel, PDF, Word, atau Text untuk diproses dan dijadikan sumber konteks RAG.</p>
 
             <form method="post" enctype="multipart/form-data">
                 <?php wp_nonce_field( 'autoblog_datasource_verify' ); ?>
@@ -128,9 +126,8 @@ $kb_disabled = ( $current_mode === 'triggers_only' );
                        accept=".xlsx,.csv,.pdf,.docx,.txt,.md" required />
                 <?php submit_button( 'Upload & Process', 'primary', 'autoblog_upload_file' ); ?>
             </form>
-        </div>
-
-        <div class="card" style="max-width: 100%; margin-top: 10px;">
+        <div style="margin-top: 20px;">
+            <h3>File Tersimpan</h3>
             <h3>File Tersimpan</h3>
             <table class="wp-list-table widefat fixed striped">
                 <thead>
@@ -187,9 +184,8 @@ $triggers_disabled = ( $current_mode === 'kb_only' );
 <?php else : ?>
 
     <div id="section-content-triggers">
-        <div class="autoblog-card">
-            <h2>🌐 Content Triggers (External)</h2>
-            <p class="description">Tambahkan sumber konten eksternal: RSS Feed, Web Scraper, atau Web Search.</p>
+        <h2>🌐 Content Triggers (External)</h2>
+        <p class="description">Tambahkan sumber konten eksternal: RSS Feed, Web Scraper, atau Web Search.</p>
 
             <form method="post" action="">
                 <?php wp_nonce_field( 'autoblog_datasource_verify' ); ?>
@@ -237,10 +233,8 @@ $triggers_disabled = ( $current_mode === 'kb_only' );
                     <?php submit_button( 'Tambah Source', 'primary', 'autoblog_add_source' ); ?>
                 </div>
             </form>
-        </div>
-
-        <!-- Tabel daftar triggers -->
-        <div class="card" style="max-width: 100%; margin-top: 10px;">
+        <div style="margin-top: 20px;">
+            <h3>Triggers Terdaftar</h3>
             <h3>Triggers Terdaftar</h3>
             <table class="wp-list-table widefat fixed striped">
                 <thead>
@@ -280,7 +274,7 @@ $triggers_disabled = ( $current_mode === 'kb_only' );
                 </tbody>
             </table>
         </div>
-    </div>
+        </div>
 
 <?php endif; ?>
 

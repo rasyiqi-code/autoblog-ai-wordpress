@@ -8,117 +8,65 @@
 ?>
 
 <style>
-/* CSS Tokens & Custom Stylesheet */
-.autoblog-settings-wrapper {
-    --primary: #2271b1;
-    --primary-hover: #135e96;
-    --bg-main: #f8fafc;
-    --border-color: #ccd0d4;
-    --text-main: #1d2327;
-    --text-muted: #646970;
-    max-width: 1100px;
-    margin: 10px 0;
+/* Tuning Compact untuk Native WordPress form-table */
+.autoblog-settings-form {
+    margin-top: 15px;
 }
-.autoblog-header-container {
-    background: #ffffff;
-    padding: 16px 20px 0 20px;
-    border-radius: 6px 6px 0 0;
-    border: 1px solid var(--border-color);
-    border-bottom: none;
-}
-.autoblog-header-container h1 {
-    font-size: 20px;
+.autoblog-settings-form h2 {
+    font-size: 15px;
     font-weight: 600;
-    margin: 0 0 12px 0;
-    color: var(--text-main);
+    margin: 20px 0 5px 0;
+    color: #1d2327;
 }
-/* Nav Tabs Modern Native */
-.nav-tab-wrapper {
-    border-bottom: 1px solid var(--border-color);
-    margin: 0;
-    padding: 0;
-}
-.nav-tab-wrapper a.nav-tab {
-    font-size: 13px;
-    font-weight: 600;
-    padding: 6px 12px 8px;
-    margin-right: 4px;
-}
-/* Tab Content Box */
-.tab-content {
-    background: #ffffff;
-    padding: 16px 20px;
-    border-radius: 0 0 6px 6px;
-    border: 1px solid var(--border-color);
-}
-/* Compact Cards */
-.autoblog-card {
-    background: #ffffff;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    padding: 16px;
-    margin-bottom: 15px;
-}
-.autoblog-card h2 {
-    font-size: 14px;
-    font-weight: 600;
-    margin: 0 0 4px 0;
-    color: var(--text-main);
-}
-.autoblog-card p.description {
+.autoblog-settings-form p.description {
     font-size: 12px;
-    color: var(--text-muted);
-    margin: 0 0 12px 0;
+    color: #646970;
+    margin: 0 0 15px 0;
 }
-/* WordPress Native form-table Compact Tuning */
-.autoblog-settings-wrapper .form-table {
-    margin: 0;
-}
-.autoblog-settings-wrapper .form-table th {
+.autoblog-settings-form .form-table th {
     width: 220px;
-    padding: 10px 10px 10px 0;
+    padding: 12px 10px 12px 0;
     font-size: 13px;
     font-weight: 600;
-    color: var(--text-main);
+    color: #1d2327;
+}
+.autoblog-settings-form .form-table td {
+    padding: 10px 0;
     vertical-align: middle;
 }
-.autoblog-settings-wrapper .form-table td {
-    padding: 8px 0;
-    vertical-align: middle;
-}
-.autoblog-settings-wrapper .form-table td select,
-.autoblog-settings-wrapper .form-table td input[type=text],
-.autoblog-settings-wrapper .form-table td input[type=password] {
-    max-width: 380px;
+.autoblog-settings-form .form-table td select,
+.autoblog-settings-form .form-table td input[type=text],
+.autoblog-settings-form .form-table td input[type=password] {
+    max-width: 400px;
     width: 100%;
-    border: 1px solid #ccd0d4;
+    border: 1px solid #8c8f94;
     border-radius: 4px;
-    padding: 4px 8px;
+    padding: 5px 8px;
     font-size: 13px;
-    background: #f8fafc;
+    background: #fff;
 }
-.autoblog-settings-wrapper .form-table td select:focus,
-.autoblog-settings-wrapper .form-table td input:focus {
-    border-color: var(--primary);
-    background: #ffffff;
-    box-shadow: 0 0 0 1px var(--primary);
+.autoblog-settings-form .form-table td select:focus,
+.autoblog-settings-form .form-table td input:focus {
+    border-color: #2271b1;
+    box-shadow: 0 0 0 1px #2271b1;
     outline: none;
 }
-.autoblog-settings-wrapper .form-table td p.description {
+.autoblog-settings-form .form-table td p.description {
     margin: 4px 0 0 0;
     font-size: 11px;
-    color: var(--text-muted);
+    color: #646970;
 }
-.autoblog-settings-wrapper hr {
+.autoblog-settings-form hr {
     border: 0;
-    border-top: 1px solid #f0f0f1;
-    margin: 10px 0;
+    border-top: 1px solid #dcdcde;
+    margin: 15px 0;
 }
 /* Command Center Layout */
 .command-center-grid {
     display: grid;
     grid-template-columns: 1fr 340px;
     gap: 15px;
+    margin-top: 15px;
     margin-bottom: 15px;
 }
 @media (max-width: 900px) {
@@ -142,43 +90,42 @@
 }
 </style>
 
-<div class="wrap autoblog-settings-wrapper">
-    <div class="autoblog-header-container">
-        <h1>Autoblog AI Settings</h1>
+<div class="wrap">
+    <h1>Autoblog AI Settings</h1>
+    <hr class="wp-header-end">
 
-        <?php
-        $active_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'api_keys';
-        ?>
+    <?php
+    $active_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'api_keys';
+    ?>
 
-        <h2 class="nav-tab-wrapper">
-            <a href="?page=autoblog&tab=api_keys"
-               class="nav-tab <?php echo $active_tab == 'api_keys' ? 'nav-tab-active' : ''; ?>">
-                🔑 API Keys
-            </a>
-            <a href="?page=autoblog&tab=data_sources"
-               class="nav-tab <?php echo $active_tab == 'data_sources' ? 'nav-tab-active' : ''; ?>">
-                📥 Data Sources
-            </a>
-            <a href="?page=autoblog&tab=ai_engine"
-               class="nav-tab <?php echo $active_tab == 'ai_engine' ? 'nav-tab-active' : ''; ?>">
-                🤖 AI Engine
-            </a>
-            <a href="?page=autoblog&tab=writing_style"
-               class="nav-tab <?php echo $active_tab == 'writing_style' ? 'nav-tab-active' : ''; ?>">
-                ✍️ Writing Style
-            </a>
-            <a href="?page=autoblog&tab=advanced"
-               class="nav-tab <?php echo $active_tab == 'advanced' ? 'nav-tab-active' : ''; ?>">
-                ⚡ Advanced
-            </a>
-            <a href="?page=autoblog&tab=tools"
-               class="nav-tab <?php echo $active_tab == 'tools' ? 'nav-tab-active' : ''; ?>">
-                🛠️ Tools & Logs
-            </a>
-        </h2>
-    </div>
+    <nav class="nav-tab-wrapper wp-clearfix" aria-label="Secondary menu" style="margin-bottom: 15px;">
+        <a href="?page=autoblog&tab=api_keys"
+           class="nav-tab <?php echo $active_tab == 'api_keys' ? 'nav-tab-active' : ''; ?>">
+            🔑 API Keys
+        </a>
+        <a href="?page=autoblog&tab=data_sources"
+           class="nav-tab <?php echo $active_tab == 'data_sources' ? 'nav-tab-active' : ''; ?>">
+            📥 Data Sources
+        </a>
+        <a href="?page=autoblog&tab=ai_engine"
+           class="nav-tab <?php echo $active_tab == 'ai_engine' ? 'nav-tab-active' : ''; ?>">
+            🤖 AI Engine
+        </a>
+        <a href="?page=autoblog&tab=writing_style"
+           class="nav-tab <?php echo $active_tab == 'writing_style' ? 'nav-tab-active' : ''; ?>">
+            ✍️ Writing Style
+        </a>
+        <a href="?page=autoblog&tab=advanced"
+           class="nav-tab <?php echo $active_tab == 'advanced' ? 'nav-tab-active' : ''; ?>">
+            ⚡ Advanced
+        </a>
+        <a href="?page=autoblog&tab=tools"
+           class="nav-tab <?php echo $active_tab == 'tools' ? 'nav-tab-active' : ''; ?>">
+            🛠️ Tools & Logs
+        </a>
+    </nav>
 
-    <div class="tab-content">
+    <div class="autoblog-settings-form">
         <?php
         switch ( $active_tab ) {
 
@@ -190,11 +137,9 @@
                 ?>
                 <form method="post" action="options.php">
                     <?php settings_fields( 'autoblog_ai' ); ?>
-                    <div class="autoblog-card">
-                        <h2>🤖 AI Engine & Model Settings</h2>
-                        <p class="description">Atur provider utama, model, embedding, dan media generator artikel Anda.</p>
-                        <?php require_once 'autoblog-admin-ai-engine.php'; ?>
-                    </div>
+                    <h2>🤖 AI Engine & Model Settings</h2>
+                    <p class="description">Atur provider utama, model, embedding, dan media generator artikel Anda.</p>
+                    <?php require_once 'autoblog-admin-ai-engine.php'; ?>
                     <?php submit_button('Simpan Pengaturan', 'primary'); ?>
                 </form>
                 <?php
@@ -209,16 +154,15 @@
                 break;
 
             case 'tools':
-                // Rombak ke Agentic Command Center
                 ?>
                 <div class="command-center-grid">
                     <!-- Kolom Kiri: Visual Agent Flow Diagram -->
                     <?php require_once 'autoblog-admin-logs.php'; ?>
 
                     <!-- Kolom Kanan: Quick Controls & Overrides -->
-                    <div class="autoblog-card" style="margin-bottom:0; display:flex; flex-direction:column; justify-content:space-between;">
+                    <div style="background: #ffffff; border: 1px solid #ccd0d4; padding: 15px; display:flex; flex-direction:column; justify-content:space-between; box-shadow: 0 1px 1px rgba(0,0,0,.04);">
                         <div>
-                            <h2 style="margin-bottom:12px;">⚡ Overrides & Quick Actions</h2>
+                            <h2 style="margin: 0 0 12px 0; font-size: 14px; font-weight:600;">⚡ Overrides & Quick Actions</h2>
                             <?php
                             $get_global_status = function( $option_name ) {
                                 $is_active = ( get_option( $option_name, '0' ) === '1' );
@@ -237,17 +181,16 @@
                             </ul>
                         </div>
                         
-                        <div style="margin-top: 15px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
+                        <div style="margin-top: 15px; border-top: 1px solid #dcdcde; padding-top: 15px;">
                             <input type="button" id="autoblog-run-now-btn" class="button button-primary button-hero" value="▶ Picu Pipeline Sekarang" style="width:100%; text-align:center; font-weight:700;">
                             <div id="autoblog-run-status" style="margin-top: 10px;"></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Cron Schedule Settings (Compact Native Form) -->
-                <div class="autoblog-card">
-                    <h2>📅 Penjadwalan Otomatis (Cron Job)</h2>
-                    <p class="description">Atur frekuensi background runner untuk publikasi & pembaruan otomatis.</p>
+                <div style="margin-top: 25px; background: #ffffff; border: 1px solid #ccd0d4; padding: 15px 20px; box-shadow: 0 1px 1px rgba(0,0,0,.04);">
+                    <h2 style="margin:0 0 5px 0;">📅 Penjadwalan Otomatis (Cron Job)</h2>
+                    <p class="description" style="margin:0 0 15px 0;">Atur frekuensi background runner untuk publikasi & pembaruan otomatis.</p>
                     <form method="post" action="options.php">
                         <?php settings_fields( 'autoblog_ops' ); ?>
                         <table class="form-table">
@@ -288,7 +231,7 @@
                                 </td>
                             </tr>
                         </table>
-                        <div style="margin-top: 15px; border-top:1px solid #f0f0f1; padding-top:15px;">
+                        <div style="margin-top: 15px; border-top:1px solid #dcdcde; padding-top:15px;">
                             <?php submit_button('Simpan Jadwal', 'secondary'); ?>
                         </div>
                     </form>
@@ -301,11 +244,9 @@
                 ?>
                 <form method="post" action="options.php">
                     <?php settings_fields( 'autoblog_keys' ); ?>
-                    <div class="autoblog-card">
-                        <h2>🔑 API Credentials</h2>
-                        <p class="description">Masukkan kredensial API untuk pencarian web, stock image, dan model LLM kustom.</p>
-                        <?php require_once 'autoblog-admin-api-keys.php'; ?>
-                    </div>
+                    <h2>🔑 API Credentials</h2>
+                    <p class="description" style="margin-bottom: 20px;">Masukkan kredensial API untuk pencarian web, stock image, dan model LLM kustom.</p>
+                    <?php require_once 'autoblog-admin-api-keys.php'; ?>
                     <?php submit_button('Simpan Kredensial', 'primary'); ?>
                 </form>
                 <?php

@@ -123,9 +123,8 @@ $existing_personas = get_option( 'autoblog_custom_personas', array() );
 <!-- ================================================================ -->
 <!-- SECTION: AI Author Profiles (Multi-Author)                       -->
 <!-- ================================================================ -->
-<div class="card" style="max-width: 100%; margin-top: 20px;">
-    <h2>👥 AI Author Profiles</h2>
-    <p>Tentukan identitas siapa yang akan muncul sebagai penulis artikel di WordPress.</p>
+<h2>👥 AI Author Profiles</h2>
+<p class="description">Tentukan identitas siapa yang akan muncul sebagai penulis artikel di WordPress.</p>
 
     <form method="post" action="options.php">
         <?php settings_fields( 'autoblog_style' ); ?>
@@ -164,7 +163,7 @@ $existing_personas = get_option( 'autoblog_custom_personas', array() );
         </table>
         <?php submit_button( 'Simpan Pengaturan Penulis' ); ?>
     </form>
-</div>
+<hr>
 
 <!-- ================================================================ -->
 <!-- SECTION: Mapping Penulis ke Persona                              -->
@@ -183,10 +182,8 @@ if ( isset( $_POST['autoblog_save_author_mapping'] ) ) {
     }
 }
 ?>
-
-<div class="card" style="max-width: 100%; margin-top: 20px;">
-    <h2>🔗 Mapping Penulis ke Persona</h2>
-    <p>Hubungkan setiap penulis WordPress dengan Persona AI dan gaya tulis (fine-tuning) yang unik.</p>
+<h2>🔗 Mapping Penulis ke Persona</h2>
+<p class="description">Hubungkan setiap penulis WordPress dengan Persona AI dan gaya tulis (fine-tuning) yang unik.</p>
 
     <form method="post">
         <?php wp_nonce_field( 'autoblog_save_author_mapping_nonce' ); ?>
@@ -230,15 +227,14 @@ if ( isset( $_POST['autoblog_save_author_mapping'] ) ) {
         </table>
         <?php submit_button( 'Simpan Mapping Penulis', 'primary', 'autoblog_save_author_mapping' ); ?>
     </form>
-</div>
+<hr>
 
 <!-- ================================================================ -->
 <!-- SECTION: Personality Fine-Tuning (Writing Samples)               -->
 <!-- Dipindahkan dari tab Advanced agar semua gaya tulis di satu tab  -->
 <!-- ================================================================ -->
-<div class="card" style="max-width: 100%; margin-top: 20px;">
-    <h2>✍️ Personality Fine-Tuning</h2>
-    <p>Berikan contoh tulisan Anda agar AI bisa meniru gaya, nada, dan struktur kalimat Anda (Few-Shot Prompting).</p>
+<h2>✍️ Personality Fine-Tuning</h2>
+<p class="description">Berikan contoh tulisan Anda agar AI bisa meniru gaya, nada, dan struktur kalimat Anda (Few-Shot Prompting).</p>
 
     <form method="post" action="options.php">
         <?php
@@ -271,13 +267,12 @@ if ( isset( $_POST['autoblog_save_author_mapping'] ) ) {
         </table>
         <?php submit_button( 'Simpan Personality' ); ?>
     </form>
-</div>
+<hr>
 <!-- ================================================================ -->
 <!-- SECTION: Manage Custom Personas                                  -->
 <!-- ================================================================ -->
-<div class="card" style="max-width: 100%; margin-top: 20px;">
-    <h2>🎭 Manajemen Persona Master</h2>
-    <p>Kelola daftar persona yang bisa dipilih oleh para penulis Anda.</p>
+<h2>🎭 Manajemen Persona Master</h2>
+<p class="description">Kelola daftar persona yang bisa dipilih oleh para penulis Anda.</p>
     
     <table class="wp-list-table widefat fixed striped">
         <thead>
