@@ -96,7 +96,7 @@
       var $row = $('.custom-key-row[data-provider="' + checkKey + '"]');
       var $warning = $("#active_key_warning");
 
-      if ($row.length === 0 || !$row.find("input[name*='key']").val()) {
+      if ($row.length === 0 || !$row.find("textarea[name*='key']").val()) {
         var provName = $aiProvider.find("option:selected").text();
         $warning.html('⚠️ API Key untuk provider aktif (' + provName + ') belum ditambahkan atau masih kosong di bawah. Silakan tambahkan/isi di bagian "Custom LLM Provider Keys".').show();
       } else {
@@ -112,7 +112,7 @@
     $("#autoblog_embedding_provider").on("change", checkRAGKey);
 
     // Monitoring input password custom keys
-    $(document).on("input", ".custom-key-row input[type=password]", checkActiveKey);
+    $(document).on("input", ".custom-key-row textarea", checkActiveKey);
     $(document).on("click", "#btn-add-custom-key, .remove-custom-key", function() {
       setTimeout(checkActiveKey, 50); // delay agar DOM selesai terupdate
     });

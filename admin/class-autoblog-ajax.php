@@ -271,6 +271,14 @@ class AdminAjax {
      * @return array [ success => bool, message => string ]
      */
     private function validate_api_key( $provider, $api_key, $api_endpoint = '' ) {
+        // Pecah jika user memasukkan multi-key (satu per baris / koma)
+        $keys = array_filter( array_map( 'trim', preg_split( '/[\n,]+/', $api_key ) ) );
+        $api_key = ! empty( $keys ) ? $keys[0] : '';
+
+        if ( empty( $api_key ) ) {
+            return [ 'success' => false, 'message' => 'API Key tidak boleh kosong.' ];
+        }
+
         $client = new \GuzzleHttp\Client( [ 'http_errors' => false, 'timeout' => 8 ] );
 
         // SerpApi

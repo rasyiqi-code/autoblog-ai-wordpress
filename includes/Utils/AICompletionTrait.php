@@ -15,6 +15,39 @@ namespace Autoblog\Utils;
  */
 trait AICompletionTrait {
 
+    /**
+     * Dapatkan pool API Key yang diinput user untuk provider tertentu (multi-key support).
+     *
+     * @param string $provider
+     * @return array
+     */
+    private function get_keys_pool( $provider ) {
+        // Normalisasi key name untuk backward compatibility
+        $check_id = $provider;
+        if ( $provider === 'gemini' ) {
+            $check_id = 'google';
+        } elseif ( $provider === 'hf' ) {
+            $check_id = 'huggingface';
+        }
+
+        // Ambil dari custom keys
+        $custom_keys = get_option( 'autoblog_custom_api_keys', [] );
+        $raw_keys    = isset( $custom_keys[$check_id] ) ? $custom_keys[$check_id] : '';
+        
+        // Fallback ke option standard
+        if ( empty( $raw_keys ) ) {
+            $raw_keys = get_option( "autoblog_{$provider}_key" );
+        }
+
+        if ( empty( $raw_keys ) ) {
+            return [];
+        }
+
+        // Pecah berdasarkan baris baru atau koma, bersihkan whitespace
+        $keys = array_filter( array_map( 'trim', preg_split( '/[\n,]+/', $raw_keys ) ) );
+        return array_values( $keys );
+    }
+
     // ================================================================
     // CUSTOM PROVIDER (OpenAI-compatible endpoint dari models.dev)
     // ================================================================
@@ -45,51 +78,52 @@ trait AICompletionTrait {
             return false;
         }
 
-        // Ambil API key dari opsi custom keys
-        $custom_keys = get_option( 'autoblog_custom_api_keys', array() );
-        $api_key     = isset( $custom_keys[$provider] ) ? $custom_keys[$provider] : '';
+        // Dapatkan pool key untuk provider ini
+        $keys_pool = $this->get_keys_pool( $provider );
 
-        // Fallback ke option standard jika belum diisi di custom keys
-        if ( empty( $api_key ) ) {
-            $api_key = get_option( "autoblog_{$provider}_key" );
-        }
-
-        if ( empty( $api_key ) ) {
-            Logger::log( "API Key untuk provider dinamis [{$provider}] belum diisi di tab API Keys.", 'error' );
+        if ( empty( $keys_pool ) ) {
+            Logger::log( "API Key untuk provider dinamis [{$provider}] belum diisi atau kosong di tab AI Settings.", 'error' );
             return false;
         }
 
-        try {
-            $url = rtrim( $api_endpoint, '/' ) . '/chat/completions';
+        $url = rtrim( $api_endpoint, '/' ) . '/chat/completions';
 
-            $json_payload = [
-                'model'       => $model,
-                'temperature' => (float) $temperature,
-                'messages'    => [],
-            ];
+        $json_payload = [
+            'model'       => $model,
+            'temperature' => (float) $temperature,
+            'messages'    => [],
+        ];
 
-            if ( ! empty( $system_prompt ) ) {
-                $json_payload['messages'][] = [ 'role' => 'system', 'content' => $system_prompt ];
+        if ( ! empty( $system_prompt ) ) {
+            $json_payload['messages'][] = [ 'role' => 'system', 'content' => $system_prompt ];
+        }
+        $json_payload['messages'][] = [ 'role' => 'user', 'content' => $prompt ];
+
+        // ── Rotasi Kunci Otomatis (Intra-Provider Rotation) ──
+        foreach ( $keys_pool as $index => $api_key ) {
+            $key_num = $index + 1;
+            Logger::log( "Mencoba request [{$provider}] menggunakan API Key ke-{$key_num} dari pool...", 'debug' );
+
+            try {
+                $response = $this->request_with_backoff( 'POST', $url, [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $api_key,
+                        'Content-Type'  => 'application/json',
+                    ],
+                    'json' => $json_payload,
+                ]);
+
+                $body = json_decode( (string) $response->getBody(), true );
+
+                if ( isset( $body['choices'][0]['message']['content'] ) ) {
+                    return $body['choices'][0]['message']['content'];
+                }
+            } catch ( \Exception $e ) {
+                Logger::log( "API Key ke-{$key_num} untuk [{$provider}] gagal: " . $e->getMessage() . ". Mencoba key berikutnya...", 'warning' );
             }
-            $json_payload['messages'][] = [ 'role' => 'user', 'content' => $prompt ];
-
-            $response = $this->request_with_backoff( 'POST', $url, [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $api_key,
-                    'Content-Type'  => 'application/json',
-                ],
-                'json' => $json_payload,
-            ]);
-
-            $body = json_decode( (string) $response->getBody(), true );
-
-            if ( isset( $body['choices'][0]['message']['content'] ) ) {
-                return $body['choices'][0]['message']['content'];
-            }
-        } catch ( \Exception $e ) {
-            Logger::log( "API Error untuk provider dinamis [{$provider}]: " . $e->getMessage(), 'error' );
         }
 
+        Logger::log( "Semua API Key dalam pool untuk [{$provider}] telah dicoba dan GAGAL.", 'error' );
         return false;
     }
 

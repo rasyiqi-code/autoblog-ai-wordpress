@@ -37,12 +37,12 @@
         '  <th scope="row">' + provName + ' API Key</th>' +
         '  <td>' +
         '    <div style="display:flex; flex-direction:column; gap:8px;">' +
-        '      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">' +
-        '        <label style="font-weight:600; min-width:80px; font-size:11px;">API Key:</label>' +
-        '        <input type="password" name="autoblog_custom_api_keys[' + provId + ']" value="" style="flex-grow:1; max-width:400px;" />' +
-        '        <button type="button" class="button test-connection-btn" data-provider="' + provId + '">Test Connection</button>' +
-        '        <button type="button" class="button remove-custom-key" style="color:#d63638; border-color:#d63638;">Remove</button>' +
-        '        <span class="test-connection-status" style="font-weight:600; font-size:11px;"></span>' +
+        '      <div style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap;">' +
+        '        <label style="font-weight:600; min-width:80px; font-size:11px; margin-top:4px;">API Key(s):</label>' +
+        '        <textarea name="autoblog_custom_api_keys[' + provId + ']" style="flex-grow:1; max-width:400px; height:60px; -webkit-text-security: disc; font-family: monospace; resize: vertical;" placeholder="Masukkan satu atau lebih API key (satu per baris)..."></textarea>' +
+        '        <button type="button" class="button test-connection-btn" data-provider="' + provId + '" style="margin-top:2px;">Test Connection</button>' +
+        '        <button type="button" class="button remove-custom-key" style="color:#d63638; border-color:#d63638; margin-top:2px;">Remove</button>' +
+        '        <span class="test-connection-status" style="font-weight:600; font-size:11px; margin-top:6px;"></span>' +
         '      </div>' +
         '      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">' +
         '        <label style="font-weight:600; min-width:80px; font-size:11px;">Base URL:</label>' +

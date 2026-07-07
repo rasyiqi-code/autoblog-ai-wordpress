@@ -113,12 +113,12 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                     <div><?php echo get_key_badge('serpapi', $selected_provider, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></div>
                 </th>
                 <td>
-                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                        <input type="password" name="autoblog_serpapi_key" value="<?php echo esc_attr( get_option('autoblog_serpapi_key') ); ?>" style="width: 25em;" />
-                        <button type="button" class="button test-connection-btn" data-provider="serpapi">Test Connection</button>
-                        <span class="test-connection-status" style="font-weight:600; font-size:11px;"></span>
+                    <div style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap;">
+                        <textarea name="autoblog_serpapi_key" style="width: 25em; height: 55px; -webkit-text-security: disc; font-family: monospace; resize: vertical;" placeholder="Masukkan satu atau lebih API key (satu per baris)..."><?php echo esc_textarea( get_option('autoblog_serpapi_key') ); ?></textarea>
+                        <button type="button" class="button test-connection-btn" data-provider="serpapi" style="margin-top:2px;">Test Connection</button>
+                        <span class="test-connection-status" style="font-weight:600; font-size:11px; margin-top:6px;"></span>
                     </div>
-                    <p class="description">Untuk integrasi Google AI Overview, AI Mode, dan Bing Copilot.</p>
+                    <p class="description">Untuk integrasi Google AI Overview, AI Mode, dan Bing Copilot. Bisa multi-key (satu per baris) untuk rotasi otomatis.</p>
                 </td>
             </tr>
 
@@ -129,12 +129,12 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                     <div><?php echo get_key_badge('pexels', $selected_provider, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></div>
                 </th>
                 <td>
-                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                        <input type="password" name="autoblog_pexels_key" value="<?php echo esc_attr( get_option('autoblog_pexels_key') ); ?>" style="width: 25em;" />
-                        <button type="button" class="button test-connection-btn" data-provider="pexels">Test Connection</button>
-                        <span class="test-connection-status" style="font-weight:600; font-size:11px;"></span>
+                    <div style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap;">
+                        <textarea name="autoblog_pexels_key" style="width: 25em; height: 55px; -webkit-text-security: disc; font-family: monospace; resize: vertical;" placeholder="Masukkan satu atau lebih API key (satu per baris)..."><?php echo esc_textarea( get_option('autoblog_pexels_key') ); ?></textarea>
+                        <button type="button" class="button test-connection-btn" data-provider="pexels" style="margin-top:2px;">Test Connection</button>
+                        <span class="test-connection-status" style="font-weight:600; font-size:11px; margin-top:6px;"></span>
                     </div>
-                    <p class="description">Untuk pencarian stock photo gratis berkualitas sebagai featured image.</p>
+                    <p class="description">Untuk pencarian stock photo gratis berkualitas sebagai featured image. Bisa multi-key (satu per baris) untuk rotasi otomatis.</p>
                 </td>
             </tr>
         </table>
@@ -142,7 +142,7 @@ if ( ! function_exists( 'get_key_badge' ) ) {
         <hr style="margin: 20px 0; border: 0; border-top: 1px solid #f0f0f1;">
 
         <h3 style="font-size:13px; font-weight:700; margin-bottom:5px;">🔑 Custom LLM Provider Keys & Endpoints</h3>
-        <p class="description" style="margin-bottom:15px;">Kelola API key dan Base URL kustom untuk provider LLM kustom (OpenRouter, Groq, Hugging Face, dll.).</p>
+        <p class="description" style="margin-bottom:15px;">Kelola API key (bisa multi-key, satu per baris) dan Base URL kustom untuk provider LLM kustom (OpenRouter, Groq, Hugging Face, dll.).</p>
 
         <table class="form-table" id="custom-keys-table">
             <?php
@@ -170,12 +170,12 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                         </th>
                         <td>
                             <div style="display:flex; flex-direction:column; gap:8px;">
-                                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                                    <label style="font-weight:600; min-width:80px; font-size:11px;">API Key:</label>
-                                    <input type="password" name="autoblog_custom_api_keys[<?php echo esc_attr($prov_id); ?>]" value="<?php echo esc_attr($prov_key); ?>" style="flex-grow:1; max-width:400px;" />
-                                    <button type="button" class="button test-connection-btn" data-provider="<?php echo esc_attr($prov_id); ?>">Test Connection</button>
-                                    <button type="button" class="button remove-custom-key" style="color:#d63638; border-color:#d63638;">Remove</button>
-                                    <span class="test-connection-status" style="font-weight:600; font-size:11px;"></span>
+                                <div style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap;">
+                                    <label style="font-weight:600; min-width:80px; font-size:11px; margin-top:4px;">API Key(s):</label>
+                                    <textarea name="autoblog_custom_api_keys[<?php echo esc_attr($prov_id); ?>]" style="flex-grow:1; max-width:400px; height:60px; -webkit-text-security: disc; font-family: monospace; resize: vertical;" placeholder="Masukkan satu atau lebih API key (satu per baris)..."><?php echo esc_textarea($prov_key); ?></textarea>
+                                    <button type="button" class="button test-connection-btn" data-provider="<?php echo esc_attr($prov_id); ?>" style="margin-top:2px;">Test Connection</button>
+                                    <button type="button" class="button remove-custom-key" style="color:#d63638; border-color:#d63638; margin-top:2px;">Remove</button>
+                                    <span class="test-connection-status" style="font-weight:600; font-size:11px; margin-top:6px;"></span>
                                 </div>
                                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                                     <label style="font-weight:600; min-width:80px; font-size:11px;">Base URL:</label>
