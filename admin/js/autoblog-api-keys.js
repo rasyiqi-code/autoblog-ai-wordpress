@@ -45,17 +45,17 @@
         '    <div class="provider-badge-container" style="margin-top: 4px;"></div>' +
         '  </td>' +
         '  <td style="vertical-align: middle; padding: 10px;">' +
-        '    <textarea name="autoblog_custom_api_keys[' + provId + ']" class="autoblog-textarea" style="width: 100%; -webkit-text-security: disc; font-family: monospace;" placeholder="Masukkan satu atau lebih API key (satu per baris)..."></textarea>' +
+        '    <textarea name="autoblog_custom_api_keys[' + provId + ']" style="width: 100%; height: 38px; -webkit-text-security: disc; font-family: monospace; padding: 5px; font-size: 12px; resize: vertical; margin: 0;" placeholder="Masukkan satu atau lebih API key (satu per baris)..."></textarea>' +
         '  </td>' +
         '  <td style="vertical-align: middle; padding: 10px;">' +
-        '    <input type="text" name="autoblog_custom_api_endpoints[' + provId + ']" class="autoblog-input" value="' + defaultApi + '" data-default="' + defaultApi + '" placeholder="' + placeholderVal + '" style="width: 100%;" />' +
+        '    <input type="text" name="autoblog_custom_api_endpoints[' + provId + ']" value="' + defaultApi + '" data-default="' + defaultApi + '" placeholder="' + placeholderVal + '" style="width: 100%; font-size: 12px; padding: 4px; margin: 0;" />' +
         '    <span class="default-url-info" style="font-size: 10px; color: #64748b; display: block; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Bawaan: ' + defaultApi + '">' +
         '    </span>' +
         '  </td>' +
         '  <td style="vertical-align: middle; padding: 10px;">' +
         '    <div style="display: flex; gap: 6px; align-items: center;">' +
-        '      <button type="button" class="autoblog-btn autoblog-btn-small test-connection-btn" data-provider="' + provId + '">Test</button>' +
-        '      <button type="button" class="autoblog-btn autoblog-btn-small autoblog-btn-danger remove-custom-key">Remove</button>' +
+        '      <button type="button" class="button button-small test-connection-btn" data-provider="' + provId + '">Test</button>' +
+        '      <button type="button" class="button button-small button-link-delete remove-custom-key">Remove</button>' +
         '    </div>' +
         '    <div class="test-connection-status" style="font-weight: 600; font-size: 11px; margin-top: 4px; display: block;"></div>' +
         '  </td>' +
