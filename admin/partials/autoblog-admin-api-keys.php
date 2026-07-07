@@ -61,9 +61,13 @@ function get_key_badge( $key_provider, $active_provider, $embedding_key_name, $s
     <tr valign="top">
         <th scope="row">SerpApi Key <?php echo get_key_badge('serpapi', $active_provider, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></th>
         <td>
-            <input type="password" name="autoblog_serpapi_key"
-                   value="<?php echo esc_attr( get_option('autoblog_serpapi_key') ); ?>"
-                   class="regular-text" />
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <input type="password" name="autoblog_serpapi_key"
+                       value="<?php echo esc_attr( get_option('autoblog_serpapi_key') ); ?>"
+                       class="regular-text" />
+                <button type="button" class="button test-connection-btn" data-provider="serpapi">Test Connection</button>
+                <span class="test-connection-status" style="font-weight:bold; font-size:12.5px;"></span>
+            </div>
             <p class="description">Untuk Google AI Overview, AI Mode, dan Bing Copilot integration.</p>
         </td>
     </tr>
@@ -72,9 +76,13 @@ function get_key_badge( $key_provider, $active_provider, $embedding_key_name, $s
     <tr valign="top">
         <th scope="row">Pexels API Key <?php echo get_key_badge('pexels', $active_provider, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></th>
         <td>
-            <input type="password" name="autoblog_pexels_key"
-                   value="<?php echo esc_attr( get_option('autoblog_pexels_key') ); ?>"
-                   class="regular-text" />
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <input type="password" name="autoblog_pexels_key"
+                       value="<?php echo esc_attr( get_option('autoblog_pexels_key') ); ?>"
+                       class="regular-text" />
+                <button type="button" class="button test-connection-btn" data-provider="pexels">Test Connection</button>
+                <span class="test-connection-status" style="font-weight:bold; font-size:12.5px;"></span>
+            </div>
             <p class="description">Untuk mencari gambar stok gratis berkualitas tinggi sebagai thumbnail post.</p>
         </td>
     </tr>
@@ -109,8 +117,12 @@ function get_key_badge( $key_provider, $active_provider, $embedding_key_name, $s
                         <div style="margin-top: 5px;"><?php echo $badge_html; ?></div>
                     </th>
                     <td>
-                        <input type="password" name="autoblog_custom_api_keys[<?php echo esc_attr($prov_id); ?>]" value="<?php echo esc_attr($prov_key); ?>" class="regular-text" style="width:25em;" />
-                        <button type="button" class="button remove-custom-key" style="margin-left: 10px; color:#d63638; border-color:#d63638;">Remove</button>
+                        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                            <input type="password" name="autoblog_custom_api_keys[<?php echo esc_attr($prov_id); ?>]" value="<?php echo esc_attr($prov_key); ?>" class="regular-text" style="width:25em;" />
+                            <button type="button" class="button test-connection-btn" data-provider="<?php echo esc_attr($prov_id); ?>">Test Connection</button>
+                            <button type="button" class="button remove-custom-key" style="color:#d63638; border-color:#d63638;">Remove</button>
+                            <span class="test-connection-status" style="font-weight:bold; font-size:12.5px;"></span>
+                        </div>
                     </td>
                 </tr>
                 <?php

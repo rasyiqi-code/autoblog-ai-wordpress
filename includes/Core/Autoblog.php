@@ -156,6 +156,7 @@ class Autoblog {
 		$this->loader->add_action( 'wp_ajax_autoblog_ai_predict_taxonomy', $plugin_admin, 'ajax_ai_predict_taxonomy' );
 		$this->loader->add_action( 'wp_ajax_autoblog_get_logs', $plugin_admin, 'ajax_get_logs' );
 		$this->loader->add_action( 'wp_ajax_autoblog_test_gemini_grounding', $plugin_admin, 'ajax_test_gemini_grounding' );
+		$this->loader->add_action( 'wp_ajax_autoblog_test_api_connection', $plugin_admin, 'ajax_test_api_connection' );
 
         // Scheduler
         require_once plugin_dir_path( dirname( __FILE__ ) ) . '../includes/Publisher/UpdateScheduler.php';

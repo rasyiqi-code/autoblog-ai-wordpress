@@ -289,10 +289,16 @@
       // Buat row input baru
       var newRow = 
         '<tr valign="top" class="custom-key-row" data-provider="' + provId + '">' +
-        '  <th scope="row" style="width: 200px;">' + provName + ' API Key</th>' +
+        '  <th scope="row" style="width: 280px;">' +
+        '    ' + provName + ' API Key' +
+        '  </th>' +
         '  <td>' +
-        '    <input type="password" name="autoblog_custom_api_keys[' + provId + ']" value="" class="regular-text" style="width:25em;" />' +
-        '    <button type="button" class="button remove-custom-key" style="margin-left: 10px; color:#d63638; border-color:#d63638;">Remove</button>' +
+        '    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">' +
+        '      <input type="password" name="autoblog_custom_api_keys[' + provId + ']" value="" class="regular-text" style="width:25em;" />' +
+        '      <button type="button" class="button test-connection-btn" data-provider="' + provId + '">Test Connection</button>' +
+        '      <button type="button" class="button remove-custom-key" style="color:#d63638; border-color:#d63638;">Remove</button>' +
+        '      <span class="test-connection-status" style="font-weight:bold; font-size:12.5px;"></span>' +
+        '    </div>' +
         '  </td>' +
         '</tr>';
 
@@ -307,7 +313,7 @@
       var $row = $(this).closest("tr");
       var provId = $row.data("provider");
       // Ambil nama provider bersih dengan membuang kata " API Key" di akhir th
-      var provName = $row.find("th").text().replace(" API Key", "");
+      var provName = $row.find("th").text().trim().replace(" API Key", "");
 
       // Hapus baris di tabel
       $row.remove();
@@ -324,6 +330,48 @@
           '</tr>'
         );
       }
+    });
+
+    // Event click untuk Test Connection API Key
+    $(document).on("click", ".test-connection-btn", function () {
+      var $btn = $(this);
+      var provider = $btn.data("provider");
+      var $row = $btn.closest("tr");
+      var $input = $row.find("input[type=password], input[type=text]");
+      var apiKey = $input.val();
+      var $status = $row.find(".test-connection-status");
+
+      if (!apiKey) {
+        $status.css("color", "#d63638").text("⚠️ Masukkan API Key!");
+        return;
+      }
+
+      $btn.prop("disabled", true).text("Testing...");
+      $status.css("color", "#64748b").text("⏳ Menghubungi API...");
+
+      $.ajax({
+        url: ajaxurl,
+        type: "POST",
+        data: {
+          action: "autoblog_test_api_connection",
+          nonce: autoblogAdmin.nonce,
+          provider: provider,
+          api_key: apiKey
+        },
+        success: function (response) {
+          if (response.success) {
+            $status.css("color", "#008a20").html("✅ Sukses terhubung!");
+          } else {
+            $status.css("color", "#d63638").html("❌ Gagal: " + (response.data.message || "Error tidak diketahui"));
+          }
+        },
+        error: function () {
+          $status.css("color", "#d63638").text("❌ Network/Server Error");
+        },
+        complete: function () {
+          $btn.prop("disabled", false).text("Test Connection");
+        }
+      });
     });
 
     // Pemuatan log pertama kali secara instan saat document ready

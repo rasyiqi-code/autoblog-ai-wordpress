@@ -353,6 +353,196 @@ class Admin {
 	}
 
 	/**
+	 * AJAX Handler: Test API connection for static utility keys and custom dynamic LLMs.
+	 */
+	public function ajax_test_api_connection() {
+		check_ajax_referer( 'autoblog_ajax_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => 'Akses ditolak.' ) );
+		}
+
+		$provider = isset( $_POST['provider'] ) ? sanitize_text_field( $_POST['provider'] ) : '';
+		$api_key  = isset( $_POST['api_key'] ) ? sanitize_text_field( $_POST['api_key'] ) : '';
+
+		if ( empty( $provider ) || empty( $api_key ) ) {
+			wp_send_json_error( array( 'message' => 'Provider atau API Key tidak boleh kosong.' ) );
+		}
+
+		$result = $this->validate_api_key( $provider, $api_key );
+
+		if ( $result['success'] ) {
+			wp_send_json_success( array( 'message' => 'Sukses terhubung!' ) );
+		} else {
+			wp_send_json_error( array( 'message' => $result['message'] ) );
+		}
+	}
+
+	/**
+	 * Memvalidasi API key dengan melakukan request HTTP minimal ke endpoint provider.
+	 *
+	 * @param string $provider
+	 * @param string $api_key
+	 * @return array
+	 */
+	private function validate_api_key( $provider, $api_key ) {
+		$client = new \GuzzleHttp\Client( array( 'http_errors' => false, 'timeout' => 8 ) );
+
+		// 1. SerpApi
+		if ( $provider === 'serpapi' ) {
+			$url = "https://serpapi.com/search.json?q=test&api_key=" . $api_key;
+			try {
+				$response = $client->get( $url );
+				$body = json_decode( (string) $response->getBody(), true );
+				if ( isset( $body['error'] ) ) {
+					return array( 'success' => false, 'message' => 'SerpApi Error: ' . $body['error'] );
+				}
+				if ( $response->getStatusCode() === 200 ) {
+					return array( 'success' => true, 'message' => 'OK' );
+				}
+				return array( 'success' => false, 'message' => 'HTTP Status ' . $response->getStatusCode() );
+			} catch ( \Exception $e ) {
+				return array( 'success' => false, 'message' => 'Koneksi gagal: ' . $e->getMessage() );
+			}
+		}
+
+		// 2. Pexels
+		if ( $provider === 'pexels' ) {
+			$url = "https://api.pexels.com/v1/search?query=nature&per_page=1";
+			try {
+				$response = $client->get( $url, array(
+					'headers' => array( 'Authorization' => $api_key )
+				));
+				$body = json_decode( (string) $response->getBody(), true );
+				if ( isset( $body['error'] ) ) {
+					return array( 'success' => false, 'message' => 'Pexels Error: ' . $body['error'] );
+				}
+				if ( $response->getStatusCode() === 200 ) {
+					return array( 'success' => true, 'message' => 'OK' );
+				}
+				return array( 'success' => false, 'message' => 'HTTP Status ' . $response->getStatusCode() );
+			} catch ( \Exception $e ) {
+				return array( 'success' => false, 'message' => 'Koneksi gagal: ' . $e->getMessage() );
+			}
+		}
+
+		// 3. LLM Providers (OpenAI-compatible / models.dev dinamis)
+		$providers = self::get_dynamic_providers();
+		$p_data = isset( $providers[$provider] ) ? $providers[$provider] : null;
+		
+		$api_endpoint = '';
+		if ( $p_data && ! empty( $p_data['api'] ) ) {
+			$api_endpoint = $p_data['api'];
+		} else {
+			$fallbacks = self::get_fallback_providers();
+			if ( isset( $fallbacks[$provider]['api'] ) ) {
+				$api_endpoint = $fallbacks[$provider]['api'];
+			}
+		}
+
+		if ( empty( $api_endpoint ) ) {
+			return array( 'success' => false, 'message' => 'Provider API Endpoint tidak ditemukan.' );
+		}
+
+		$models = self::get_merged_models();
+		$dev_key = $provider;
+		if ( $provider === 'gemini' || $provider === 'google' ) {
+			$dev_key = 'google';
+		} elseif ( $provider === 'huggingface' || $provider === 'hf' ) {
+			$dev_key = 'huggingface';
+		}
+
+		$provider_models = isset( $models[$dev_key] ) ? $models[$dev_key] : array();
+		$test_model = ! empty( $provider_models ) ? array_key_first( $provider_models ) : 'gpt-4o';
+		if ( $provider === 'google' || $provider === 'gemini' ) {
+			$test_model = 'gemini-2.5-flash';
+		}
+
+		try {
+			// A. Google Gemini khusus
+			if ( $provider === 'google' || $provider === 'gemini' ) {
+				$url = "https://generativelanguage.googleapis.com/v1beta/models/{$test_model}:generateContent?key=" . $api_key;
+				$response = $client->post( $url, array(
+					'headers' => array( 'Content-Type' => 'application/json' ),
+					'json'    => array(
+						'contents' => array(
+							array( 'parts' => array( array( 'text' => 'Hello' ) ) )
+						),
+						'generationConfig' => array( 'maxOutputTokens' => 1 )
+					)
+				));
+				$body = json_decode( (string) $response->getBody(), true );
+				if ( isset( $body['error']['message'] ) ) {
+					return array( 'success' => false, 'message' => 'Gemini Error: ' . $body['error']['message'] );
+				}
+				if ( $response->getStatusCode() === 200 ) {
+					return array( 'success' => true, 'message' => 'OK' );
+				}
+				return array( 'success' => false, 'message' => 'HTTP Status ' . $response->getStatusCode() );
+			}
+
+			// B. Anthropic khusus
+			if ( $provider === 'anthropic' ) {
+				$url = "https://api.anthropic.com/v1/messages";
+				$response = $client->post( $url, array(
+					'headers' => array(
+						'x-api-key'         => $api_key,
+						'anthropic-version' => '2023-06-01',
+						'Content-Type'      => 'application/json'
+					),
+					'json' => array(
+						'model'      => 'claude-3-5-haiku-20241022',
+						'max_tokens' => 1,
+						'messages'   => array( array( 'role' => 'user', 'content' => 'Hello' ) )
+					)
+				));
+				$body = json_decode( (string) $response->getBody(), true );
+				if ( isset( $body['error']['message'] ) ) {
+					return array( 'success' => false, 'message' => 'Anthropic Error: ' . $body['error']['message'] );
+				}
+				if ( $response->getStatusCode() === 200 ) {
+					return array( 'success' => true, 'message' => 'OK' );
+				}
+				return array( 'success' => false, 'message' => 'HTTP Status ' . $response->getStatusCode() );
+			}
+
+			// C. Generic OpenAI-compatible
+			$url = rtrim( $api_endpoint, '/' ) . '/chat/completions';
+			
+			$payload = array(
+				'model'      => $test_model,
+				'max_tokens' => 1,
+				'messages'   => array(
+					array( 'role' => 'user', 'content' => 'Hello' )
+				)
+			);
+
+			$response = $client->post( $url, array(
+				'headers' => array(
+					'Authorization' => 'Bearer ' . $api_key,
+					'Content-Type'  => 'application/json'
+				),
+				'json' => $payload
+			));
+
+			$body = json_decode( (string) $response->getBody(), true );
+
+			if ( isset( $body['error']['message'] ) ) {
+				return array( 'success' => false, 'message' => 'API Error: ' . $body['error']['message'] );
+			}
+
+			if ( $response->getStatusCode() === 200 ) {
+				return array( 'success' => true, 'message' => 'OK' );
+			}
+
+			return array( 'success' => false, 'message' => 'HTTP Status ' . $response->getStatusCode() . ': ' . substr( (string)$response->getBody(), 0, 150 ) );
+
+		} catch ( \Exception $e ) {
+			return array( 'success' => false, 'message' => 'Koneksi gagal: ' . $e->getMessage() );
+		}
+	}
+
+	/**
 	 * AJAX Handler: Ambil log terbaru tanpa reload halaman.
 	 *
 	 * @since    1.1.0
