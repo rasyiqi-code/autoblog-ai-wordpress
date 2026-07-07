@@ -2,6 +2,8 @@
 
 namespace Autoblog\Admin;
 
+use Autoblog\Utils\ModelCatalog;
+
 /**
  * AdminAjax
  *
@@ -296,7 +298,7 @@ class AdminAjax {
         }
 
         // Cari endpoint dari models.dev catalog
-        $providers    = AdminSettings::get_dynamic_providers();
+        $providers    = ModelCatalog::get_dynamic_providers();
         $p_data       = isset( $providers[ $provider ] ) ? $providers[ $provider ] : null;
         $api_endpoint = ( $p_data && ! empty( $p_data['api'] ) ) ? $p_data['api'] : '';
 
@@ -305,7 +307,7 @@ class AdminAjax {
         }
 
         // Tentukan model test
-        $models          = AdminSettings::get_merged_models();
+        $models          = ModelCatalog::get_merged_models();
         $dev_key         = ( $provider === 'gemini' || $provider === 'google' ) ? 'google'
                          : ( ( $provider === 'huggingface' || $provider === 'hf' ) ? 'huggingface' : $provider );
         $provider_models = isset( $models[ $dev_key ] ) ? $models[ $dev_key ] : [];

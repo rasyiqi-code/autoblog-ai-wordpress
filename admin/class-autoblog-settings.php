@@ -2,14 +2,14 @@
 
 namespace Autoblog\Admin;
 
+use Autoblog\Utils\ModelCatalog;
+
 /**
  * AdminSettings
  *
- * Menangani registrasi settings WordPress dan pengambilan model/provider
- * dinamis dari models.dev API.
- *
- * Di-load oleh Autoblog.php dan dipanggil via hook 'admin_init'.
- * Method static dipakai juga oleh class lain (AIClient, Admin).
+ * Menangani registrasi settings WordPress.
+ * Catalog model & provider didelegasikan ke ModelCatalog (includes/Utils/)
+ * agar dapat diakses dari mana saja via PSR-4 autoload.
  *
  * @package    Autoblog
  * @subpackage Autoblog/admin
@@ -76,84 +76,21 @@ class AdminSettings {
     }
 
     // ================================================================
-    // STATIC: Catalog model & provider dari models.dev API
+    // STATIC: Delegasi ke ModelCatalog (DRY)
     // ================================================================
 
-    /**
-     * Ambil catalog model terupdate dari models.dev (cache 1 hari).
-     *
-     * @return array [ provider_id => [ model_id => model_name ] ]
-     */
+    /** @return array */
     public static function get_dynamic_models() {
-        $cache = get_transient( 'autoblog_models_dev_cache_v2' );
-        if ( false !== $cache ) {
-            return $cache;
-        }
-
-        $response = wp_remote_get( 'https://models.dev/api.json', [ 'timeout' => 15 ] );
-        if ( is_wp_error( $response ) ) {
-            return [];
-        }
-
-        $data = json_decode( wp_remote_retrieve_body( $response ), true );
-        if ( ! is_array( $data ) ) {
-            return [];
-        }
-
-        $filtered = [];
-        foreach ( $data as $p_id => $p_data ) {
-            if ( isset( $p_data['models'] ) && is_array( $p_data['models'] ) ) {
-                $filtered[ $p_id ] = [];
-                foreach ( $p_data['models'] as $m_id => $m_data ) {
-                    $filtered[ $p_id ][ $m_id ] = isset( $m_data['name'] ) ? $m_data['name'] : $m_id;
-                }
-            }
-        }
-
-        set_transient( 'autoblog_models_dev_cache_v2', $filtered, DAY_IN_SECONDS );
-        return $filtered;
+        return ModelCatalog::get_dynamic_models();
     }
 
-    /**
-     * Alias untuk get_dynamic_models() — backward compatibility.
-     *
-     * @return array
-     */
+    /** @return array */
     public static function get_merged_models() {
-        return self::get_dynamic_models();
+        return ModelCatalog::get_merged_models();
     }
 
-    /**
-     * Ambil semua provider dari models.dev (cache 1 hari).
-     *
-     * @return array [ provider_id => [ name, api, env ] ]
-     */
+    /** @return array */
     public static function get_dynamic_providers() {
-        $cache = get_transient( 'autoblog_providers_cache_v2' );
-        if ( false !== $cache ) {
-            return $cache;
-        }
-
-        $response = wp_remote_get( 'https://models.dev/api.json', [ 'timeout' => 15 ] );
-        if ( is_wp_error( $response ) ) {
-            return [];
-        }
-
-        $data = json_decode( wp_remote_retrieve_body( $response ), true );
-        if ( ! is_array( $data ) ) {
-            return [];
-        }
-
-        $providers = [];
-        foreach ( $data as $p_id => $p_data ) {
-            $providers[ $p_id ] = [
-                'name' => isset( $p_data['name'] ) ? $p_data['name'] : $p_id,
-                'api'  => isset( $p_data['api'] )  ? $p_data['api']  : '',
-                'env'  => isset( $p_data['env'] )  ? $p_data['env']  : [],
-            ];
-        }
-
-        set_transient( 'autoblog_providers_cache_v2', $providers, DAY_IN_SECONDS );
-        return $providers;
+        return ModelCatalog::get_dynamic_providers();
     }
 }

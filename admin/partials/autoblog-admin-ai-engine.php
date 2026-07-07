@@ -6,7 +6,7 @@
  * @subpackage Autoblog/admin/partials
  */
 
-$providers = \Autoblog\Admin\Admin::get_dynamic_providers();
+$providers = \Autoblog\Utils\ModelCatalog::get_dynamic_providers();
 $selected_provider = get_option( 'autoblog_ai_provider', 'openai' );
 
 // Ambil model terpilih saat ini secara global

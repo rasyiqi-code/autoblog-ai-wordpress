@@ -97,7 +97,7 @@ function get_key_badge( $key_provider, $active_provider, $embedding_key_name, $s
 <table class="form-table" id="custom-keys-table">
     <?php
     $custom_keys = get_option( 'autoblog_custom_api_keys', array() );
-    $dynamic_providers = \Autoblog\Admin\Admin::get_dynamic_providers();
+    $dynamic_providers = \Autoblog\Utils\ModelCatalog::get_dynamic_providers();
     
     if ( is_array( $custom_keys ) && ! empty( $custom_keys ) ) {
         foreach ( $custom_keys as $prov_id => $prov_key ) {

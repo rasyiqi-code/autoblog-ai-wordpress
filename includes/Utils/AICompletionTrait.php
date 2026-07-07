@@ -30,7 +30,7 @@ trait AICompletionTrait {
      * @return string|false
      */
     public function custom_provider_completion( $prompt, $model, $provider, $temperature = 0.7, $system_prompt = '' ) {
-        $providers    = \Autoblog\Admin\Admin::get_dynamic_providers();
+        $providers    = \Autoblog\Utils\ModelCatalog::get_dynamic_providers();
         $p_data       = isset( $providers[$provider] ) ? $providers[$provider] : null;
         $api_endpoint = ( $p_data && ! empty( $p_data['api'] ) ) ? $p_data['api'] : '';
 

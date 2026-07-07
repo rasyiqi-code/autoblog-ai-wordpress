@@ -2,6 +2,8 @@
 
 namespace Autoblog\Admin;
 
+use Autoblog\Utils\ModelCatalog;
+
 /**
  * Admin
  *
@@ -88,7 +90,7 @@ class Admin {
             'ajax_url'       => admin_url( 'admin-ajax.php' ),
             'nonce'          => wp_create_nonce( 'autoblog_ajax_nonce' ),
             'keys_filled'    => $keys_filled,
-            'catalog_models' => AdminSettings::get_merged_models(),
+            'catalog_models' => ModelCatalog::get_merged_models(),
             'selected_model' => get_option( 'autoblog_ai_model', 'gemini-1.5-flash' ),
         ];
 
@@ -283,20 +285,16 @@ class Admin {
      * @deprecated Gunakan AdminSettings::get_dynamic_models()
      */
     public static function get_dynamic_models() {
-        return AdminSettings::get_dynamic_models();
+        return ModelCatalog::get_dynamic_models();
     }
 
-    /**
-     * @deprecated Gunakan AdminSettings::get_merged_models()
-     */
+    /** @deprecated Gunakan ModelCatalog::get_merged_models() */
     public static function get_merged_models() {
-        return AdminSettings::get_merged_models();
+        return ModelCatalog::get_merged_models();
     }
 
-    /**
-     * @deprecated Gunakan AdminSettings::get_dynamic_providers()
-     */
+    /** @deprecated Gunakan ModelCatalog::get_dynamic_providers() */
     public static function get_dynamic_providers() {
-        return AdminSettings::get_dynamic_providers();
+        return ModelCatalog::get_dynamic_providers();
     }
 }
