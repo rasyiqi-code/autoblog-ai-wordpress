@@ -76,7 +76,8 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                             <option value="<?php echo esc_attr( $p_id ); ?>" <?php selected( $selected_provider, $p_id ); ?>><?php echo esc_html( $p_data['name'] ); ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <p class="description">Provider utama yang digunakan untuk penulisan artikel.</p>
+                    <p class="description">Provider utama yang digunakan untuk penulisan artikel pos.</p>
+                    <div id="active_key_warning" style="display:none; color:#d63638; font-weight:bold; margin-top:5px; font-size:11px;"></div>
                 </td>
             </tr>
 

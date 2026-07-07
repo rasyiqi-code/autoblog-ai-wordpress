@@ -79,13 +79,48 @@
       }
     }
 
+    // ================================================================
+    // HELPER: Cek apakah API key untuk Active Provider terisi
+    // ================================================================
+    function checkActiveKey() {
+      var provider = $aiProvider.val();
+      if (!provider) return;
+
+      var checkKey = provider;
+      if (provider === "gemini") {
+        checkKey = "google";
+      } else if (provider === "hf") {
+        checkKey = "huggingface";
+      }
+
+      var $row = $('.custom-key-row[data-provider="' + checkKey + '"]');
+      var $warning = $("#active_key_warning");
+
+      if ($row.length === 0 || !$row.find("input[name*='key']").val()) {
+        var provName = $aiProvider.find("option:selected").text();
+        $warning.html('⚠️ API Key untuk provider aktif (' + provName + ') belum ditambahkan atau masih kosong di bawah. Silakan tambahkan/isi di bagian "Custom LLM Provider Keys".').show();
+      } else {
+        $warning.hide();
+      }
+    }
+
     // Bind event
-    $aiProvider.on("change", updateAIModelDropdown);
+    $aiProvider.on("change", function() {
+      updateAIModelDropdown();
+      checkActiveKey();
+    });
     $("#autoblog_embedding_provider").on("change", checkRAGKey);
+
+    // Monitoring input password custom keys
+    $(document).on("input", ".custom-key-row input[type=password]", checkActiveKey);
+    $(document).on("click", "#btn-add-custom-key, .remove-custom-key", function() {
+      setTimeout(checkActiveKey, 50); // delay agar DOM selesai terupdate
+    });
 
     // Inisialisasi awal
     updateAIModelDropdown();
     checkRAGKey();
+    checkActiveKey();
 
     // ================================================================
     // AJAX: Test Gemini Grounding
