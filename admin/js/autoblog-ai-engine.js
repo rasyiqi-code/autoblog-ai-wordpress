@@ -105,12 +105,10 @@
         var $badgeContainer = $(this).find(".provider-badge-container");
         var provId = $(this).data("provider");
         
-        var styleBase = 'display:inline-block; padding:2px 8px; border-radius:12px; font-size:9px; font-weight:600; letter-spacing:0.04em; margin-right:6px; margin-top:4px; text-transform:uppercase; vertical-align:middle;';
-        
         if (provId === checkKey) {
-          $badgeContainer.html('<span style="' + styleBase + ' background:#fee2e2; color:#b91c1c; border: 1px solid #fecaca;">WAJIB - AKTIF</span>');
+          $badgeContainer.html('<span class="autoblog-badge autoblog-badge-active">AKTIF</span>');
         } else {
-          $badgeContainer.html('<span style="' + styleBase + ' background:#f1f5f9; color:#64748b; border: 1px solid #e2e8f0;">CADANGAN</span>');
+          $badgeContainer.html('<span class="autoblog-badge autoblog-badge-secondary">CADANGAN</span>');
         }
       });
 
