@@ -921,7 +921,7 @@ class Admin {
 	 * @return array
 	 */
 	public static function get_dynamic_models() {
-		$cache = get_transient( 'autoblog_models_dev_cache' );
+		$cache = get_transient( 'autoblog_models_dev_cache_v2' );
 		if ( false !== $cache ) {
 			return $cache;
 		}
@@ -937,27 +937,18 @@ class Admin {
 			return array();
 		}
 
-		// Filter & transform data hanya untuk provider yang kita dukung agar hemat memori cache
-		$supported = array(
-			'openai'      => 'openai',
-			'anthropic'   => 'anthropic',
-			'google'      => 'google', // mapped to gemini
-			'groq'        => 'groq',
-			'openrouter'  => 'openrouter',
-		);
-
 		$filtered = array();
-		foreach ( $supported as $key => $models_dev_key ) {
-			if ( isset( $data[$models_dev_key]['models'] ) && is_array( $data[$models_dev_key]['models'] ) ) {
-				$filtered[$key] = array();
-				foreach ( $data[$models_dev_key]['models'] as $m_id => $m_data ) {
+		foreach ( $data as $p_id => $p_data ) {
+			if ( isset( $p_data['models'] ) && is_array( $p_data['models'] ) ) {
+				$filtered[$p_id] = array();
+				foreach ( $p_data['models'] as $m_id => $m_data ) {
 					// Kita hanya butuh name dan id untuk select dropdown
-					$filtered[$key][$m_id] = isset( $m_data['name'] ) ? $m_data['name'] : $m_id;
+					$filtered[$p_id][$m_id] = isset( $m_data['name'] ) ? $m_data['name'] : $m_id;
 				}
 			}
 		}
 
-		set_transient( 'autoblog_models_dev_cache', $filtered, DAY_IN_SECONDS );
+		set_transient( 'autoblog_models_dev_cache_v2', $filtered, DAY_IN_SECONDS );
 		return $filtered;
 	}
 
@@ -1016,9 +1007,11 @@ class Admin {
 		$fallback = self::get_fallback_models();
 		
 		$merged = array();
-		$providers = array( 'openai', 'anthropic', 'google', 'groq', 'openrouter' );
 		
-		foreach ( $providers as $p ) {
+		// Kumpulkan seluruh key provider unik secara dinamis
+		$all_provider_keys = array_unique( array_merge( array_keys( $fallback ), array_keys( $dynamic ) ) );
+		
+		foreach ( $all_provider_keys as $p ) {
 			$merged[$p] = isset( $fallback[$p] ) ? $fallback[$p] : array();
 			if ( isset( $dynamic[$p] ) && is_array( $dynamic[$p] ) ) {
 				foreach ( $dynamic[$p] as $m_id => $m_name ) {
@@ -1036,7 +1029,7 @@ class Admin {
 	 * @return array
 	 */
 	public static function get_dynamic_providers() {
-		$cache = get_transient( 'autoblog_providers_cache' );
+		$cache = get_transient( 'autoblog_providers_cache_v2' );
 		if ( false !== $cache ) {
 			return $cache;
 		}
@@ -1066,7 +1059,7 @@ class Admin {
 			$providers['huggingface'] = array( 'name' => 'Hugging Face', 'api' => 'https://api-inference.huggingface.co' );
 		}
 
-		set_transient( 'autoblog_providers_cache', $providers, DAY_IN_SECONDS );
+		set_transient( 'autoblog_providers_cache_v2', $providers, DAY_IN_SECONDS );
 		return $providers;
 	}
 
