@@ -164,17 +164,17 @@ class SearchSource implements SourceInterface {
         }
 
         $ch = curl_init();
-        curl_setopt( $ch, CURLOPT_URL, $url );
-        curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-        curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true );
-        curl_setopt( $ch, CURLOPT_MAXREDIRS, 5 );
-        curl_setopt( $ch, CURLOPT_TIMEOUT, 20 );
-        curl_setopt( $ch, CURLOPT_CONNECTTIMEOUT, 10 );
+        curl_setopt( $ch, \CURLOPT_URL, $url );
+        curl_setopt( $ch, \CURLOPT_RETURNTRANSFER, true );
+        curl_setopt( $ch, \CURLOPT_FOLLOWLOCATION, true );
+        curl_setopt( $ch, \CURLOPT_MAXREDIRS, 5 );
+        curl_setopt( $ch, \CURLOPT_TIMEOUT, 20 );
+        curl_setopt( $ch, \CURLOPT_CONNECTTIMEOUT, 10 );
         // Nonaktifkan SSL verify utk outgoing request scraping ke domain publik
-        curl_setopt( $ch, CURLOPT_SSL_VERIFYPEER, false );
-        curl_setopt( $ch, CURLOPT_SSL_VERIFYHOST, 0 );
+        curl_setopt( $ch, \CURLOPT_SSL_VERIFYPEER, false );
+        curl_setopt( $ch, \CURLOPT_SSL_VERIFYHOST, 0 );
         // Paksa IPv4 — hindari ::1 dari DNS Local by Flywheel
-        curl_setopt( $ch, CURLOPT_IPRESOLVE, CURLOPT_IPRESOLVE_V4 );
+        curl_setopt( $ch, \CURLOPT_IPRESOLVE, \CURLOPT_IPRESOLVE_V4 );
 
         // Rotasi User-Agent untuk menghindari blokir sederhana
         $user_agents = [
