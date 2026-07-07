@@ -174,7 +174,7 @@ class SearchSource implements SourceInterface {
         curl_setopt( $ch, \CURLOPT_SSL_VERIFYPEER, false );
         curl_setopt( $ch, \CURLOPT_SSL_VERIFYHOST, 0 );
         // Paksa IPv4 — hindari ::1 dari DNS Local by Flywheel
-        curl_setopt( $ch, \CURLOPT_IPRESOLVE, \CURLOPT_IPRESOLVE_V4 );
+        curl_setopt( $ch, \CURLOPT_IPRESOLVE, \CURL_IPRESOLVE_V4 );
 
         // Rotasi User-Agent untuk menghindari blokir sederhana
         $user_agents = [

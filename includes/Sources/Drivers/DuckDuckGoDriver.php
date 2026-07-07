@@ -70,7 +70,7 @@ trait DuckDuckGoDriver {
                 'sslverify'  => false,
                 'decompress' => true,
                 // Paksa IPv4 — cURL kadang prefer ::1 (localhost) di environment Local by Flywheel
-                'curl'       => [ \CURLOPT_IPRESOLVE => \CURLOPT_IPRESOLVE_V4 ],
+                'curl'       => [ \CURLOPT_IPRESOLVE => \CURL_IPRESOLVE_V4 ],
             ]);
 
             if ( ! is_wp_error( $response ) ) {
@@ -103,7 +103,7 @@ trait DuckDuckGoDriver {
                 'http_errors' => false,
                 'verify'      => false,
                 // Paksa IPv4 — hindari ::1 dari DNS Local by Flywheel
-                'curl'        => [ \CURLOPT_IPRESOLVE => \CURLOPT_IPRESOLVE_V4 ],
+                'curl'        => [ \CURLOPT_IPRESOLVE => \CURL_IPRESOLVE_V4 ],
             ]);
             $response = $client->get( $url, [
                 'headers' => [
