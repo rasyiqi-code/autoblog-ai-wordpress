@@ -167,9 +167,12 @@ class ArticleWriter {
         // Get Active Provider
         $provider = get_option( 'autoblog_ai_provider', 'openai' );
         
-        // Get Model based on Provider
-        $model_option_name = 'autoblog_' . $provider . '_model';
-        $model = get_option( $model_option_name, 'gpt-4o' );
+        // Get Model based on Provider (dynamic fallback)
+        $model = get_option( 'autoblog_ai_model' );
+        if ( empty( $model ) ) {
+            $model_option_name = 'autoblog_' . $provider . '_model';
+            $model = get_option( $model_option_name, 'gpt-4o' );
+        }
 
         // Use Temperature 0.9 for high creativity/randomness
         $response_text = $this->ai_client->generate_text( $user_prompt, $model, $provider, 0.9, $system_prompt );

@@ -2,17 +2,19 @@
 /**
  * Tab AI Engine — Konfigurasi AI Provider, Model, Embedding, dan Search.
  *
- * Semua pengaturan terkait "mesin AI" digabungkan di sini:
- * - Active AI Provider + Model selector
- * - Embedding Provider (RAG)
- * - Search Provider
- * - Smart Fallback toggle
- *
- * Dirender di dalam <form> dari autoblog-admin-display.php.
- *
  * @package    Autoblog
  * @subpackage Autoblog/admin/partials
  */
+
+$providers = \Autoblog\Admin\Admin::get_dynamic_providers();
+$selected_provider = get_option( 'autoblog_ai_provider', 'openai' );
+
+// Ambil model terpilih saat ini secara global
+$selected_model = get_option( 'autoblog_ai_model' );
+if ( empty( $selected_model ) ) {
+    // Fallback untuk backward compatibility
+    $selected_model = get_option( 'autoblog_' . $selected_provider . '_model', 'gpt-4o' );
+}
 ?>
 
 <table class="form-table">
@@ -22,111 +24,22 @@
         <th scope="row">Active AI Provider</th>
         <td>
             <select name="autoblog_ai_provider" id="autoblog_ai_provider">
-                <option value="openai" <?php selected( get_option('autoblog_ai_provider'), 'openai' ); ?>>OpenAI</option>
-                <option value="anthropic" <?php selected( get_option('autoblog_ai_provider'), 'anthropic' ); ?>>Anthropic</option>
-                <option value="gemini" <?php selected( get_option('autoblog_ai_provider'), 'gemini' ); ?>>Google Gemini</option>
-                <option value="groq" <?php selected( get_option('autoblog_ai_provider'), 'groq' ); ?>>Groq (Llama/Mixtral)</option>
-                <option value="openrouter" <?php selected( get_option('autoblog_ai_provider'), 'openrouter' ); ?>>OpenRouter</option>
-                <option value="hf" <?php selected( get_option('autoblog_ai_provider'), 'hf' ); ?>>Hugging Face</option>
+                <?php foreach ( $providers as $p_id => $p_data ) : ?>
+                    <option value="<?php echo esc_attr( $p_id ); ?>" <?php selected( $selected_provider, $p_id ); ?>><?php echo esc_html( $p_data['name'] ); ?></option>
+                <?php endforeach; ?>
             </select>
             <p class="description">Provider utama untuk generate konten artikel.</p>
         </td>
     </tr>
 
-    <!-- AI Model (dynamic berdasarkan provider) -->
-    <?php
-    $merged_models = \Autoblog\Admin\Admin::get_merged_models();
-    ?>
+    <!-- AI Model (dynamic dropdown) -->
     <tr valign="top">
         <th scope="row">AI Model</th>
         <td>
-            <!-- OpenAI Models -->
-            <?php
-            $selected_openai = get_option('autoblog_openai_model', 'gpt-4o');
-            $openai_models = isset($merged_models['openai']) ? $merged_models['openai'] : array();
-            if ( ! isset( $openai_models[$selected_openai] ) ) {
-                $openai_models[$selected_openai] = $selected_openai;
-            }
-            ?>
-            <div class="model-select-container" id="container_model_openai">
-                <select name="autoblog_openai_model">
-                    <?php foreach ( $openai_models as $m_id => $m_name ) : ?>
-                        <option value="<?php echo esc_attr($m_id); ?>" <?php selected( $selected_openai, $m_id ); ?>><?php echo esc_html($m_name); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <!-- Anthropic Models -->
-            <?php
-            $selected_anthropic = get_option('autoblog_anthropic_model', 'claude-3-5-sonnet-20240620');
-            $anthropic_models = isset($merged_models['anthropic']) ? $merged_models['anthropic'] : array();
-            if ( ! isset( $anthropic_models[$selected_anthropic] ) ) {
-                $anthropic_models[$selected_anthropic] = $selected_anthropic;
-            }
-            ?>
-            <div class="model-select-container" id="container_model_anthropic" style="display:none;">
-                <select name="autoblog_anthropic_model">
-                    <?php foreach ( $anthropic_models as $m_id => $m_name ) : ?>
-                        <option value="<?php echo esc_attr($m_id); ?>" <?php selected( $selected_anthropic, $m_id ); ?>><?php echo esc_html($m_name); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <!-- Gemini Models -->
-            <?php
-            $selected_gemini = get_option('autoblog_gemini_model', 'gemini-3.1-pro');
-            $gemini_models = isset($merged_models['google']) ? $merged_models['google'] : array();
-            if ( ! isset( $gemini_models[$selected_gemini] ) ) {
-                $gemini_models[$selected_gemini] = $selected_gemini;
-            }
-            ?>
-            <div class="model-select-container" id="container_model_gemini" style="display:none;">
-                <select name="autoblog_gemini_model">
-                    <?php foreach ( $gemini_models as $m_id => $m_name ) : ?>
-                        <option value="<?php echo esc_attr($m_id); ?>" <?php selected( $selected_gemini, $m_id ); ?>><?php echo esc_html($m_name); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <!-- Groq Models -->
-            <?php
-            $selected_groq = get_option('autoblog_groq_model', 'llama-3.3-70b-versatile');
-            $groq_models = isset($merged_models['groq']) ? $merged_models['groq'] : array();
-            if ( ! isset( $groq_models[$selected_groq] ) ) {
-                $groq_models[$selected_groq] = $selected_groq;
-            }
-            ?>
-            <div class="model-select-container" id="container_model_groq" style="display:none;">
-                <select name="autoblog_groq_model">
-                    <?php foreach ( $groq_models as $m_id => $m_name ) : ?>
-                        <option value="<?php echo esc_attr($m_id); ?>" <?php selected( $selected_groq, $m_id ); ?>><?php echo esc_html($m_name); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <!-- OpenRouter Models -->
-            <?php
-            $selected_openrouter = get_option('autoblog_openrouter_model', 'openrouter/auto');
-            $openrouter_models = isset($merged_models['openrouter']) ? $merged_models['openrouter'] : array();
-            if ( ! isset( $openrouter_models[$selected_openrouter] ) ) {
-                $openrouter_models[$selected_openrouter] = $selected_openrouter;
-            }
-            ?>
-            <div class="model-select-container" id="container_model_openrouter" style="display:none;">
-                <select name="autoblog_openrouter_model">
-                    <?php foreach ( $openrouter_models as $m_id => $m_name ) : ?>
-                        <option value="<?php echo esc_attr($m_id); ?>" <?php selected( $selected_openrouter, $m_id ); ?>><?php echo esc_html($m_name); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <!-- HF Models (free-form input) -->
-            <div class="model-select-container" id="container_model_hf" style="display:none;">
-                <input type="text" name="autoblog_hf_model"
-                       value="<?php echo esc_attr( get_option('autoblog_hf_model') ); ?>"
-                       class="regular-text" placeholder="e.g. meta-llama/Llama-2-7b-chat-hf" />
-                <p class="description">Masukkan ID model Hugging Face lengkap.</p>
-            </div>
+            <select name="autoblog_ai_model" id="autoblog_ai_model" style="min-width: 250px;">
+                <!-- JavaScript akan mengisi opsi model secara dinamis -->
+            </select>
+            <p class="description">Pilih model spesifik dari provider terpilih untuk generate artikel.</p>
         </td>
     </tr>
 
@@ -192,7 +105,7 @@
                     Enable Smart Model Switching
                 </label>
             </fieldset>
-            <p class="description">Jika aktif, plugin otomatis switch ke provider lain (misal Gemini → Groq → OpenAI) jika provider utama gagal atau melebihi kuota.</p>
+            <p class="description">Jika aktif, plugin otomatis switch ke provider lain jika provider utama gagal atau melebihi kuota.</p>
         </td>
     </tr>
 
@@ -208,19 +121,18 @@
                     Enable Native Google Search Grounding
                 </label>
             </fieldset>
-            <p class="description">Mungkinkan Gemini mengakses Google Search secara real-time untuk akurasi fakta yang lebih tinggi (Tanpa perlu API Search eksternal).</p>
+            <p class="description">Mungkinkan Gemini mengakses Google Search secara real-time untuk akurasi fakta yang lebih tinggi.</p>
             
             <div id="gemini_tester_box" style="margin-top: 15px; padding: 15px; background: #f0f0f1; border: 1px solid #ccd0d4; border-radius: 4px;">
                 <h4 style="margin-top:0;">🧪 Gemini Grounding Tester</h4>
-                <p class="description" style="margin-bottom:10px;">Coba tanyakan sesuatu yang membutuhkan data real-time (misal: "Siapa pemenang Oscar 2024?" atau "Harga Bitcoin hari ini").</p>
+                <p class="description" style="margin-bottom:10px;">Coba tanyakan sesuatu yang membutuhkan data real-time.</p>
                 <div style="display:flex; flex-direction:column; gap:10px;">
                     <div style="display:flex; gap:10px; align-items:center;">
                         <label for="gemini_test_model" style="font-weight:bold; min-width:100px;">Pilih Model:</label>
                         <select id="gemini_test_model" style="flex-grow:1;">
                             <option value="gemini-3.1-pro">Gemini 3.1 Pro (Akurasi)</option>
-                            <option value="gemini-3.0-flash">Gemini 3 Flash (Kecepatan)</option>
+                            <option value="gemini-3.0-flash">Gemini 3 Flash</option>
                             <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                            <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
                         </select>
                     </div>
                     <div style="display:flex; gap:10px;">
@@ -234,35 +146,62 @@
     </tr>
 </table>
 
-<!-- JavaScript untuk toggle model dropdown berdasarkan provider -->
 <?php
 $keys_filled = array(
     'openai'     => ! empty( get_option( 'autoblog_openai_key' ) ),
     'gemini_001' => ! empty( get_option( 'autoblog_gemini_key' ) ),
     'hf'         => ! empty( get_option( 'autoblog_hf_key' ) ),
 );
+$merged_models = \Autoblog\Admin\Admin::get_merged_models();
 ?>
 <script>
+    var autoblogCatalogModels = <?php echo json_encode( $merged_models ); ?>;
+    var autoblogSelectedModel = <?php echo json_encode( $selected_model ); ?>;
+
     jQuery(document).ready(function($) {
         var filledKeys = <?php echo json_encode( $keys_filled ); ?>;
 
         /**
-         * Toggle visibility dropdown model dan opsi khusus provider.
+         * Perbarui daftar opsi dropdown model secara dinamis
          */
-        function toggleModelDropdowns() {
+        function updateAIModelDropdown() {
             var provider = $('#autoblog_ai_provider').val();
+            var $modelSelect = $('#autoblog_ai_model');
+            $modelSelect.empty();
+            
+            // Map keys
+            var devKey = provider;
+            if ( provider === 'gemini' ) {
+                devKey = 'google';
+            } else if ( provider === 'huggingface' || provider === 'hf' ) {
+                devKey = 'huggingface';
+            }
 
-            // Sembunyikan semua container model dan opsi khusus
-            $('.model-select-container').hide();
-            $('#row_gemini_grounding').hide();
+            var models = autoblogCatalogModels[devKey] || {};
+            var foundSelected = false;
+            
+            $.each(models, function(m_id, m_name) {
+                var isSelected = (m_id === autoblogSelectedModel);
+                if (isSelected) {
+                    foundSelected = true;
+                }
+                $modelSelect.append(
+                    $('<option></option>').val(m_id).text(m_name).prop('selected', isSelected)
+                );
+            });
+            
+            // Jika model kustom/lama tidak ada di list dynamic, tetapkan sebagai opsi terpilih kustom
+            if (autoblogSelectedModel && !foundSelected && provider !== 'hf') {
+                $modelSelect.append(
+                    $('<option></option>').val(autoblogSelectedModel).text(autoblogSelectedModel).prop('selected', true)
+                );
+            }
 
-            // Tampilkan container sesuai provider
-            var containerId = '#container_model_' + provider;
-            $(containerId).show();
-
-            // Tampilkan Grounding jika provider adalah Gemini
+            // Tampilkan Grounding & tester jika provider adalah Gemini
             if (provider === 'gemini') {
                 $('#row_gemini_grounding').show();
+            } else {
+                $('#row_gemini_grounding').hide();
             }
         }
 
@@ -280,7 +219,7 @@ $keys_filled = array(
 
         // Bind event change
         $('#autoblog_ai_provider').change(function() {
-            toggleModelDropdowns();
+            updateAIModelDropdown();
         });
         
         $('#autoblog_embedding_provider').change(function() {
@@ -288,7 +227,7 @@ $keys_filled = array(
         });
 
         // Jalankan saat halaman dimuat
-        toggleModelDropdowns();
+        updateAIModelDropdown();
         checkRAGKey();
     });
 </script>

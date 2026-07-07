@@ -271,6 +271,60 @@
           $btn.prop("disabled", false).text("Run Test");
         }
       });
+    });
+
+    // ================================================================
+    // INTERACTION: Dynamic Custom API Keys
+    // ================================================================
+    $("#btn-add-custom-key").on("click", function () {
+      var $select = $("#new-custom-provider-select");
+      var provId = $select.val();
+      var provName = $select.find("option:selected").text();
+
+      if (!provId) return;
+
+      // Hapus row placeholder "belum ada key" jika ada
+      $("#no-custom-keys-row").remove();
+
+      // Buat row input baru
+      var newRow = 
+        '<tr valign="top" class="custom-key-row" data-provider="' + provId + '">' +
+        '  <th scope="row" style="width: 200px;">' + provName + ' API Key</th>' +
+        '  <td>' +
+        '    <input type="password" name="autoblog_custom_api_keys[' + provId + ']" value="" class="regular-text" style="width:25em;" />' +
+        '    <button type="button" class="button remove-custom-key" style="margin-left: 10px; color:#d63638; border-color:#d63638;">Remove</button>' +
+        '  </td>' +
+        '</tr>';
+
+      $("#custom-keys-table").append(newRow);
+
+      // Hapus opsi ini dari select dropdown
+      $select.find("option:selected").remove();
+      $select.val("");
+    });
+
+    $(document).on("click", ".remove-custom-key", function () {
+      var $row = $(this).closest("tr");
+      var provId = $row.data("provider");
+      // Ambil nama provider bersih dengan membuang kata " API Key" di akhir th
+      var provName = $row.find("th").text().replace(" API Key", "");
+
+      // Hapus baris di tabel
+      $row.remove();
+
+      // Kembalikan ke dropdown select
+      var $select = $("#new-custom-provider-select");
+      $select.append($("<option></option>").val(provId).text(provName));
+
+      // Jika tabel kosong, tampilkan kembali row placeholder
+      if ($("#custom-keys-table tr.custom-key-row").length === 0) {
+        $("#custom-keys-table").append(
+          '<tr id="no-custom-keys-row">' +
+          '  <td colspan="2" style="padding:10px 0; color:#64748b; font-style:italic;">Belum ada custom provider key yang ditambahkan. Gunakan menu di bawah untuk menambahkannya.</td>' +
+          '</tr>'
+        );
+      }
+    });
 
     // Pemuatan log pertama kali secara instan saat document ready
     refreshLogs();

@@ -145,3 +145,58 @@ function get_key_badge( $key_provider, $active_provider, $embedding_key_name, $s
         </td>
     </tr>
 </table>
+
+<div class="card" style="margin-top: 30px; max-width: 100%; border: 1px solid #ccd0d4; border-radius: 4px; padding: 20px; background: #fff;">
+    <h2 style="margin-top:0; font-size:16px;">🔑 Custom/Additional Provider API Keys</h2>
+    <p class="description" style="margin-bottom:20px;">Tambahkan API key untuk provider lain yang ada di database models.dev secara dinamis.</p>
+    
+    <table class="form-table" id="custom-keys-table">
+        <?php
+        $custom_keys = get_option( 'autoblog_custom_api_keys', array() );
+        $dynamic_providers = \Autoblog\Admin\Admin::get_dynamic_providers();
+        
+        if ( is_array( $custom_keys ) && ! empty( $custom_keys ) ) {
+            foreach ( $custom_keys as $prov_id => $prov_key ) {
+                $prov_name = isset( $dynamic_providers[$prov_id]['name'] ) ? $dynamic_providers[$prov_id]['name'] : $prov_id;
+                ?>
+                <tr valign="top" class="custom-key-row" data-provider="<?php echo esc_attr($prov_id); ?>">
+                    <th scope="row" style="width: 200px;"><?php echo esc_html($prov_name); ?> API Key</th>
+                    <td>
+                        <input type="password" name="autoblog_custom_api_keys[<?php echo esc_attr($prov_id); ?>]" value="<?php echo esc_attr($prov_key); ?>" class="regular-text" style="width:25em;" />
+                        <button type="button" class="button remove-custom-key" style="margin-left: 10px; color:#d63638; border-color:#d63638;">Remove</button>
+                    </td>
+                </tr>
+                <?php
+            }
+        } else {
+            ?>
+            <tr id="no-custom-keys-row">
+                <td colspan="2" style="padding:10px 0; color:#64748b; font-style:italic;">Belum ada custom provider key yang ditambahkan. Gunakan menu di bawah untuk menambahkannya.</td>
+            </tr>
+            <?php
+        }
+        ?>
+    </table>
+    
+    <div style="margin-top: 20px; display: flex; gap: 10px; align-items: center; padding-top: 15px; border-top: 1px solid #f0f0f1;">
+        <select id="new-custom-provider-select" style="max-width: 250px;">
+            <option value="">-- Pilih Provider Baru --</option>
+            <?php
+            foreach ( $dynamic_providers as $p_id => $p_data ) {
+                // Lewati provider utama yang sudah ada kolom input statisnya
+                if ( in_array( $p_id, array( 'openai', 'anthropic', 'google', 'groq', 'openrouter', 'huggingface' ) ) ) {
+                    continue;
+                }
+                // Lewati yang sudah ditambahkan key-nya
+                if ( isset( $custom_keys[$p_id] ) ) {
+                    continue;
+                }
+                ?>
+                <option value="<?php echo esc_attr($p_id); ?>"><?php echo esc_html($p_data['name']); ?></option>
+                <?php
+            }
+            ?>
+        </select>
+        <button type="button" class="button button-secondary" id="btn-add-custom-key">+ Add Provider Key</button>
+    </div>
+</div>

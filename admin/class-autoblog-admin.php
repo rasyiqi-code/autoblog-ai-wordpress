@@ -683,6 +683,7 @@ class Admin {
 		register_setting( 'autoblog_keys', 'autoblog_openrouter_key' );
 		register_setting( 'autoblog_keys', 'autoblog_serpapi_key' );
 		register_setting( 'autoblog_keys', 'autoblog_pexels_key' );
+		register_setting( 'autoblog_keys', 'autoblog_custom_api_keys' );
 
 		// ── Tab: AI Engine (group: autoblog_ai) ──
 		register_setting( 'autoblog_ai', 'autoblog_ai_provider' );
@@ -700,6 +701,7 @@ class Admin {
 		register_setting( 'autoblog_ai', 'autoblog_enable_stock_pexels' );
 		register_setting( 'autoblog_ai', 'autoblog_enable_stock_openverse' );
 		register_setting( 'autoblog_ai', 'autoblog_enable_fallback' );
+		register_setting( 'autoblog_ai', 'autoblog_ai_model' );
 
 		// ── Tab: Data Sources (group: autoblog_ds) ──
 		register_setting( 'autoblog_ds', 'autoblog_data_source_mode' );
@@ -836,6 +838,62 @@ class Admin {
 		}
 		
 		return $merged;
+	}
+
+	/**
+	 * Mengambil semua provider yang tersedia dari models.dev dengan caching transient.
+	 *
+	 * @return array
+	 */
+	public static function get_dynamic_providers() {
+		$cache = get_transient( 'autoblog_providers_cache' );
+		if ( false !== $cache ) {
+			return $cache;
+		}
+
+		$response = wp_remote_get( 'https://models.dev/api.json', array( 'timeout' => 15 ) );
+		if ( is_wp_error( $response ) ) {
+			return self::get_fallback_providers();
+		}
+
+		$body = wp_remote_retrieve_body( $response );
+		$data = json_decode( $body, true );
+		if ( ! is_array( $data ) ) {
+			return self::get_fallback_providers();
+		}
+
+		$providers = array();
+		foreach ( $data as $p_id => $p_data ) {
+			$providers[$p_id] = array(
+				'name' => isset( $p_data['name'] ) ? $p_data['name'] : $p_id,
+				'api'  => isset( $p_data['api'] ) ? $p_data['api'] : '',
+				'env'  => isset( $p_data['env'] ) ? $p_data['env'] : array(),
+			);
+		}
+
+		// Masukkan huggingface/hf jika tidak terdeteksi lengkap
+		if ( ! isset( $providers['huggingface'] ) ) {
+			$providers['huggingface'] = array( 'name' => 'Hugging Face', 'api' => 'https://api-inference.huggingface.co' );
+		}
+
+		set_transient( 'autoblog_providers_cache', $providers, DAY_IN_SECONDS );
+		return $providers;
+	}
+
+	/**
+	 * Fallback static providers jika models.dev down.
+	 *
+	 * @return array
+	 */
+	public static function get_fallback_providers() {
+		return array(
+			'openai'     => array( 'name' => 'OpenAI', 'api' => 'https://api.openai.com/v1' ),
+			'anthropic'  => array( 'name' => 'Anthropic', 'api' => 'https://api.anthropic.com/v1' ),
+			'google'     => array( 'name' => 'Google Gemini (google)', 'api' => 'https://generativelanguage.googleapis.com' ),
+			'groq'       => array( 'name' => 'Groq', 'api' => 'https://api.groq.com/openai/v1' ),
+			'openrouter' => array( 'name' => 'OpenRouter', 'api' => 'https://openrouter.ai/api/v1' ),
+			'huggingface'=> array( 'name' => 'Hugging Face', 'api' => 'https://api-inference.huggingface.co' ),
+		);
 	}
 
 }

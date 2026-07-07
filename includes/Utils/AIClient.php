@@ -92,6 +92,77 @@ class AIClient {
     }
 
     /**
+     * Custom/Dynamic Provider completion (OpenAI-compatible).
+     *
+     * @param string $prompt
+     * @param string $model
+     * @param string $provider
+     * @param float  $temperature
+     * @param string $system_prompt
+     * @return string|false
+     */
+    public function custom_provider_completion( $prompt, $model, $provider, $temperature = 0.7, $system_prompt = '' ) {
+        // Ambil data provider dari models.dev cache
+        $providers = \Autoblog\Admin\Admin::get_dynamic_providers();
+        
+        $p_data = isset( $providers[$provider] ) ? $providers[$provider] : null;
+        $api_endpoint = ( $p_data && ! empty( $p_data['api'] ) ) ? $p_data['api'] : '';
+        
+        if ( empty( $api_endpoint ) ) {
+            Logger::log( "Endpoint API untuk provider dinamis [{$provider}] tidak ditemukan di data models.dev.", 'error' );
+            return false;
+        }
+
+        // Ambil API key dari array custom keys
+        $custom_keys = get_option( 'autoblog_custom_api_keys', array() );
+        $api_key = isset( $custom_keys[$provider] ) ? $custom_keys[$provider] : '';
+
+        // Fallback ke option name standard jika provider-nya adalah key standard
+        if ( empty( $api_key ) ) {
+            $api_key = get_option( "autoblog_{$provider}_key" );
+        }
+
+        if ( empty( $api_key ) ) {
+            Logger::log( "API Key untuk provider dinamis [{$provider}] belum diisi di tab API Keys.", 'error' );
+            return false;
+        }
+
+        try {
+            // standard chat completions endpoint
+            $url = rtrim( $api_endpoint, '/' ) . '/chat/completions';
+            
+            $json_payload = [
+                'model'       => $model,
+                'temperature' => (float) $temperature,
+                'messages'    => []
+            ];
+
+            if ( ! empty( $system_prompt ) ) {
+                $json_payload['messages'][] = [ 'role' => 'system', 'content' => $system_prompt ];
+            }
+            $json_payload['messages'][] = [ 'role' => 'user', 'content' => $prompt ];
+
+            // Gunakan retry backoff standard
+            $response = $this->request_with_backoff( 'POST', $url, [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $api_key,
+                    'Content-Type'  => 'application/json',
+                ],
+                'json' => $json_payload
+            ]);
+
+            $body = json_decode( (string) $response->getBody(), true );
+
+            if ( isset( $body['choices'][0]['message']['content'] ) ) {
+                return $body['choices'][0]['message']['content'];
+            }
+        } catch ( \Exception $e ) {
+            Logger::log( "API Error untuk provider dinamis [{$provider}]: " . $e->getMessage(), 'error' );
+        }
+        return false;
+    }
+
+    /**
      * Generate text using OpenAI GPT.
      *
      * @param string $prompt The prompt to send.
@@ -361,6 +432,9 @@ class AIClient {
                  break;
             case 'hf':
                  $result = $this->huggingface_completion( $prompt, $model, $temperature );
+                 break;
+            default:
+                 $result = $this->custom_provider_completion( $prompt, $model, $provider, $temperature, $system_prompt );
                  break;
         }
 

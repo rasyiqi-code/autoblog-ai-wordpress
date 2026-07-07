@@ -82,8 +82,11 @@ class IdeationAgent {
 
         // Bug #5 Fix: Gunakan provider/model dari konfigurasi, bukan hardcode OpenAI
         $provider = get_option( 'autoblog_ai_provider', 'openai' );
-        $model_option = 'autoblog_' . $provider . '_model';
-        $model = get_option( $model_option, 'gpt-4o' );
+        $model = get_option( 'autoblog_ai_model' );
+        if ( empty( $model ) ) {
+            $model_option = 'autoblog_' . $provider . '_model';
+            $model = get_option( $model_option, 'gpt-4o' );
+        }
         // Use higher temperature for brainstorming
         $response = $this->ai_client->generate_text( $prompt, $model, $provider, 0.85 );
 
@@ -136,8 +139,11 @@ class IdeationAgent {
 
         // Bug #6 Fix: Gunakan provider/model dari konfigurasi
         $provider = get_option( 'autoblog_ai_provider', 'openai' );
-        $model_option = 'autoblog_' . $provider . '_model';
-        $model = get_option( $model_option, 'gpt-4o' );
+        $model = get_option( 'autoblog_ai_model' );
+        if ( empty( $model ) ) {
+            $model_option = 'autoblog_' . $provider . '_model';
+            $model = get_option( $model_option, 'gpt-4o' );
+        }
         $query = $this->ai_client->generate_text( $prompt, $model, $provider );
         return trim( $query, " \"'" );
     }

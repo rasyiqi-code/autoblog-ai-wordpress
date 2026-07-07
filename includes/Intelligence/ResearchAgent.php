@@ -77,8 +77,11 @@ class ResearchAgent {
 
         // Bug #6 Fix: Gunakan provider/model dari konfigurasi
         $provider = get_option( 'autoblog_ai_provider', 'openai' );
-        $model_option = 'autoblog_' . $provider . '_model';
-        $model = get_option( $model_option, 'gpt-4o' );
+        $model = get_option( 'autoblog_ai_model' );
+        if ( empty( $model ) ) {
+            $model_option = 'autoblog_' . $provider . '_model';
+            $model = get_option( $model_option, 'gpt-4o' );
+        }
         $response = $this->ai_client->generate_text( $prompt, $model, $provider ); 
         
         if ( ! $response ) return [];
@@ -95,8 +98,11 @@ class ResearchAgent {
 
         // Bug #6 Fix: Gunakan provider/model dari konfigurasi
         $provider = get_option( 'autoblog_ai_provider', 'openai' );
-        $model_option = 'autoblog_' . $provider . '_model';
-        $model = get_option( $model_option, 'gpt-4o' );
+        $model = get_option( 'autoblog_ai_model' );
+        if ( empty( $model ) ) {
+            $model_option = 'autoblog_' . $provider . '_model';
+            $model = get_option( $model_option, 'gpt-4o' );
+        }
         $response = $this->ai_client->generate_text( $prompt, $model, $provider );
         $lines = explode( "\n", $response );
         return array_filter( array_map( 'trim', $lines ) );
