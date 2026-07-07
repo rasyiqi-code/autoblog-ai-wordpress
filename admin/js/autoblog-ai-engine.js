@@ -123,6 +123,27 @@
       }
     }
 
+    // ================================================================
+    // HELPER: Sembunyikan Bawaan Base URL jika nilainya sama dengan default
+    // ================================================================
+    function updateDefaultUrlVisibility() {
+      $(".custom-key-row").each(function() {
+        var $row = $(this);
+        var $input = $row.find("input[name^='autoblog_custom_api_endpoints']");
+        if ($input.length === 0) return;
+        
+        var currentVal = $input.val().trim();
+        var defaultVal = $input.data("default") ? $input.data("default").toString().trim() : "";
+        var $span = $row.find(".default-url-info");
+
+        if (defaultVal && currentVal !== defaultVal && currentVal !== "") {
+          $span.html('Bawaan: <code>' + defaultVal + '</code>').show();
+        } else {
+          $span.empty().hide();
+        }
+      });
+    }
+
     // Bind event
     $(document).on("change", ".active-provider-radio", function() {
       updateAIModelDropdown();
@@ -130,8 +151,10 @@
     });
     $("#autoblog_embedding_provider").on("change", checkRAGKey);
 
-    // Monitoring input password custom keys
+    // Monitoring input password custom keys & default URL visibility
     $(document).on("input", ".custom-key-row textarea", checkActiveKey);
+    $(document).on("input change", ".custom-key-row input[type='text']", updateDefaultUrlVisibility);
+    
     $(document).on("click", "#btn-add-custom-key, .remove-custom-key", function() {
       setTimeout(function() {
         // Jika provider aktif saat ini di-remove, aktifkan radio pertama yang tersisa
@@ -140,6 +163,7 @@
         }
         updateAIModelDropdown();
         checkActiveKey();
+        updateDefaultUrlVisibility();
       }, 50); // delay agar DOM selesai terupdate
     });
 
@@ -147,6 +171,7 @@
     updateAIModelDropdown();
     checkRAGKey();
     checkActiveKey();
+    updateDefaultUrlVisibility();
 
     // ================================================================
     // AJAX: Test Gemini Grounding

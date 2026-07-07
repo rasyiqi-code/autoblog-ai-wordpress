@@ -31,7 +31,6 @@
         defaultApi = autoblog_ajax.dynamic_providers[provId].api || "";
       }
 
-      var defaultDesc = defaultApi ? 'Bawaan: <code>' + defaultApi + '</code>' : '';
       var placeholderVal = 'Default models.dev';
 
       // Buat baris input baru dengan input Base URL & Radio Set Aktif
@@ -49,9 +48,8 @@
         '    <textarea name="autoblog_custom_api_keys[' + provId + ']" style="width: 100%; height: 38px; -webkit-text-security: disc; font-family: monospace; padding: 5px; font-size: 12px; resize: vertical; margin: 0;" placeholder="Masukkan satu atau lebih API key (satu per baris)..."></textarea>' +
         '  </td>' +
         '  <td style="vertical-align: middle; padding: 10px;">' +
-        '    <input type="text" name="autoblog_custom_api_endpoints[' + provId + ']" value="' + defaultApi + '" placeholder="' + placeholderVal + '" style="width: 100%; font-size: 12px; padding: 4px; margin: 0;" />' +
-        '    <span style="font-size: 10px; color: #64748b; display: block; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Bawaan: ' + defaultApi + '">' +
-        defaultDesc +
+        '    <input type="text" name="autoblog_custom_api_endpoints[' + provId + ']" value="' + defaultApi + '" data-default="' + defaultApi + '" placeholder="' + placeholderVal + '" style="width: 100%; font-size: 12px; padding: 4px; margin: 0;" />' +
+        '    <span class="default-url-info" style="font-size: 10px; color: #64748b; display: block; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Bawaan: ' + defaultApi + '">' +
         '    </span>' +
         '  </td>' +
         '  <td style="vertical-align: middle; padding: 10px;">' +

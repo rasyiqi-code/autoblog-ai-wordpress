@@ -260,12 +260,17 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                                     <textarea name="autoblog_custom_api_keys[<?php echo esc_attr($prov_id); ?>]" style="width: 100%;" placeholder="Masukkan satu atau lebih API key (satu per baris)..."><?php echo esc_textarea($prov_key); ?></textarea>
                                 </td>
                                 <!-- Col 4: Base URL Input -->
-                                <td style="vertical-align: middle;">
-                                    <input type="text" name="autoblog_custom_api_endpoints[<?php echo esc_attr($prov_id); ?>]" value="<?php echo esc_attr($current_endpoint); ?>" placeholder="e.g. https://api.openai.com/v1" style="width: 100%;" />
-                                    <span style="font-size: 10px; color: #64748b; display: block; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Bawaan: <?php echo esc_attr($default_endpoint); ?>">
-                                        <?php echo $default_endpoint ? 'Bawaan: <code>' . esc_html($default_endpoint) . '</code>' : ''; ?>
-                                    </span>
-                                </td>
+                            <td style="vertical-align: middle;">
+                                <input type="text" name="autoblog_custom_api_endpoints[<?php echo esc_attr($prov_id); ?>]" value="<?php echo esc_attr($current_endpoint); ?>" data-default="<?php echo esc_attr($default_endpoint); ?>" placeholder="e.g. https://api.openai.com/v1" style="width: 100%;" />
+                                <span class="default-url-info" style="font-size: 10px; color: #64748b; display: block; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Bawaan: <?php echo esc_attr($default_endpoint); ?>">
+                                    <?php 
+                                    // Hanya tampilkan jika default tersedia dan berbeda dari current
+                                    if ( ! empty( $default_endpoint ) && $current_endpoint !== $default_endpoint ) {
+                                        echo 'Bawaan: <code>' . esc_html($default_endpoint) . '</code>';
+                                    }
+                                    ?>
+                                </span>
+                            </td>
                                 <!-- Col 5: Actions & Status -->
                                 <td style="vertical-align: middle; text-align: center;">
                                     <div style="display: flex; gap: 4px; justify-content: center; align-items: center;">
