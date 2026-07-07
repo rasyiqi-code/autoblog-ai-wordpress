@@ -619,23 +619,28 @@ class Admin {
 			'html' => esc_textarea( $log_content ),
 			'statuses' => array(
 				'collector' => array(
+					'status'    => $ingestion['status'],
 					'badge'     => $get_badge( $ingestion['status'] ),
 					'last_sync' => isset($ingestion['timestamp']) ? esc_html($ingestion['timestamp']) : '-',
 					'ingested'  => isset($ingestion['count']) ? intval($ingestion['count']) : 0,
 					'sources'   => $sources_html,
 				),
 				'ideator' => array(
+					'status'          => $ideation['status'],
 					'badge'           => $get_badge( $ideation['status'] ),
 					'last_brainstorm' => isset($ideation['timestamp']) ? esc_html($ideation['timestamp']) : '-',
 					'topic'           => isset( $ideation['title'] ) ? '"' . esc_html( $ideation['title'] ) . '"' : 'Waiting for next brainstorm session...',
+					'topic_plain'     => isset( $ideation['title'] ) ? esc_html( $ideation['title'] ) : 'No topic selected',
 				),
 				'writer' => array(
+					'status'         => $production['status'],
 					'badge'          => $get_badge( $production['status'] ),
 					'last_published' => isset($production['timestamp']) ? esc_html($production['timestamp']) : '-',
 					'topic'          => isset($production['topic']) ? esc_html( $production['topic'] ) : '-',
 					'topic_attr'     => isset($production['topic']) ? esc_attr( $production['topic'] ) : '',
+					'post_id'        => isset($production['post_id']) && $production['post_id'] > 0 ? intval($production['post_id']) : '-',
 					'result'         => ( isset( $production['post_id'] ) && $production['post_id'] > 0 )
-						? '<a href="' . get_edit_post_link( $production['post_id'] ) . '" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 600;">View Post ID: ' . $production['post_id'] . ' ↗</a>'
+						? '<a href="' . get_edit_post_link( $production['post_id'] ) . '" target="_blank" style="color: #2271b1; text-decoration: none; font-weight: 600;">View Post ID: ' . $production['post_id'] . ' ↗</a>'
 						: esc_html( strtoupper($production['status']) )
 				)
 			)

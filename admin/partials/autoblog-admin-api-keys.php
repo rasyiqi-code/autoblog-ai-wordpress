@@ -1,9 +1,6 @@
 <?php
 /**
- * Tab API Keys — Menampilkan semua field API key provider dengan prioritas dinamis.
- *
- * File ini hanya berisi input kredensial, tidak ada konfigurasi AI/model.
- * Dirender di dalam <form> dari autoblog-admin-display.php.
+ * Tab API Keys — Mengelola kredensial API.
  *
  * @package    Autoblog
  * @subpackage Autoblog/admin/partials
@@ -61,14 +58,15 @@ function get_key_badge( $key_provider, $active_provider, $embedding_key_name, $s
 <table class="form-table">
     <!-- SerpApi -->
     <tr valign="top">
-        <th scope="row">SerpApi Key <?php echo get_key_badge('serpapi', $active_provider, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></th>
+        <th scope="row">
+            SerpApi Key
+            <div><?php echo get_key_badge('serpapi', $active_provider, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></div>
+        </th>
         <td>
-            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                <input type="password" name="autoblog_serpapi_key"
-                       value="<?php echo esc_attr( get_option('autoblog_serpapi_key') ); ?>"
-                       class="regular-text" />
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <input type="password" name="autoblog_serpapi_key" value="<?php echo esc_attr( get_option('autoblog_serpapi_key') ); ?>" />
                 <button type="button" class="button test-connection-btn" data-provider="serpapi">Test Connection</button>
-                <span class="test-connection-status" style="font-weight:bold; font-size:12.5px;"></span>
+                <span class="test-connection-status" style="font-weight:600; font-size:11px;"></span>
             </div>
             <p class="description">Untuk Google AI Overview, AI Mode, dan Bing Copilot integration.</p>
         </td>
@@ -76,23 +74,24 @@ function get_key_badge( $key_provider, $active_provider, $embedding_key_name, $s
 
     <!-- Pexels -->
     <tr valign="top">
-        <th scope="row">Pexels API Key <?php echo get_key_badge('pexels', $active_provider, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></th>
+        <th scope="row">
+            Pexels API Key
+            <div><?php echo get_key_badge('pexels', $active_provider, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></div>
+        </th>
         <td>
-            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                <input type="password" name="autoblog_pexels_key"
-                       value="<?php echo esc_attr( get_option('autoblog_pexels_key') ); ?>"
-                       class="regular-text" />
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <input type="password" name="autoblog_pexels_key" value="<?php echo esc_attr( get_option('autoblog_pexels_key') ); ?>" />
                 <button type="button" class="button test-connection-btn" data-provider="pexels">Test Connection</button>
-                <span class="test-connection-status" style="font-weight:bold; font-size:12.5px;"></span>
+                <span class="test-connection-status" style="font-weight:600; font-size:11px;"></span>
             </div>
             <p class="description">Untuk mencari gambar stok gratis berkualitas tinggi sebagai thumbnail post.</p>
         </td>
     </tr>
 </table>
 
-<div class="card" style="margin-top: 30px; max-width: 100%; border: 1px solid #ccd0d4; border-radius: 4px; padding: 20px; background: #fff;">
-    <h2 style="margin-top:0; font-size:16px;">🔑 AI Provider API Keys</h2>
-    <p class="description" style="margin-bottom:20px;">Tambahkan API key untuk provider LLM/AI Anda dari models.dev. Status prioritas akan muncul dinamis.</p>
+<div class="autoblog-card" style="margin-top: 25px; background: #fff;">
+    <h3 style="margin-top:0; font-size:14px; font-weight:600; color:#1d2327;">🔑 AI Provider API Keys</h3>
+    <p class="description" style="margin-bottom:15px; font-size:12px; color:var(--text-muted);">Kelola API key untuk provider LLM/AI Anda. Status prioritas diupdate dinamis.</p>
     
     <table class="form-table" id="custom-keys-table">
         <?php
@@ -103,7 +102,6 @@ function get_key_badge( $key_provider, $active_provider, $embedding_key_name, $s
             foreach ( $custom_keys as $prov_id => $prov_key ) {
                 $prov_name = isset( $dynamic_providers[$prov_id]['name'] ) ? $dynamic_providers[$prov_id]['name'] : $prov_id;
                 
-                // Normalisasi ID untuk pencocokan status badge prioritas
                 $check_id = $prov_id;
                 if ( $prov_id === 'google' ) {
                     $check_id = 'gemini';
@@ -114,16 +112,16 @@ function get_key_badge( $key_provider, $active_provider, $embedding_key_name, $s
                 $badge_html = get_key_badge( $check_id, $active_provider, $embedding_key_name, $search_provider, $need_search_key, $need_pexels );
                 ?>
                 <tr valign="top" class="custom-key-row" data-provider="<?php echo esc_attr($prov_id); ?>">
-                    <th scope="row" style="width: 280px;">
+                    <th scope="row">
                         <?php echo esc_html($prov_name); ?> API Key
-                        <div style="margin-top: 5px;"><?php echo $badge_html; ?></div>
+                        <div><?php echo $badge_html; ?></div>
                     </th>
                     <td>
-                        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                            <input type="password" name="autoblog_custom_api_keys[<?php echo esc_attr($prov_id); ?>]" value="<?php echo esc_attr($prov_key); ?>" class="regular-text" style="width:25em;" />
+                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                            <input type="password" name="autoblog_custom_api_keys[<?php echo esc_attr($prov_id); ?>]" value="<?php echo esc_attr($prov_key); ?>" />
                             <button type="button" class="button test-connection-btn" data-provider="<?php echo esc_attr($prov_id); ?>">Test Connection</button>
                             <button type="button" class="button remove-custom-key" style="color:#d63638; border-color:#d63638;">Remove</button>
-                            <span class="test-connection-status" style="font-weight:bold; font-size:12.5px;"></span>
+                            <span class="test-connection-status" style="font-weight:600; font-size:11px;"></span>
                         </div>
                     </td>
                 </tr>
@@ -132,19 +130,20 @@ function get_key_badge( $key_provider, $active_provider, $embedding_key_name, $s
         } else {
             ?>
             <tr id="no-custom-keys-row">
-                <td colspan="2" style="padding:10px 0; color:#64748b; font-style:italic;">Belum ada custom provider key yang ditambahkan. Gunakan menu di bawah untuk menambahkannya.</td>
+                <td colspan="2" style="padding:10px 0; color:var(--text-muted); font-style:italic; font-size:12px;">
+                    Belum ada custom provider key yang ditambahkan. Gunakan menu di bawah untuk menambahkannya.
+                </td>
             </tr>
             <?php
         }
         ?>
     </table>
     
-    <div style="margin-top: 20px; display: flex; gap: 10px; align-items: center; padding-top: 15px; border-top: 1px solid #f0f0f1;">
-        <select id="new-custom-provider-select" style="max-width: 250px;">
+    <div style="margin-top: 15px; display: flex; gap: 8px; align-items: center; padding-top: 12px; border-top: 1px solid #f0f0f1;">
+        <select id="new-custom-provider-select" style="max-width: 200px; padding: 4px 6px; font-size:12px;">
             <option value="">-- Pilih Provider Baru --</option>
             <?php
             foreach ( $dynamic_providers as $p_id => $p_data ) {
-                // Lewati yang sudah ditambahkan key-nya
                 if ( isset( $custom_keys[$p_id] ) ) {
                     continue;
                 }
@@ -154,6 +153,6 @@ function get_key_badge( $key_provider, $active_provider, $embedding_key_name, $s
             }
             ?>
         </select>
-        <button type="button" class="button button-secondary" id="btn-add-custom-key">+ Add Provider Key</button>
+        <button type="button" class="button button-secondary" id="btn-add-custom-key" style="padding: 2px 8px; font-size:12px;">+ Tambah Key</button>
     </div>
 </div>

@@ -191,39 +191,68 @@
             if (response.data.statuses) {
               var s = response.data.statuses;
 
-              // Collector Agent
+              // Hitung flow line fill percentage secara visual
+              var progress = 0;
+              if (s.collector && s.collector.status === 'running') {
+                progress = 15;
+              } else if (s.ideator && s.ideator.status === 'running') {
+                progress = 50;
+              } else if (s.writer && s.writer.status === 'running') {
+                progress = 85;
+              } else if (s.writer && s.writer.status === 'completed') {
+                progress = 100;
+              } else if (s.collector && s.collector.status === 'completed') {
+                progress = 33;
+              } else if (s.ideator && s.ideator.status === 'completed') {
+                progress = 66;
+              }
+              $("#autoblog-flow-line-fill").css("width", progress + "%");
+
+              // Collector Agent Node
               if (s.collector) {
-                $("#autoblog-collector-status-container").html(s.collector.badge);
-                $("#autoblog-collector-last-sync").text(s.collector.last_sync);
-                $("#autoblog-collector-ingested").text(s.collector.ingested);
-                if (s.collector.sources) {
-                  $("#autoblog-collector-sources-container").html(s.collector.sources);
-                } else {
-                  $("#autoblog-collector-sources-container").html('');
-                }
+                var $cDot = $("#node-collector .status-dot");
+                $cDot.attr("class", "status-dot " + s.collector.status);
+                $("#node-collector .lbl-text").text(s.collector.status.toUpperCase());
+                $("#node-collector-count").text(s.collector.ingested);
               }
 
-              // Ideator Agent
+              // Ideator Agent Node
               if (s.ideator) {
-                $("#autoblog-ideator-status-container").html(s.ideator.badge);
-                $("#autoblog-ideator-last-brainstorm").text(s.ideator.last_brainstorm);
-                $("#autoblog-ideator-topic").html(s.ideator.topic);
+                var $iDot = $("#node-ideator .status-dot");
+                $iDot.attr("class", "status-dot " + s.ideator.status);
+                $("#node-ideator .lbl-text").text(s.ideator.status.toUpperCase());
+                var topicTitle = s.ideator.topic_plain || "No topic selected";
+                $("#node-ideator-title").text(topicTitle).attr("title", topicTitle);
               }
 
-              // Writer Agent
+              // Writer Agent Node
               if (s.writer) {
-                $("#autoblog-writer-status-container").html(s.writer.badge);
-                $("#autoblog-writer-last-published").text(s.writer.last_published);
-                $("#autoblog-writer-topic").text(s.writer.topic);
-                $("#autoblog-writer-topic-container").attr('title', s.writer.topic_attr);
-                $("#autoblog-writer-result").html(s.writer.result);
+                var $wDot = $("#node-writer .status-dot");
+                $wDot.attr("class", "status-dot " + s.writer.status);
+                $("#node-writer .lbl-text").text(s.writer.status.toUpperCase());
+                $("#node-writer-postid").text(s.writer.post_id || '-');
               }
             }
           }
         },
-        global: false // Jangan trigger global ajax events
+        global: false
       });
     }
+
+    // ================================================================
+    // INTERACTION: Click Agent Node to Run Granularly
+    // ================================================================
+    $(document).on("click", ".agent-node", function (e) {
+      e.preventDefault();
+      var $node = $(this);
+      var agent = $node.data("agent");
+      
+      var confirmRun = confirm("Jalankan " + agent.toUpperCase() + " AGENT secara mandiri sekarang?");
+      if (!confirmRun) return;
+
+      // Picu action pipeline parsial
+      runPipelineAction("autoblog_run_" + agent, $runBtn);
+    });
 
     // ================================================================
     // AJAX: Test Gemini Grounding

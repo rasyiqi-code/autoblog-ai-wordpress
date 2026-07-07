@@ -67,28 +67,22 @@ if ( ! is_array( $sources ) ) { $sources = array(); }
 <!-- ================================================================ -->
 <!-- DATA SOURCE MODE SELECTOR                                        -->
 <!-- ================================================================ -->
-<div class="card" style="max-width: 100%; margin-top: 20px;">
-    <h2>📥 Data Source Mode</h2>
-    <p>Tentukan sumber data yang digunakan pipeline untuk generate artikel.</p>
+<div class="autoblog-card">
+    <h2>📥 Data Source Mode & settings</h2>
+    <p class="description">Tentukan sumber data dan pencarian web untuk pipeline artikel.</p>
 
     <form method="post" action="options.php">
-        <?php
-            settings_fields( 'autoblog_ds' );
-        ?>
+        <?php settings_fields( 'autoblog_ds' ); ?>
         <table class="form-table">
             <tr valign="top">
                 <th scope="row">Mode Sumber Data</th>
                 <td>
                     <select name="autoblog_data_source_mode" id="autoblog_data_source_mode">
                         <option value="both" <?php selected( $current_mode, 'both' ); ?>>🔄 Keduanya (Knowledge Base + Triggers)</option>
-                        <option value="kb_only" <?php selected( $current_mode, 'kb_only' ); ?>>📚 Hanya Knowledge Base (Internal)</option>
-                        <option value="triggers_only" <?php selected( $current_mode, 'triggers_only' ); ?>>🌐 Hanya Content Triggers (External)</option>
+                        <option value="kb_only" <?php selected( $current_mode, 'kb_only' ); ?>>📚 Hanya KB (Internal)</option>
+                        <option value="triggers_only" <?php selected( $current_mode, 'triggers_only' ); ?>>🌐 Hanya Triggers (External)</option>
                     </select>
-                    <p class="description">
-                        <strong>Keduanya:</strong> Artikel dari triggers, diperkaya konteks Knowledge Base.<br>
-                        <strong>Hanya KB:</strong> Artikel dibuat murni dari isi file Knowledge Base.<br>
-                        <strong>Hanya Triggers:</strong> Artikel dari sumber eksternal tanpa konteks KB.
-                    </p>
+                    <p class="description">Keduanya = Triggers + Konteks KB. Hanya KB = murni file RAG. Hanya Triggers = eksternal feed saja.</p>
                 </td>
             </tr>
             <tr valign="top">
@@ -102,7 +96,9 @@ if ( ! is_array( $sources ) ) { $sources = array(); }
                 </td>
             </tr>
         </table>
-        <?php submit_button( 'Simpan Pengaturan', 'primary' ); ?>
+        <div style="margin-top: 15px; border-top:1px solid #f0f0f1; padding-top:12px;">
+            <?php submit_button( 'Simpan Pengaturan', 'secondary' ); ?>
+        </div>
     </form>
 </div>
 
@@ -122,9 +118,9 @@ $kb_disabled = ( $current_mode === 'triggers_only' );
 <?php else : ?>
 
     <div id="section-knowledge-base">
-        <div class="card" style="max-width: 100%; margin-top: 20px;">
+        <div class="autoblog-card">
             <h2>📚 Knowledge Base (Internal)</h2>
-            <p>Upload file Excel, PDF, Word, atau Text untuk diproses dan dijadikan sumber konteks RAG.</p>
+            <p class="description">Upload file Excel, PDF, Word, atau Text untuk diproses dan dijadikan sumber konteks RAG.</p>
 
             <form method="post" enctype="multipart/form-data">
                 <?php wp_nonce_field( 'autoblog_datasource_verify' ); ?>
@@ -191,9 +187,9 @@ $triggers_disabled = ( $current_mode === 'kb_only' );
 <?php else : ?>
 
     <div id="section-content-triggers">
-        <div class="card" style="max-width: 100%; margin-top: 20px;">
+        <div class="autoblog-card">
             <h2>🌐 Content Triggers (External)</h2>
-            <p>Tambahkan sumber konten eksternal: RSS Feed, Web Scraper, atau Web Search.</p>
+            <p class="description">Tambahkan sumber konten eksternal: RSS Feed, Web Scraper, atau Web Search.</p>
 
             <form method="post" action="">
                 <?php wp_nonce_field( 'autoblog_datasource_verify' ); ?>
@@ -209,40 +205,37 @@ $triggers_disabled = ( $current_mode === 'kb_only' );
                         </td>
                     </tr>
                     <tr valign="top" id="row_url">
-                        <th scope="row" id="label_url">URL</th>
+                        <th scope="row" id="label_url">URL / Query</th>
                         <td>
-                            <input type="text" name="source_url" id="input_url"
-                                   class="regular-text" required
-                                   placeholder="https://site1.com/feed, https://site2.com/feed" />
-                            <p class="description" id="desc_url">Bisa memasukkan beberapa URL dipisah koma.</p>
+                            <input type="text" name="source_url" id="input_url" required placeholder="https://site1.com/feed, https://site2.com/feed" />
+                            <p class="description" id="desc_url">Masukkan URL RSS Feed.</p>
                         </td>
                     </tr>
                     <tr valign="top">
                         <th scope="row">Match Keywords (Opsional)</th>
                         <td>
-                            <input type="text" name="match_keywords" class="regular-text"
-                                   placeholder="AI, WordPress, coding (pisahkan dengan koma)" />
-                            <p class="description">Hanya proses artikel yang mengandung salah satu kata kunci di atas. Pisahkan beberapa kata kunci menggunakan tanda koma (contoh: <code>apple, google, microsoft</code>).</p>
+                            <input type="text" name="match_keywords" placeholder="AI, WordPress (pisahkan koma)" />
+                            <p class="description">Hanya proses artikel yang mengandung salah satu kata kunci di atas.</p>
                         </td>
                     </tr>
                     <tr valign="top">
                         <th scope="row">Negative Keywords (Opsional)</th>
                         <td>
-                            <input type="text" name="negative_keywords" class="regular-text"
-                                   placeholder="promo, sponsored, gambling (pisahkan dengan koma)" />
-                            <p class="description">Abaikan/skip artikel yang mengandung salah satu kata kunci di atas. Pisahkan menggunakan tanda koma (contoh: <code>sponsored, ads, affiliate</code>).</p>
+                            <input type="text" name="negative_keywords" placeholder="promo, sponsored (pisahkan koma)" />
+                            <p class="description">Abaikan artikel yang mengandung salah satu kata kunci di atas.</p>
                         </td>
                     </tr>
                     <tr valign="top" id="row_selector" style="display:none;">
                         <th scope="row">CSS Selector</th>
                         <td>
-                            <input type="text" name="source_selector" class="regular-text"
-                                   placeholder="article.content atau #main" />
+                            <input type="text" name="source_selector" placeholder="article.content atau #main" />
                             <p class="description">Wajib untuk Web Scraper. Target container konten.</p>
                         </td>
                     </tr>
                 </table>
-                <?php submit_button( 'Tambah Source', 'primary', 'autoblog_add_source' ); ?>
+                <div style="margin-top: 15px; border-top:1px solid #f0f0f1; padding-top:12px;">
+                    <?php submit_button( 'Tambah Source', 'primary', 'autoblog_add_source' ); ?>
+                </div>
             </form>
         </div>
 
