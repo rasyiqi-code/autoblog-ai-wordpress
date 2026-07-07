@@ -87,11 +87,12 @@ class Admin {
         ];
 
         $localize_data = [
-            'ajax_url'       => admin_url( 'admin-ajax.php' ),
-            'nonce'          => wp_create_nonce( 'autoblog_ajax_nonce' ),
-            'keys_filled'    => $keys_filled,
-            'catalog_models' => ModelCatalog::get_merged_models(),
-            'selected_model' => get_option( 'autoblog_ai_model', 'gemini-1.5-flash' ),
+            'ajax_url'          => admin_url( 'admin-ajax.php' ),
+            'nonce'             => wp_create_nonce( 'autoblog_ajax_nonce' ),
+            'keys_filled'       => $keys_filled,
+            'catalog_models'    => ModelCatalog::get_merged_models(),
+            'selected_model'    => get_option( 'autoblog_ai_model', 'gemini-1.5-flash' ),
+            'dynamic_providers' => ModelCatalog::get_dynamic_providers(),
         ];
 
         // 1. Pipeline runner + log polling + agent flow diagram

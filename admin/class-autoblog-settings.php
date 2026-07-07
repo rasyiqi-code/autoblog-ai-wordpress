@@ -34,6 +34,24 @@ class AdminSettings {
         register_setting( 'autoblog_keys', 'autoblog_serpapi_key' );
         register_setting( 'autoblog_keys', 'autoblog_pexels_key' );
         register_setting( 'autoblog_keys', 'autoblog_custom_api_keys' );
+        register_setting( 'autoblog_keys', 'autoblog_custom_api_endpoints' );
+
+        // Duplikat registrasi ke group keys untuk form terpadu
+        register_setting( 'autoblog_keys', 'autoblog_ai_provider' );
+        register_setting( 'autoblog_keys', 'autoblog_openai_model' );
+        register_setting( 'autoblog_keys', 'autoblog_anthropic_model' );
+        register_setting( 'autoblog_keys', 'autoblog_gemini_model' );
+        register_setting( 'autoblog_keys', 'autoblog_groq_model' );
+        register_setting( 'autoblog_keys', 'autoblog_openrouter_model' );
+        register_setting( 'autoblog_keys', 'autoblog_hf_model' );
+        register_setting( 'autoblog_keys', 'autoblog_embedding_provider' );
+        register_setting( 'autoblog_keys', 'autoblog_gemini_grounding' );
+        register_setting( 'autoblog_keys', 'autoblog_thumbnail_source' );
+        register_setting( 'autoblog_keys', 'autoblog_enable_dalle' );
+        register_setting( 'autoblog_keys', 'autoblog_enable_stock_pexels' );
+        register_setting( 'autoblog_keys', 'autoblog_enable_stock_openverse' );
+        register_setting( 'autoblog_keys', 'autoblog_enable_fallback' );
+        register_setting( 'autoblog_keys', 'autoblog_ai_model' );
 
         // ── Tab: AI Engine ──
         register_setting( 'autoblog_ai', 'autoblog_ai_provider' );

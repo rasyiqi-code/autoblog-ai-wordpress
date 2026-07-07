@@ -245,14 +245,15 @@ class AdminAjax {
             wp_send_json_error( [ 'message' => 'Akses ditolak.' ] );
         }
 
-        $provider = isset( $_POST['provider'] ) ? sanitize_text_field( $_POST['provider'] ) : '';
-        $api_key  = isset( $_POST['api_key'] )  ? sanitize_text_field( $_POST['api_key'] )  : '';
+        $provider     = isset( $_POST['provider'] ) ? sanitize_text_field( $_POST['provider'] ) : '';
+        $api_key      = isset( $_POST['api_key'] )  ? sanitize_text_field( $_POST['api_key'] )  : '';
+        $api_endpoint = isset( $_POST['api_endpoint'] ) ? esc_url_raw( trim( $_POST['api_endpoint'] ) ) : '';
 
         if ( empty( $provider ) || empty( $api_key ) ) {
             wp_send_json_error( [ 'message' => 'Provider atau API Key tidak boleh kosong.' ] );
         }
 
-        $result = $this->validate_api_key( $provider, $api_key );
+        $result = $this->validate_api_key( $provider, $api_key, $api_endpoint );
 
         if ( $result['success'] ) {
             wp_send_json_success( [ 'message' => 'Sukses terhubung!' ] );
@@ -266,21 +267,11 @@ class AdminAjax {
      *
      * @param string $provider
      * @param string $api_key
+     * @param string $api_endpoint
      * @return array [ success => bool, message => string ]
      */
-    private function validate_api_key( $provider, $api_key ) {
-        // Normalisasi nama provider agar sesuai dengan key di models.dev catalog
-        if ( $provider === 'google' ) {
-            $provider = 'gemini';
-        } elseif ( $provider === 'huggingface' ) {
-            $provider = 'hf';
-        }
-
-        $client = new \GuzzleHttp\Client( [ 
-            'http_errors' => false, 
-            'timeout'     => 8,
-            'verify'      => false // Nonaktifkan SSL verification untuk outgoing API key test
-        ] );
+    private function validate_api_key( $provider, $api_key, $api_endpoint = '' ) {
+        $client = new \GuzzleHttp\Client( [ 'http_errors' => false, 'timeout' => 8 ] );
 
         // SerpApi
         if ( $provider === 'serpapi' ) {
@@ -308,10 +299,12 @@ class AdminAjax {
             }
         }
 
-        // Cari endpoint dari models.dev catalog
-        $providers    = ModelCatalog::get_dynamic_providers();
-        $p_data       = isset( $providers[ $provider ] ) ? $providers[ $provider ] : null;
-        $api_endpoint = ( $p_data && ! empty( $p_data['api'] ) ) ? $p_data['api'] : '';
+        // Jika parameter api_endpoint kosong, cari endpoint dari models.dev catalog
+        if ( empty( $api_endpoint ) ) {
+            $providers    = ModelCatalog::get_dynamic_providers();
+            $p_data       = isset( $providers[ $provider ] ) ? $providers[ $provider ] : null;
+            $api_endpoint = ( $p_data && ! empty( $p_data['api'] ) ) ? $p_data['api'] : '';
+        }
 
         if ( empty( $api_endpoint ) ) {
             return [ 'success' => false, 'message' => 'Provider API Endpoint tidak ditemukan.' ];

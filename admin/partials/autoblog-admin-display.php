@@ -9,15 +9,11 @@
     <nav class="nav-tab-wrapper wp-clearfix" aria-label="Secondary menu" style="margin-bottom: 15px;">
         <a href="?page=autoblog&tab=api_keys"
            class="nav-tab <?php echo $active_tab == 'api_keys' ? 'nav-tab-active' : ''; ?>">
-            🔑 API Keys
+            🤖 AI Settings
         </a>
         <a href="?page=autoblog&tab=data_sources"
            class="nav-tab <?php echo $active_tab == 'data_sources' ? 'nav-tab-active' : ''; ?>">
             📥 Data Sources
-        </a>
-        <a href="?page=autoblog&tab=ai_engine"
-           class="nav-tab <?php echo $active_tab == 'ai_engine' ? 'nav-tab-active' : ''; ?>">
-            🤖 AI Engine
         </a>
         <a href="?page=autoblog&tab=writing_style"
            class="nav-tab <?php echo $active_tab == 'writing_style' ? 'nav-tab-active' : ''; ?>">

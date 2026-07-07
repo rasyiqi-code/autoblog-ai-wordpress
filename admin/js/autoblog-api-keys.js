@@ -25,19 +25,33 @@
       // Hapus baris placeholder "belum ada key" jika ada
       $("#no-custom-keys-row").remove();
 
-      // Buat baris input baru
+      // Dapatkan default API endpoint dari dynamic_providers
+      var defaultApi = "";
+      if (autoblog_ajax.dynamic_providers && autoblog_ajax.dynamic_providers[provId]) {
+        defaultApi = autoblog_ajax.dynamic_providers[provId].api || "";
+      }
+
+      // Buat baris input baru dengan input Base URL
       var newRow =
         '<tr valign="top" class="custom-key-row" data-provider="' + provId + '">' +
-        '  <th scope="row">' + provName + " API Key</th>" +
-        "  <td>" +
-        '    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">' +
-        '      <input type="password" name="autoblog_custom_api_keys[' + provId + ']" value="" class="regular-text" style="width:25em;" />' +
-        '      <button type="button" class="button test-connection-btn" data-provider="' + provId + '">Test Connection</button>' +
-        '      <button type="button" class="button remove-custom-key" style="color:#d63638; border-color:#d63638;">Remove</button>' +
-        '      <span class="test-connection-status" style="font-weight:bold; font-size:12.5px;"></span>' +
-        "    </div>" +
-        "  </td>" +
-        "</tr>";
+        '  <th scope="row">' + provName + ' API Key</th>' +
+        '  <td>' +
+        '    <div style="display:flex; flex-direction:column; gap:8px;">' +
+        '      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">' +
+        '        <label style="font-weight:600; min-width:80px; font-size:11px;">API Key:</label>' +
+        '        <input type="password" name="autoblog_custom_api_keys[' + provId + ']" value="" style="flex-grow:1; max-width:400px;" />' +
+        '        <button type="button" class="button test-connection-btn" data-provider="' + provId + '">Test Connection</button>' +
+        '        <button type="button" class="button remove-custom-key" style="color:#d63638; border-color:#d63638;">Remove</button>' +
+        '        <span class="test-connection-status" style="font-weight:600; font-size:11px;"></span>' +
+        '      </div>' +
+        '      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">' +
+        '        <label style="font-weight:600; min-width:80px; font-size:11px;">Base URL:</label>' +
+        '        <input type="text" name="autoblog_custom_api_endpoints[' + provId + ']" value="' + defaultApi + '" placeholder="e.g. https://api.openai.com/v1" style="flex-grow:1; max-width:400px;" />' +
+        '        <p class="description" style="margin:0; font-size:11px; color:#64748b;">Kosongkan jika ingin menggunakan default models.dev.</p>' +
+        '      </div>' +
+        '    </div>' +
+        '  </td>' +
+        '</tr>';
 
       $("#custom-keys-table").append(newRow);
 
@@ -77,8 +91,9 @@
       var $btn     = $(this);
       var provider = $btn.data("provider");
       var $row     = $btn.closest("tr");
-      var apiKey   = $row.find("input[type=password], input[type=text]").val();
-      var $status  = $row.find(".test-connection-status");
+      var apiKey      = $row.find("input[name*='key']").val();
+      var apiEndpoint = $row.find("input[name*='endpoints']").val();
+      var $status     = $row.find(".test-connection-status");
 
       if (!apiKey) {
         $status.css("color", "#d63638").text("⚠️ Masukkan API Key!");
@@ -92,10 +107,11 @@
         url:  autoblog_ajax.ajax_url,
         type: "POST",
         data: {
-          action:   "autoblog_test_api_connection",
-          nonce:    autoblog_ajax.nonce,
-          provider: provider,
-          api_key:  apiKey,
+          action:       "autoblog_test_api_connection",
+          nonce:        autoblog_ajax.nonce,
+          provider:     provider,
+          api_key:      apiKey,
+          api_endpoint: apiEndpoint || "",
         },
         success: function (response) {
           if (response.success) {

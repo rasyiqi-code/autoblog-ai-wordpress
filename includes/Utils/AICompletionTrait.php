@@ -30,12 +30,18 @@ trait AICompletionTrait {
      * @return string|false
      */
     public function custom_provider_completion( $prompt, $model, $provider, $temperature = 0.7, $system_prompt = '' ) {
-        $providers    = \Autoblog\Utils\ModelCatalog::get_dynamic_providers();
-        $p_data       = isset( $providers[$provider] ) ? $providers[$provider] : null;
-        $api_endpoint = ( $p_data && ! empty( $p_data['api'] ) ) ? $p_data['api'] : '';
+        // Ambil custom endpoint jika didefinisikan oleh user
+        $custom_endpoints = get_option( 'autoblog_custom_api_endpoints', array() );
+        $api_endpoint     = isset( $custom_endpoints[$provider] ) ? trim( $custom_endpoints[$provider] ) : '';
 
         if ( empty( $api_endpoint ) ) {
-            Logger::log( "Endpoint API untuk provider dinamis [{$provider}] tidak ditemukan di data models.dev.", 'error' );
+            $providers    = \Autoblog\Utils\ModelCatalog::get_dynamic_providers();
+            $p_data       = isset( $providers[$provider] ) ? $providers[$provider] : null;
+            $api_endpoint = ( $p_data && ! empty( $p_data['api'] ) ) ? $p_data['api'] : '';
+        }
+
+        if ( empty( $api_endpoint ) ) {
+            Logger::log( "Endpoint API untuk provider dinamis [{$provider}] tidak ditemukan. Silakan isi Base URL di tab AI Settings.", 'error' );
             return false;
         }
 
