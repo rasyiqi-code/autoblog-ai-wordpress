@@ -1,4 +1,160 @@
-<div class="wrap">
+<div class="wrap autoblog-settings-wrap">
+    <style>
+        /* Custom Compact Form Sizing */
+        .autoblog-settings-wrap .autoblog-input,
+        .autoblog-settings-wrap .autoblog-select,
+        .autoblog-settings-wrap .autoblog-textarea {
+            border: 1px solid #8c8f94;
+            border-radius: 4px;
+            background-color: #fff;
+            color: #2c3338;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,.07);
+            transition: border-color 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
+            margin: 0;
+            box-sizing: border-box;
+            font-size: 12px;
+            height: 30px;
+            line-height: 20px;
+            padding: 4px 8px;
+            vertical-align: middle;
+        }
+        
+        /* Textarea compact dengan efek focus-expand */
+        .autoblog-settings-wrap .autoblog-textarea {
+            height: 30px;
+            resize: none;
+            overflow-y: auto;
+        }
+        .autoblog-settings-wrap .autoblog-textarea:focus {
+            height: 60px;
+            resize: vertical;
+        }
+        
+        .autoblog-settings-wrap .autoblog-input:focus,
+        .autoblog-settings-wrap .autoblog-select:focus,
+        .autoblog-settings-wrap .autoblog-textarea:focus {
+            border-color: #2271b1;
+            box-shadow: 0 0 0 1px #2271b1;
+            outline: 2px solid transparent;
+        }
+        
+        /* Custom Button Sizing */
+        .autoblog-settings-wrap .autoblog-btn {
+            height: 30px;
+            line-height: 28px;
+            padding: 0 12px;
+            font-size: 12px;
+            margin: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            vertical-align: middle;
+            border: 1px solid #2271b1;
+            border-radius: 3px;
+            background: #f6f7f7;
+            color: #2271b1;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .autoblog-settings-wrap .autoblog-btn:hover {
+            background: #f0f6fc;
+            border-color: #0a4b78;
+            color: #0a4b78;
+        }
+        .autoblog-settings-wrap .autoblog-btn-primary {
+            background: #2271b1;
+            color: #fff;
+            border-color: #2271b1;
+        }
+        .autoblog-settings-wrap .autoblog-btn-primary:hover {
+            background: #135e96;
+            border-color: #135e96;
+            color: #fff;
+        }
+        .autoblog-settings-wrap .autoblog-btn-danger {
+            border-color: #d63638;
+            color: #d63638;
+            background: #fff;
+        }
+        .autoblog-settings-wrap .autoblog-btn-danger:hover {
+            background: #fcf2f2;
+            border-color: #b32d2e;
+            color: #b32d2e;
+        }
+        .autoblog-settings-wrap .autoblog-btn-small {
+            height: 24px;
+            line-height: 22px;
+            padding: 0 8px;
+            font-size: 11px;
+        }
+        
+        /* Custom Table (Grid Compact) */
+        .autoblog-settings-wrap .autoblog-table {
+            width: 100%;
+            border: 1px solid #c3c4c7;
+            border-collapse: collapse;
+            margin-top: 12px;
+            background: #fff;
+        }
+        .autoblog-settings-wrap .autoblog-table th,
+        .autoblog-settings-wrap .autoblog-table td {
+            padding: 6px 10px;
+            vertical-align: middle;
+            border-bottom: 1px solid #f0f0f1;
+            border-top: none;
+            text-align: left;
+        }
+        .autoblog-settings-wrap .autoblog-table thead th {
+            background-color: #f6f7f7;
+            font-weight: 700;
+            font-size: 12px;
+            color: #2c3338;
+            border-bottom: 2px solid #c3c4c7;
+            padding: 6px 10px;
+        }
+        .autoblog-settings-wrap .autoblog-table tbody tr:hover {
+            background-color: #f8fafc;
+        }
+        
+        /* WordPress Form Table Tweaks (Tinggi & padding sel) */
+        .autoblog-settings-wrap .form-table th {
+            width: 200px;
+            padding: 10px 10px 10px 0;
+            font-weight: 600;
+            font-size: 13px;
+            vertical-align: middle;
+        }
+        .autoblog-settings-wrap .form-table td {
+            padding: 10px 0;
+            vertical-align: middle;
+        }
+        
+        /* Desain Badge Atribusi Premium */
+        .autoblog-badge {
+            display: inline-block;
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            vertical-align: middle;
+            margin-right: 4px;
+            border: 1px solid transparent;
+            line-height: 12px;
+        }
+        .autoblog-badge-active {
+            background: #dcfce7;
+            color: #166534;
+            border-color: #bbf7d0;
+        }
+        .autoblog-badge-secondary {
+            background: #f1f5f9;
+            color: #475569;
+            border-color: #e2e8f0;
+        }
+    </style>
     <h1>Autoblog AI Settings</h1>
     <hr class="wp-header-end">
 
@@ -162,16 +318,10 @@
                 ?>
                 <form method="post" action="options.php">
                     <?php settings_fields( 'autoblog_keys' ); ?>
-                    <div class="postbox">
-                        <div class="postbox-header">
-                            <h2 class="hndle">🔑 API Credentials</h2>
-                        </div>
-                        <div class="inside">
-                            <p class="description">Masukkan kredensial API untuk pencarian web, stock image, dan model LLM kustom.</p>
-                            <?php require_once 'autoblog-admin-api-keys.php'; ?>
-                        </div>
+                    <?php require_once 'autoblog-admin-api-keys.php'; ?>
+                    <div style="margin-top: 15px;">
+                        <?php submit_button('Simpan Kredensial', 'primary'); ?>
                     </div>
-                    <?php submit_button('Simpan Kredensial', 'primary'); ?>
                 </form>
                 <?php
                 break;

@@ -79,7 +79,7 @@ if ( ! is_array( $sources ) ) { $sources = array(); }
                 <tr valign="top">
                     <th scope="row">Mode Sumber Data</th>
                     <td>
-                        <select name="autoblog_data_source_mode" id="autoblog_data_source_mode">
+                        <select name="autoblog_data_source_mode" id="autoblog_data_source_mode" class="autoblog-select">
                             <option value="both" <?php selected( $current_mode, 'both' ); ?>>🔄 Keduanya (Knowledge Base + Triggers)</option>
                             <option value="kb_only" <?php selected( $current_mode, 'kb_only' ); ?>>📚 Hanya KB (Internal)</option>
                             <option value="triggers_only" <?php selected( $current_mode, 'triggers_only' ); ?>>🌐 Hanya Triggers (External)</option>
@@ -90,7 +90,7 @@ if ( ! is_array( $sources ) ) { $sources = array(); }
                 <tr valign="top">
                     <th scope="row">Default Search Provider</th>
                     <td>
-                        <select name="autoblog_search_provider">
+                        <select name="autoblog_search_provider" class="autoblog-select">
                             <option value="duckduckgo_free" <?php selected( get_option('autoblog_search_provider', 'serpapi'), 'duckduckgo_free' ); ?>>DuckDuckGo (Free / No API Key)</option>
                             <option value="serpapi" <?php selected( get_option('autoblog_search_provider', 'serpapi'), 'serpapi' ); ?>>SerpApi (Google AI/Bing Copilot)</option>
                         </select>
@@ -99,7 +99,7 @@ if ( ! is_array( $sources ) ) { $sources = array(); }
                 </tr>
             </table>
             <div style="margin-top: 15px; border-top:1px solid #dcdcde; padding-top:12px;">
-                <?php submit_button( 'Simpan Pengaturan', 'secondary', 'submit', false ); ?>
+                <?php submit_button( 'Simpan Pengaturan', 'primary', 'submit', false, [ 'class' => 'autoblog-btn autoblog-btn-primary' ] ); ?>
             </div>
         </form>
     </div>
@@ -128,14 +128,14 @@ $kb_disabled = ( $current_mode === 'triggers_only' );
             <form method="post" enctype="multipart/form-data" style="margin-bottom: 25px;">
                 <?php wp_nonce_field( 'autoblog_datasource_verify' ); ?>
                 <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                    <input type="file" name="autoblog_file" accept=".xlsx,.csv,.pdf,.docx,.txt,.md" required />
-                    <?php submit_button( 'Upload & Process', 'primary', 'autoblog_upload_file', false ); ?>
+                    <input type="file" name="autoblog_file" accept=".xlsx,.csv,.pdf,.docx,.txt,.md" class="autoblog-input" style="padding: 2px 8px;" required />
+                    <?php submit_button( 'Upload & Process', 'primary', 'autoblog_upload_file', false, [ 'class' => 'autoblog-btn autoblog-btn-primary' ] ); ?>
                 </div>
             </form>
 
             <hr style="margin: 20px 0;">
             <h3 style="font-size:14px; font-weight:600; margin-bottom:10px;">File Tersimpan</h3>
-            <table class="wp-list-table widefat fixed striped">
+            <table class="autoblog-table">
                 <thead>
                     <tr>
                         <th>Nama File</th>
@@ -159,13 +159,13 @@ $kb_disabled = ( $current_mode === 'triggers_only' );
                             </td>
                             <td>
                                 <a href="<?php echo wp_nonce_url( '?page=autoblog&tab=data_sources&delete_kb=' . $index, 'autoblog_delete_kb' ); ?>"
-                                   class="button button-small button-link-delete"
+                                   class="autoblog-btn autoblog-btn-small autoblog-btn-danger"
                                    onclick="return confirm('Hapus file ini dari Knowledge Base?')">Hapus</a>
                             </td>
                         </tr>
                         <?php endforeach; ?>
                     <?php else : ?>
-                        <tr><td colspan="4" style="color:#646970; font-style:italic;">Belum ada file di Knowledge Base.</td></tr>
+                        <tr><td colspan="4" style="color:#646970; font-style:italic; text-align: center;">Belum ada file di Knowledge Base.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -200,7 +200,7 @@ $triggers_disabled = ( $current_mode === 'kb_only' );
                     <tr valign="top">
                         <th scope="row">Source Type</th>
                         <td>
-                            <select name="source_type" id="autoblog_source_type">
+                            <select name="source_type" id="autoblog_source_type" class="autoblog-select">
                                 <option value="rss">RSS Feed</option>
                                 <option value="web">Web Scraper</option>
                                 <option value="web_search">Web Search (DuckDuckGo/SerpApi)</option>
@@ -210,40 +210,40 @@ $triggers_disabled = ( $current_mode === 'kb_only' );
                     <tr valign="top" id="row_url">
                         <th scope="row" id="label_url">URL / Query</th>
                         <td>
-                            <input type="text" name="source_url" id="input_url" required placeholder="https://site1.com/feed, https://site2.com/feed" />
+                            <input type="text" name="source_url" id="input_url" class="autoblog-input" required placeholder="https://site1.com/feed, https://site2.com/feed" style="width: 100%; max-width: 450px;" />
                             <p class="description" id="desc_url">Masukkan URL RSS Feed.</p>
                         </td>
                     </tr>
                     <tr valign="top">
                         <th scope="row">Match Keywords (Opsional)</th>
                         <td>
-                            <input type="text" name="match_keywords" placeholder="AI, WordPress (pisahkan koma)" />
+                            <input type="text" name="match_keywords" class="autoblog-input" placeholder="AI, WordPress (pisahkan koma)" style="width: 100%; max-width: 450px;" />
                             <p class="description">Hanya proses artikel yang mengandung salah satu kata kunci di atas.</p>
                         </td>
                     </tr>
                     <tr valign="top">
                         <th scope="row">Negative Keywords (Opsional)</th>
                         <td>
-                            <input type="text" name="negative_keywords" placeholder="promo, sponsored (pisahkan koma)" />
+                            <input type="text" name="negative_keywords" class="autoblog-input" placeholder="promo, sponsored (pisahkan koma)" style="width: 100%; max-width: 450px;" />
                             <p class="description">Abaikan artikel yang mengandung salah satu kata kunci di atas.</p>
                         </td>
                     </tr>
                     <tr valign="top" id="row_selector" style="display:none;">
                         <th scope="row">CSS Selector</th>
                         <td>
-                            <input type="text" name="source_selector" placeholder="article.content atau #main" />
+                            <input type="text" name="source_selector" class="autoblog-input" placeholder="article.content atau #main" style="width: 100%; max-width: 450px;" />
                             <p class="description">Wajib untuk Web Scraper. Target container konten.</p>
                         </td>
                     </tr>
                 </table>
                 <div style="margin-top: 15px; border-top:1px solid #dcdcde; padding-top:12px;">
-                    <?php submit_button( 'Tambah Source', 'primary', 'autoblog_add_source', false ); ?>
+                    <?php submit_button( 'Tambah Source', 'primary', 'autoblog_add_source', false, [ 'class' => 'autoblog-btn autoblog-btn-primary' ] ); ?>
                 </div>
             </form>
 
             <hr style="margin: 20px 0;">
             <h3 style="font-size:14px; font-weight:600; margin-bottom:10px;">Triggers Terdaftar</h3>
-            <table class="wp-list-table widefat fixed striped">
+            <table class="autoblog-table">
                 <thead>
                     <tr>
                         <th>Type</th>
@@ -270,13 +270,13 @@ $triggers_disabled = ( $current_mode === 'kb_only' );
                                 <td><?php echo esc_html( isset( $source['selector'] ) ? $source['selector'] : '-' ); ?></td>
                                 <td>
                                     <a href="<?php echo wp_nonce_url( '?page=autoblog&tab=data_sources&autoblog_delete_source=' . $index, 'autoblog_delete_source' ); ?>"
-                                       class="button button-small button-link-delete"
+                                       class="autoblog-btn autoblog-btn-small autoblog-btn-danger"
                                        onclick="return confirm('Hapus source ini?')">Hapus</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
                     <?php else : ?>
-                        <tr><td colspan="5" style="color:#646970; font-style:italic;">Belum ada trigger yang dikonfigurasi.</td></tr>
+                        <tr><td colspan="5" style="color:#646970; font-style:italic; text-align: center;">Belum ada trigger yang dikonfigurasi.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>

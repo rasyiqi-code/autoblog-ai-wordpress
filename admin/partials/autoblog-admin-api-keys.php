@@ -67,141 +67,6 @@ if ( ! function_exists( 'get_key_badge' ) ) {
 }
 ?>
 
-<style>
-    /* Wrapper Global Settings */
-    .autoblog-settings-wrap {
-        margin-top: 15px;
-    }
-    
-    /* Override Tinggi & Padding Element agar Sejajar & Compact */
-    .autoblog-settings-wrap input[type="text"],
-    .autoblog-settings-wrap select,
-    .autoblog-settings-wrap textarea {
-        border: 1px solid #8c8f94;
-        border-radius: 4px;
-        background-color: #fff;
-        color: #2c3338;
-        box-shadow: inset 0 1px 2px rgba(0,0,0,.07);
-        transition: border-color 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
-        margin: 0;
-        box-sizing: border-box;
-        font-size: 12px;
-        height: 30px;
-        line-height: 20px;
-        padding: 4px 8px;
-        vertical-align: middle;
-    }
-    
-    /* Textarea compact dengan efek focus-expand */
-    .autoblog-settings-wrap textarea {
-        height: 30px;
-        resize: none;
-        overflow-y: auto;
-    }
-    .autoblog-settings-wrap textarea:focus {
-        height: 60px;
-        resize: vertical;
-    }
-    
-    .autoblog-settings-wrap input[type="text"]:focus,
-    .autoblog-settings-wrap select:focus,
-    .autoblog-settings-wrap textarea:focus {
-        border-color: #2271b1;
-        box-shadow: 0 0 0 1px #2271b1;
-        outline: 2px solid transparent;
-    }
-    
-    /* Unifikasi Button Sizing */
-    .autoblog-settings-wrap .button {
-        height: 30px !important;
-        line-height: 28px !important;
-        padding: 0 12px !important;
-        font-size: 12px !important;
-        margin: 0 !important;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        box-sizing: border-box;
-        vertical-align: middle;
-    }
-    .autoblog-settings-wrap .button-small {
-        height: 26px !important;
-        line-height: 24px !important;
-        padding: 0 8px !important;
-        font-size: 11px !important;
-    }
-    
-    /* Table Compact Styling */
-    .autoblog-compact-table {
-        width: 100%;
-        border: 1px solid #c3c4c7;
-        border-collapse: collapse;
-        margin-top: 12px;
-        background: #fff;
-    }
-    .autoblog-compact-table th,
-    .autoblog-compact-table td {
-        padding: 8px 10px !important;
-        vertical-align: middle !important;
-        border-bottom: 1px solid #f0f0f1;
-        border-top: none;
-        text-align: left;
-    }
-    .autoblog-compact-table thead th {
-        background-color: #f6f7f7;
-        font-weight: 700;
-        font-size: 12px;
-        color: #2c3338;
-        border-bottom: 2px solid #c3c4c7;
-        padding: 8px 10px !important;
-    }
-    .autoblog-compact-table tbody tr:hover {
-        background-color: #f8fafc;
-    }
-    
-    /* WordPress Form Table Tweaks */
-    .autoblog-settings-wrap .form-table {
-        margin-top: 10px;
-    }
-    .autoblog-settings-wrap .form-table th {
-        width: 200px;
-        padding: 12px 10px 12px 0;
-        font-weight: 600;
-        font-size: 13px;
-        vertical-align: middle;
-    }
-    .autoblog-settings-wrap .form-table td {
-        padding: 12px 0;
-        vertical-align: middle;
-    }
-    
-    /* Desain Badge Atribusi Premium */
-    .autoblog-badge {
-        display: inline-block;
-        padding: 1px 5px;
-        border-radius: 4px;
-        font-size: 9px;
-        font-weight: 600;
-        letter-spacing: 0.03em;
-        text-transform: uppercase;
-        vertical-align: middle;
-        margin-right: 4px;
-        border: 1px solid transparent;
-        line-height: 12px;
-    }
-    .autoblog-badge-active {
-        background: #dcfce7;
-        color: #166534;
-        border-color: #bbf7d0;
-    }
-    .autoblog-badge-secondary {
-        background: #f1f5f9;
-        color: #475569;
-        border-color: #e2e8f0;
-    }
-</style>
-
-<div class="autoblog-settings-wrap">
     <!-- ================================================================ -->
     <!-- SECTION 1: AI Engine & Model Settings (Unified LLM Center) -->
     <!-- ================================================================ -->
@@ -213,7 +78,7 @@ if ( ! function_exists( 'get_key_badge' ) ) {
             <p class="description" style="margin-bottom:0;">Kelola kredensial API Key, Base URL kustom untuk provider LLM Anda, dan tentukan provider aktif menggunakan kolom <strong>Aktif</strong> di bawah.</p>
             
             <!-- Table Dinamis Custom Keys (Compact Grid Layout) -->
-            <table class="autoblog-compact-table">
+            <table class="autoblog-table">
                 <thead>
                     <tr>
                         <th scope="col" style="width: 55px; text-align: center;">Aktif</th>
@@ -257,25 +122,25 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                                 </td>
                                 <!-- Col 3: API Key Textarea -->
                                 <td style="vertical-align: middle;">
-                                    <textarea name="autoblog_custom_api_keys[<?php echo esc_attr($prov_id); ?>]" style="width: 100%;" placeholder="Masukkan satu atau lebih API key (satu per baris)..."><?php echo esc_textarea($prov_key); ?></textarea>
+                                    <textarea name="autoblog_custom_api_keys[<?php echo esc_attr($prov_id); ?>]" class="autoblog-textarea" style="width: 100%;" placeholder="Masukkan satu atau lebih API key (satu per baris)..."><?php echo esc_textarea($prov_key); ?></textarea>
                                 </td>
                                 <!-- Col 4: Base URL Input -->
-                            <td style="vertical-align: middle;">
-                                <input type="text" name="autoblog_custom_api_endpoints[<?php echo esc_attr($prov_id); ?>]" value="<?php echo esc_attr($current_endpoint); ?>" data-default="<?php echo esc_attr($default_endpoint); ?>" placeholder="e.g. https://api.openai.com/v1" style="width: 100%;" />
-                                <span class="default-url-info" style="font-size: 10px; color: #64748b; display: block; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Bawaan: <?php echo esc_attr($default_endpoint); ?>">
-                                    <?php 
-                                    // Hanya tampilkan jika default tersedia dan berbeda dari current
-                                    if ( ! empty( $default_endpoint ) && $current_endpoint !== $default_endpoint ) {
-                                        echo 'Bawaan: <code>' . esc_html($default_endpoint) . '</code>';
-                                    }
-                                    ?>
-                                </span>
-                            </td>
+                                <td style="vertical-align: middle;">
+                                    <input type="text" name="autoblog_custom_api_endpoints[<?php echo esc_attr($prov_id); ?>]" class="autoblog-input" value="<?php echo esc_attr($current_endpoint); ?>" data-default="<?php echo esc_attr($default_endpoint); ?>" placeholder="e.g. https://api.openai.com/v1" style="width: 100%;" />
+                                    <span class="default-url-info" style="font-size: 10px; color: #64748b; display: block; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Bawaan: <?php echo esc_attr($default_endpoint); ?>">
+                                        <?php 
+                                        // Hanya tampilkan jika default tersedia dan berbeda dari current
+                                        if ( ! empty( $default_endpoint ) && $current_endpoint !== $default_endpoint ) {
+                                            echo 'Bawaan: <code>' . esc_html($default_endpoint) . '</code>';
+                                        }
+                                        ?>
+                                    </span>
+                                </td>
                                 <!-- Col 5: Actions & Status -->
                                 <td style="vertical-align: middle; text-align: center;">
                                     <div style="display: flex; gap: 4px; justify-content: center; align-items: center;">
-                                        <button type="button" class="button button-small test-connection-btn" data-provider="<?php echo esc_attr($prov_id); ?>">Test</button>
-                                        <button type="button" class="button button-small remove-custom-key" style="color: #d63638; border-color: #d63638;">Remove</button>
+                                        <button type="button" class="autoblog-btn autoblog-btn-small test-connection-btn" data-provider="<?php echo esc_attr($prov_id); ?>">Test</button>
+                                        <button type="button" class="autoblog-btn autoblog-btn-small autoblog-btn-danger remove-custom-key">Remove</button>
                                     </div>
                                     <div class="test-connection-status" style="font-weight: 600; font-size: 10px; margin-top: 4px; display: block; line-height: 1.2;"></div>
                                 </td>
@@ -299,7 +164,7 @@ if ( ! function_exists( 'get_key_badge' ) ) {
             <div style="margin-top: 15px; display: flex; gap: 15px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding-top: 15px; border-top: 1px solid #f0f0f1;">
                 <!-- Left: Add Key Select + Button -->
                 <div style="display: flex; gap: 8px; align-items: center;">
-                    <select id="new-custom-provider-select" style="min-width: 160px;">
+                    <select id="new-custom-provider-select" class="autoblog-select" style="min-width: 160px;">
                         <option value="">-- Pilih Provider Baru --</option>
                         <?php
                         foreach ( $providers as $p_id => $p_data ) {
@@ -312,13 +177,13 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                         }
                         ?>
                     </select>
-                    <button type="button" class="button button-secondary" id="btn-add-custom-key">+ Tambah Key</button>
+                    <button type="button" class="autoblog-btn" id="btn-add-custom-key">+ Tambah Key</button>
                 </div>
 
                 <!-- Right: AI Model selection -->
                 <div style="display: flex; gap: 10px; align-items: center;">
                     <label for="autoblog_ai_model" style="font-weight: 600; font-size: 13px; color: #1d2327;">AI Model:</label>
-                    <select name="autoblog_ai_model" id="autoblog_ai_model" style="min-width: 250px;">
+                    <select name="autoblog_ai_model" id="autoblog_ai_model" class="autoblog-select" style="min-width: 250px;">
                         <!-- JS dinamis populate -->
                     </select>
                 </div>
@@ -347,8 +212,8 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                     </th>
                     <td>
                         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                            <textarea name="autoblog_serpapi_key" style="width: 25em;" placeholder="Masukkan SerpApi key (bisa multi-key, satu per baris)..."><?php echo esc_textarea( get_option('autoblog_serpapi_key') ); ?></textarea>
-                            <button type="button" class="button test-connection-btn" data-provider="serpapi">Test Connection</button>
+                            <textarea name="autoblog_serpapi_key" class="autoblog-textarea" style="width: 25em;" placeholder="Masukkan SerpApi key (bisa multi-key, satu per baris)..."><?php echo esc_textarea( get_option('autoblog_serpapi_key') ); ?></textarea>
+                            <button type="button" class="autoblog-btn test-connection-btn" data-provider="serpapi">Test Connection</button>
                             <span class="test-connection-status" style="font-weight:600; font-size:11px; vertical-align:middle;"></span>
                         </div>
                         <p class="description" style="margin-top: 4px;">Untuk integrasi Google AI Overview, AI Mode, dan Bing Copilot. Bisa multi-key (satu per baris).</p>
@@ -363,8 +228,8 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                     </th>
                     <td>
                         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                            <textarea name="autoblog_pexels_key" style="width: 25em;" placeholder="Masukkan Pexels API key (bisa multi-key, satu per baris)..."><?php echo esc_textarea( get_option('autoblog_pexels_key') ); ?></textarea>
-                            <button type="button" class="button test-connection-btn" data-provider="pexels">Test Connection</button>
+                            <textarea name="autoblog_pexels_key" class="autoblog-textarea" style="width: 25em;" placeholder="Masukkan Pexels API key (bisa multi-key, satu per baris)..."><?php echo esc_textarea( get_option('autoblog_pexels_key') ); ?></textarea>
+                            <button type="button" class="autoblog-btn test-connection-btn" data-provider="pexels">Test Connection</button>
                             <span class="test-connection-status" style="font-weight:600; font-size:11px; vertical-align:middle;"></span>
                         </div>
                         <p class="description" style="margin-top: 4px;">Untuk pencarian stock photo gratis berkualitas tinggi sebagai featured image.</p>
@@ -389,7 +254,7 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                 <tr valign="top">
                     <th scope="row">Embedding Provider (RAG)</th>
                     <td>
-                        <select name="autoblog_embedding_provider" id="autoblog_embedding_provider" style="min-width: 250px;">
+                        <select name="autoblog_embedding_provider" id="autoblog_embedding_provider" class="autoblog-select" style="min-width: 250px;">
                             <option value="openai" <?php selected( $embedding_provider, 'openai' ); ?>>OpenAI (text-embedding-3-small)</option>
                             <option value="gemini_001" <?php selected( $embedding_provider, 'gemini_001' ); ?>>Google Gemini (gemini-embedding-001)</option>
                             <option value="hf" <?php selected( $embedding_provider, 'hf' ); ?>>Hugging Face (MiniLM-L6-v2)</option>
@@ -405,7 +270,7 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                 <tr valign="top">
                     <th scope="row">Post Thumbnail Source</th>
                     <td>
-                        <select name="autoblog_thumbnail_source" id="autoblog_thumbnail_source" style="min-width: 250px;">
+                        <select name="autoblog_thumbnail_source" id="autoblog_thumbnail_source" class="autoblog-select" style="min-width: 250px;">
                             <option value="openai" <?php selected( $thumbnail_source, 'openai' ); ?>>OpenAI DALL-E 3</option>
                             <option value="pexels" <?php selected( $thumbnail_source, 'pexels' ); ?>>Pexels (Stock Photos)</option>
                             <option value="openverse" <?php selected( $thumbnail_source, 'openverse' ); ?>>Openverse (Creative Commons)</option>
@@ -442,14 +307,14 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                             <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
                                 <div style="display:flex; gap:8px; align-items:center;">
                                     <label for="gemini_test_model" style="font-weight:600; font-size:11px; min-width:80px;">Model:</label>
-                                    <select id="gemini_test_model" style="flex-grow:1; padding:3px 6px; font-size:11px; height: 26px;">
+                                    <select id="gemini_test_model" class="autoblog-select" style="flex-grow:1; padding:3px 6px; font-size:11px;">
                                         <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
                                         <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
                                     </select>
                                 </div>
                                 <div style="display:flex; gap:6px;">
-                                    <input type="text" id="gemini_test_prompt" placeholder="Tanya info real-time..." style="flex-grow:1; padding:4px; font-size:11px; height: 26px;" />
-                                    <button type="button" id="btn_test_grounding" class="button button-secondary" style="padding: 2px 8px; font-size:11px; height: 26px !important; line-height: 24px !important;">Test</button>
+                                    <input type="text" id="gemini_test_prompt" class="autoblog-input" placeholder="Tanya info real-time..." style="flex-grow:1; padding:4px; font-size:11px;" />
+                                    <button type="button" id="btn_test_grounding" class="autoblog-btn" style="padding: 0 10px; font-size:11px;">Test</button>
                                 </div>
                             </div>
                             <div id="gemini_test_result" style="margin-top:8px; display:none; padding:8px; background:#fff; border-left:3px solid #2271b1; font-family:monospace; font-size:11px; white-space:pre-wrap; max-height: 120px; overflow-y: auto; border: 1px solid #dcdcde;"></div>
@@ -459,4 +324,3 @@ if ( ! function_exists( 'get_key_badge' ) ) {
             </table>
         </div>
     </div>
-</div>
