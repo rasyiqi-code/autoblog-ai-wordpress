@@ -1,10 +1,10 @@
 <?php
 /**
- * Tab AI & API Settings (Unified Form with Dynamic Keys List)
+ * Tab AI & API Settings (Unified Form with Dynamic Keys List at the Top)
  *
  * Menggabungkan tab AI Engine dan API Keys menjadi satu halaman terpadu.
- * Mendukung konfigurasi multi-provider dan multi-key rotation dengan "+ Tambah Key"
- * serta menandai provider aktif secara dinamis.
+ * Seluruh konfigurasi LLM (Active Provider, Model, dan Multi-Provider Keys Pool)
+ * disatukan di dalam box teratas untuk UX yang sangat linier dan teratur.
  *
  * @package    Autoblog
  * @subpackage Autoblog/admin/partials
@@ -69,14 +69,14 @@ if ( ! function_exists( 'get_key_badge' ) ) {
 ?>
 
 <!-- ================================================================ -->
-<!-- SECTION 1: AI Engine & Model Settings -->
+<!-- SECTION 1: AI Engine & Model Settings (Unified LLM Center) -->
 <!-- ================================================================ -->
 <div class="postbox">
     <div class="postbox-header">
         <h2 class="hndle">🤖 AI Engine & Model Settings</h2>
     </div>
     <div class="inside">
-        <p class="description">Pilih provider utama yang aktif menulis pos dan tentukan model LLM yang digunakan.</p>
+        <p class="description">Pilih provider utama, tentukan model LLM penulisan, dan kelola seluruh API Key untuk provider di bawah.</p>
         
         <table class="form-table">
             <!-- Active AI Provider -->
@@ -105,57 +105,11 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                 </td>
             </tr>
         </table>
-    </div>
-</div>
-
-<!-- ================================================================ -->
-<!-- SECTION 2: API Credentials & Custom Keys (Dynamic List) -->
-<!-- ================================================================ -->
-<div class="postbox">
-    <div class="postbox-header">
-        <h2 class="hndle">🔑 API Credentials & Custom Keys</h2>
-    </div>
-    <div class="inside">
-        <p class="description">Kelola API Key (bisa multi-key, satu per baris) dan Base URL kustom untuk pencarian web, stock photo, serta seluruh LLM provider.</p>
-        
-        <table class="form-table">
-            <!-- SerpApi -->
-            <tr valign="top">
-                <th scope="row">
-                    SerpApi Key
-                    <div><?php echo get_key_badge('serpapi', $active_key_id, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></div>
-                </th>
-                <td>
-                    <div style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap;">
-                        <textarea name="autoblog_serpapi_key" style="width: 25em; height: 55px; -webkit-text-security: disc; font-family: monospace; resize: vertical;" placeholder="Masukkan SerpApi key (bisa multi-key, satu per baris)..."><?php echo esc_textarea( get_option('autoblog_serpapi_key') ); ?></textarea>
-                        <button type="button" class="button test-connection-btn" data-provider="serpapi" style="margin-top:2px;">Test Connection</button>
-                        <span class="test-connection-status" style="font-weight:600; font-size:11px; margin-top:6px;"></span>
-                    </div>
-                    <p class="description">Untuk integrasi Google AI Overview, AI Mode, dan Bing Copilot. Bisa multi-key (satu per baris).</p>
-                </td>
-            </tr>
-
-            <!-- Pexels -->
-            <tr valign="top">
-                <th scope="row">
-                    Pexels API Key
-                    <div><?php echo get_key_badge('pexels', $active_key_id, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></div>
-                </th>
-                <td>
-                    <div style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap;">
-                        <textarea name="autoblog_pexels_key" style="width: 25em; height: 55px; -webkit-text-security: disc; font-family: monospace; resize: vertical;" placeholder="Masukkan Pexels API key (bisa multi-key, satu per baris)..."><?php echo esc_textarea( get_option('autoblog_pexels_key') ); ?></textarea>
-                        <button type="button" class="button test-connection-btn" data-provider="pexels" style="margin-top:2px;">Test Connection</button>
-                        <span class="test-connection-status" style="font-weight:600; font-size:11px; margin-top:6px;"></span>
-                    </div>
-                    <p class="description">Untuk pencarian stock photo gratis berkualitas tinggi sebagai featured image.</p>
-                </td>
-            </tr>
-        </table>
 
         <hr style="margin: 25px 0; border: 0; border-top: 1px solid #f0f0f1;">
 
         <h3 style="font-size:13.5px; font-weight:700; margin-bottom:5px;">🔑 LLM Provider Keys & Endpoints (Multi-Provider Pool)</h3>
-        <p class="description" style="margin-bottom:15px;">Tambahkan kunci API dan kustom Base URL untuk provider LLM yang ingin Anda gunakan. Jika Smart Fallback aktif, sistem otomatis merotasi kunci/provider cadangan di bawah jika provider aktif utama error.</p>
+        <p class="description" style="margin-bottom:15px;">Tambahkan kunci API (bisa multi-key, satu per baris) dan Base URL kustom untuk masing-masing provider. Jika Smart Fallback aktif, sistem otomatis merotasi kunci/provider cadangan di bawah jika provider aktif utama limit.</p>
 
         <table class="form-table" id="custom-keys-table">
             <?php
@@ -229,7 +183,53 @@ if ( ! function_exists( 'get_key_badge' ) ) {
 </div>
 
 <!-- ================================================================ -->
-<!-- SECTION 3: Advanced Settings -->
+<!-- SECTION 2: Helper Services Credentials -->
+<!-- ================================================================ -->
+<div class="postbox">
+    <div class="postbox-header">
+        <h2 class="hndle">🔑 Helper Services Credentials</h2>
+    </div>
+    <div class="inside">
+        <p class="description">Kredensial API untuk fitur tambahan seperti pencarian internet dan stock photo.</p>
+        
+        <table class="form-table">
+            <!-- SerpApi -->
+            <tr valign="top">
+                <th scope="row">
+                    SerpApi Key
+                    <div><?php echo get_key_badge('serpapi', $active_key_id, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></div>
+                </th>
+                <td>
+                    <div style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap;">
+                        <textarea name="autoblog_serpapi_key" style="width: 25em; height: 55px; -webkit-text-security: disc; font-family: monospace; resize: vertical;" placeholder="Masukkan SerpApi key (bisa multi-key, satu per baris)..."><?php echo esc_textarea( get_option('autoblog_serpapi_key') ); ?></textarea>
+                        <button type="button" class="button test-connection-btn" data-provider="serpapi" style="margin-top:2px;">Test Connection</button>
+                        <span class="test-connection-status" style="font-weight:600; font-size:11px; margin-top:6px;"></span>
+                    </div>
+                    <p class="description">Untuk integrasi Google AI Overview, AI Mode, dan Bing Copilot. Bisa multi-key (satu per baris).</p>
+                </td>
+            </tr>
+
+            <!-- Pexels -->
+            <tr valign="top">
+                <th scope="row">
+                    Pexels API Key
+                    <div><?php echo get_key_badge('pexels', $active_key_id, $embedding_key_name, $search_provider, $need_search_key, $need_pexels); ?></div>
+                </th>
+                <td>
+                    <div style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap;">
+                        <textarea name="autoblog_pexels_key" style="width: 25em; height: 55px; -webkit-text-security: disc; font-family: monospace; resize: vertical;" placeholder="Masukkan Pexels API key (bisa multi-key, satu per baris)..."><?php echo esc_textarea( get_option('autoblog_pexels_key') ); ?></textarea>
+                        <button type="button" class="button test-connection-btn" data-provider="pexels" style="margin-top:2px;">Test Connection</button>
+                        <span class="test-connection-status" style="font-weight:600; font-size:11px; margin-top:6px;"></span>
+                    </div>
+                    <p class="description">Untuk pencarian stock photo gratis berkualitas tinggi sebagai featured image.</p>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- SECTION 3: Advanced AI & Media Settings -->
 <!-- ================================================================ -->
 <div class="postbox">
     <div class="postbox-header">
