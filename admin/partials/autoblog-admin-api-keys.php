@@ -28,28 +28,30 @@ $need_pexels      = ( $thumbnail_source === 'pexels' || $thumbnail_source === 'r
 function get_key_badge( $key_provider, $active_provider, $embedding_key_name, $search_provider, $need_search_key, $need_pexels ) {
     $badges = array();
     
+    $style_base = 'display:inline-block; padding:2px 8px; border-radius:12px; font-size:9px; font-weight:600; letter-spacing:0.04em; margin-left:6px; text-transform:uppercase; vertical-align:middle;';
+
     // Check if main provider
     if ( $key_provider === $active_provider ) {
-        $badges[] = '<span style="background:#d63638; color:#fff; padding:3px 6px; border-radius:3px; font-size:10.5px; font-weight:bold; margin-left:5px;">WAJIB - AI PROVIDER AKTIF</span>';
+        $badges[] = '<span style="' . $style_base . ' background:#fee2e2; color:#b91c1c;">WAJIB - AKTIF</span>';
     }
     
     // Check if embedding provider
     if ( $key_provider === $embedding_key_name ) {
-        $badges[] = '<span style="background:#dba617; color:#fff; padding:3px 6px; border-radius:3px; font-size:10.5px; font-weight:bold; margin-left:5px;">WAJIB UNTUK RAG (KNOWLEDGE BASE)</span>';
+        $badges[] = '<span style="' . $style_base . ' background:#fef3c7; color:#b45309;">WAJIB UNTUK RAG</span>';
     }
     
     // Check if search provider and needed
     if ( $key_provider === $search_provider && $need_search_key ) {
-        $badges[] = '<span style="background:#2271b1; color:#fff; padding:3px 6px; border-radius:3px; font-size:10.5px; font-weight:bold; margin-left:5px;">WAJIB UNTUK WEB SEARCH</span>';
+        $badges[] = '<span style="' . $style_base . ' background:#dbeafe; color:#1d4ed8;">WAJIB UNTUK SEARCH</span>';
     }
 
     // Check if pexels thumbnail is needed
     if ( $key_provider === 'pexels' && $need_pexels ) {
-        $badges[] = '<span style="background:#2271b1; color:#fff; padding:3px 6px; border-radius:3px; font-size:10.5px; font-weight:bold; margin-left:5px;">WAJIB UNTUK THUMBNAIL</span>';
+        $badges[] = '<span style="' . $style_base . ' background:#e0f2fe; color:#0369a1;">WAJIB UNTUK THUMBNAIL</span>';
     }
 
     if ( empty( $badges ) ) {
-        return '<span style="background:#64748b; color:#fff; padding:3px 6px; border-radius:3px; font-size:10.5px; font-weight:bold; margin-left:5px;">OPSIONAL / TIDAK TERPAKAI</span>';
+        return '<span style="' . $style_base . ' background:#f1f5f9; color:#64748b;">OPSIONAL</span>';
     }
     
     return implode( ' ', $badges );
