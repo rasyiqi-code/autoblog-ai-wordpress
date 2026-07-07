@@ -1,267 +1,236 @@
-/* 
- * Autoblog AI Settings UI Styles
- * Modern glassmorphism & SaaS-like dashboard design
- */
+/* ==========================================================================
+   Autoblog AI Settings Stylesheet (Native & Compact Metabox)
+   ========================================================================== */
 
-.autoblog-settings-wrapper {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    max-width: 1200px;
-    margin: 20px 20px 40px 0;
-}
-
-.autoblog-settings-wrapper .autoblog-header-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 15px;
-    margin-bottom: 25px;
-}
-
-.autoblog-settings-wrapper h1 {
-    font-size: 24px;
-    font-weight: 700;
-    color: #1e293b;
-    margin-bottom: 0;
-    padding-bottom: 0;
-    border: none;
-}
-
-/* --- Tab Navigation Modern (Segmented Control Style) --- */
-.autoblog-settings-wrapper h2.nav-tab-wrapper {
-    border-bottom: none;
-    display: inline-flex;
-    gap: 4px;
-    flex-wrap: wrap;
-    margin: 0;
-    padding: 6px;
-    background: #f1f5f9;
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
-}
-
-.autoblog-settings-wrapper .nav-tab {
-    background: transparent;
-    border: none;
-    border-radius: 8px;
-    color: #64748b;
-    font-weight: 600;
-    font-size: 13.5px;
-    padding: 8px 18px;
-    margin: 0;
-    text-transform: none;
-    transition: all 0.2s ease;
-    box-shadow: none;
-}
-
-.autoblog-settings-wrapper .nav-tab:hover {
-    background: rgba(226, 232, 240, 0.6);
-    color: #334155;
-}
-
-.autoblog-settings-wrapper .nav-tab-active,
-.autoblog-settings-wrapper .nav-tab-active:hover {
-    background: #ffffff;
-    color: #0f172a;
-    border-color: transparent;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-/* --- Container Card Modern --- */
-.autoblog-settings-wrapper .tab-content {
-    background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05), 0 2px 8px rgba(0, 0, 0, 0.02);
-    padding: 25px;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.autoblog-settings-wrapper .card {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    padding: 0;
-    margin: 0 0 30px 0 !important;
-    max-width: 100% !important;
-}
-
-.autoblog-settings-wrapper h2 {
-    font-size: 18px;
-    font-weight: 600;
-    color: #0f172a;
-    margin-top: 0;
-    margin-bottom: 15px;
-    border-bottom: 1px solid #f1f5f9;
-    padding-bottom: 10px;
-}
-
-/* --- Form Elements --- */
-.autoblog-settings-wrapper .form-table {
-    border: none;
-    margin-top: 0;
-}
-
-.autoblog-settings-wrapper .form-table th {
-    font-weight: 600;
-    color: #334155;
-    padding: 15px 15px 15px 0;
-    width: 250px;
-    font-size: 13.5px;
-}
-
-.autoblog-settings-wrapper .form-table td {
-    padding: 15px 10px;
-}
-
-/* Input Fields */
-.autoblog-settings-wrapper input[type="text"],
-.autoblog-settings-wrapper input[type="password"],
-.autoblog-settings-wrapper input[type="email"],
-.autoblog-settings-wrapper input[type="number"],
-.autoblog-settings-wrapper select,
-.autoblog-settings-wrapper textarea {
-    width: 100%;
-    max-width: 600px;
-    padding: 10px 14px;
-    font-size: 13.5px;
-    border: 2px solid #e2e8f0;
-    border-radius: 6px;
-    background-color: #f8fafc;
-    color: #1e293b;
-    transition: all 0.3s ease;
-    box-shadow: none;
-    line-height: 1.5;
-}
-
-.autoblog-settings-wrapper textarea {
-    min-height: 120px;
-    resize: vertical;
-}
-
-/* Allow log viewer to expand full width */
-.autoblog-settings-wrapper textarea.autoblog-log-viewer {
-    max-width: 100% !important;
-}
-
-.autoblog-settings-wrapper input:focus,
-.autoblog-settings-wrapper select:focus,
-.autoblog-settings-wrapper textarea:focus {
-    border-color: #3b82f6;
-    background-color: #ffffff;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
-    outline: none;
-}
-
-.autoblog-settings-wrapper .description {
-    color: #64748b;
-    font-size: 12.5px;
-    margin-top: 6px;
-    line-height: 1.4;
-}
-
-/* --- Checkbox & Radio --- */
-.autoblog-settings-wrapper input[type="checkbox"],
-.autoblog-settings-wrapper input[type="radio"] {
-    border: 2px solid #cbd5e1;
-    border-radius: 4px;
-    width: 18px;
-    height: 18px;
-    margin-top: -2px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.autoblog-settings-wrapper input[type="checkbox"]:checked {
-    background-color: #3b82f6;
-    border-color: #3b82f6;
-}
-
-.autoblog-settings-wrapper label {
-    cursor: pointer;
-    color: #334155;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-}
-
-/* --- Primary Button --- */
-.autoblog-settings-wrapper .button-primary,
-.autoblog-settings-wrapper #submit {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    color: white;
-    border: none;
-    padding: 6px 18px;
-    font-size: 14px;
-    font-weight: 600;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
-    text-shadow: none;
-    height: auto;
-    line-height: 1.5;
-}
-
-.autoblog-settings-wrapper .button-primary:hover,
-.autoblog-settings-wrapper #submit:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
-    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
-}
-
-.autoblog-settings-wrapper .button-primary:active,
-.autoblog-settings-wrapper #submit:active {
-    transform: translateY(1px);
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
-}
-
-/* --- WP List Table (Lists) Override --- */
-.autoblog-settings-wrapper .wp-list-table {
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: none;
-    border-collapse: separate;
-    border-spacing: 0;
-    width: 100%;
+/* Styling Form & Metabox Native WordPress */
+.autoblog-settings-form {
     margin-top: 15px;
 }
-
-.autoblog-settings-wrapper .wp-list-table th,
-.autoblog-settings-wrapper .wp-list-table td {
-    padding: 10px 14px;
-    font-size: 13.5px;
-    border-bottom: 1px solid #f1f5f9;
+.autoblog-settings-form .postbox {
+    margin-bottom: 20px;
+    border: 1px solid #c3c4c7;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    background: #fff;
 }
-
-.autoblog-settings-wrapper .wp-list-table thead th {
-    background: #f8fafc;
-    color: #475569;
+.autoblog-settings-form .postbox-header {
+    border-bottom: 1px solid #c3c4c7;
+    margin: 0;
+}
+.autoblog-settings-form .postbox-header h2.hndle {
+    font-size: 14px;
     font-weight: 600;
-    border-bottom: 2px solid #e2e8f0;
-}
-
-.autoblog-settings-wrapper .wp-list-table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-.autoblog-settings-wrapper .wp-list-table tbody tr:hover {
-    background-color: #f8fafc;
-}
-
-/* --- Small Notice Boxes --- */
-.autoblog-settings-wrapper .notice-info,
-.autoblog-settings-wrapper .autoblog-info-box {
-    background: #f0f9ff;
-    border-left: 4px solid #3b82f6;
     padding: 12px 15px;
-    font-size: 13.5px;
-    border-radius: 0 6px 6px 0;
-    color: #0c4a6e;
+    margin: 0;
+    color: #1d2327;
+}
+.autoblog-settings-form .postbox .inside {
+    padding: 15px 20px 20px;
+    margin: 0;
+}
+.autoblog-settings-form .postbox .inside > p.description {
+    margin: 0 0 15px 0;
+    font-size: 12px;
+    color: #646970;
+}
+
+/* WordPress form-table Tuning */
+.autoblog-settings-form .form-table {
+    margin: 0;
+}
+.autoblog-settings-form .form-table th {
+    width: 220px;
+    padding: 14px 10px 14px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1d2327;
+    vertical-align: top;
+}
+.autoblog-settings-form .form-table td {
+    padding: 12px 0;
+    vertical-align: top;
+}
+.autoblog-settings-form .form-table td select,
+.autoblog-settings-form .form-table td input[type=text],
+.autoblog-settings-form .form-table td input[type=password],
+.autoblog-settings-form .form-table td textarea {
+    max-width: 450px;
+    width: 100%;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 13px;
+    line-height: 1.4;
+    background: #fff;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
+}
+.autoblog-settings-form .form-table td select:focus,
+.autoblog-settings-form .form-table td input:focus,
+.autoblog-settings-form .form-table td textarea:focus {
+    border-color: #2271b1;
+    box-shadow: 0 0 0 1px #2271b1;
+    outline: none;
+}
+.autoblog-settings-form .form-table td p.description {
+    margin: 6px 0 0 0;
+    font-size: 12px;
+    color: #646970;
+    line-height: 1.5;
+}
+.autoblog-settings-form .form-table tr:not(:last-child) th,
+.autoblog-settings-form .form-table tr:not(:last-child) td {
+    border-bottom: 1px solid #f0f0f1;
+}
+
+/* Command Center Layout */
+.command-center-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 15px;
+    margin-top: 15px;
     margin-bottom: 15px;
 }
+@media (max-width: 900px) {
+    .command-center-grid {
+        grid-template-columns: 1fr;
+    }
+}
 
-/* Fix manual trigger override container */
-.autoblog-settings-wrapper #autoblog-run-now-btn {
-    margin-top: 10px;
+/* List Overrides */
+.overrides-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.overrides-list label {
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    color: #1d2327;
+}
+.overrides-list input[type=checkbox] {
+    margin-right: 8px;
+}
+
+/* Agentic Flow Visual Diagram */
+.agent-flow-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f6f7f7;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 25px 20px;
+    position: relative;
+    margin-bottom: 12px;
+}
+.agent-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 10px;
+    width: 140px;
+    text-align: center;
+    z-index: 2;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+    position: relative;
+}
+.agent-node:hover {
+    border-color: #2271b1;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+.agent-node.active {
+    border-color: #2271b1;
+    box-shadow: 0 0 4px rgba(34,113,177,0.25);
+}
+.agent-node .icon {
+    font-size: 22px;
+    margin-bottom: 4px;
+}
+.agent-node .name {
+    font-size: 11px;
+    font-weight: 700;
+    color: #1d2327;
+}
+.agent-node .status-lbl {
+    font-size: 9px;
+    font-weight: 600;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+}
+.agent-node .meta-desc {
+    font-size: 10px;
+    color: #646970;
+    margin-top: 6px;
+    border-top: 1px solid #f0f0f1;
+    padding-top: 4px;
+    width: 100%;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.flow-line {
+    position: absolute;
+    top: 50%;
+    left: 90px;
+    right: 90px;
+    height: 2px;
+    background: #c3c4c7;
+    z-index: 1;
+    transform: translateY(-50%);
+}
+.flow-line-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #46b450, #2271b1);
+    transition: width 0.4s ease;
+}
+
+/* Status Dot Indicator */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+.status-dot.idle { background: #8c8f94; }
+.status-dot.completed { background: #46b450; }
+.status-dot.skipped { background: #dba617; }
+.status-dot.running {
+    background: #2271b1;
+    animation: pulse-dot 1.2s infinite;
+}
+.status-dot.failed {
+    background: #d63638;
+    animation: pulse-dot 1.2s infinite;
+}
+@keyframes pulse-dot {
+    0% { transform: scale(0.9); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.5; }
+    100% { transform: scale(0.9); opacity: 1; }
+}
+
+/* Badge priority */
+.autoblog-settings-form .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    margin-left: 6px;
+    text-transform: uppercase;
+    vertical-align: middle;
 }

@@ -284,36 +284,3 @@ $triggers_disabled = ( $current_mode === 'kb_only' );
     </div>
 
 <?php endif; ?>
-
-<!-- ================================================================ -->
-<!-- JAVASCRIPT: Toggle label & selector berdasarkan source type      -->
-<!-- ================================================================ -->
-<script>
-    jQuery(document).ready(function($) {
-        /**
-         * Toggle tampilan row CSS Selector dan label URL/Query
-         * berdasarkan tipe source yang dipilih.
-         */
-        $('#autoblog_source_type').change(function() {
-            var type = $(this).val();
-
-            if (type === 'web') {
-                $('#row_selector').show();
-                $('#label_url').text('URL');
-                $('#input_url').attr('placeholder', 'https://site1.com, https://site2.com');
-                $('#desc_url').text('Masukkan URL untuk di-scrape.');
-            } else if (type === 'web_search') {
-                $('#row_selector').hide();
-                $('#label_url').text('Search Query');
-                $('#input_url').attr('placeholder', 'latest AI trends, wordpress tips');
-                $('#desc_url').text('Masukkan query pencarian (pisah koma). Menggunakan DuckDuckGo/SerpApi sesuai pengaturan AI Engine.');
-            } else {
-                // Default: RSS
-                $('#row_selector').hide();
-                $('#label_url').text('URL');
-                $('#input_url').attr('placeholder', 'https://site1.com/feed, https://site2.com/feed');
-                $('#desc_url').text('Masukkan URL RSS Feed.');
-            }
-        });
-    });
-</script>

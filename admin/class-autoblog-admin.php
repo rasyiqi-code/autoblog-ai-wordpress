@@ -87,27 +87,69 @@ class Admin {
 			return;
 		}
 
-		wp_enqueue_script(
-			$this->plugin_name,
-			plugin_dir_url( __FILE__ ) . 'js/autoblog-admin.js',
-			array( 'jquery' ),
-			$this->version,
-			true // Load di footer
+		$base_url = plugin_dir_url( __FILE__ ) . 'js/';
+
+		// Persiapkan data model & ketersediaan key untuk dilokalisasi ke setiap file JS
+		$custom_keys = get_option( 'autoblog_custom_api_keys', array() );
+		$keys_filled = array(
+			'openai'     => ! empty( $custom_keys['openai'] )     ? true : ! empty( get_option( 'autoblog_openai_key' ) ),
+			'gemini_001' => ! empty( $custom_keys['google'] )     ? true : ! empty( get_option( 'autoblog_gemini_key' ) ),
+			'hf'         => ! empty( $custom_keys['huggingface'] ) ? true :
+			                ( ! empty( $custom_keys['hf'] )        ? true : ! empty( get_option( 'autoblog_hf_key' ) ) ),
+		);
+		$merged_models  = self::get_merged_models();
+		$selected_model = get_option( 'autoblog_ai_model', 'gemini-1.5-flash' );
+
+		$localize_data = array(
+			'ajax_url'       => admin_url( 'admin-ajax.php' ),
+			'nonce'          => wp_create_nonce( 'autoblog_ajax_nonce' ),
+			'keys_filled'    => $keys_filled,
+			'catalog_models' => $merged_models,
+			'selected_model' => $selected_model,
 		);
 
-		// Pass AJAX URL dan nonce ke JavaScript
-		wp_localize_script( $this->plugin_name, 'autoblog_ajax', array(
-			'ajax_url' => admin_url( 'admin-ajax.php' ),
-			'nonce'    => wp_create_nonce( 'autoblog_ajax_nonce' ),
-		));
+		// 1. Pipeline runner, log polling, agent flow diagram
+		wp_enqueue_script(
+			$this->plugin_name . '-pipeline',
+			$base_url . 'autoblog-pipeline.js',
+			array( 'jquery' ),
+			$this->version,
+			true
+		);
+		wp_localize_script( $this->plugin_name . '-pipeline', 'autoblog_ajax', $localize_data );
+
+		// 2. AI Engine: dropdown provider/model sinkron + test Gemini Grounding
+		wp_enqueue_script(
+			$this->plugin_name . '-ai-engine',
+			$base_url . 'autoblog-ai-engine.js',
+			array( 'jquery' ),
+			$this->version,
+			true
+		);
+
+		// 3. Custom API Keys CRUD + test connection
+		wp_enqueue_script(
+			$this->plugin_name . '-api-keys',
+			$base_url . 'autoblog-api-keys.js',
+			array( 'jquery' ),
+			$this->version,
+			true
+		);
+
+		// 4. Data Sources toggle (RSS/Web/Search)
+		wp_enqueue_script(
+			$this->plugin_name . '-data-sources',
+			$base_url . 'autoblog-data-sources.js',
+			array( 'jquery' ),
+			$this->version,
+			true
+		);
 
 		// Anti-conflict: WordPress kadang memuat script inline-edit-post secara paksa di edit.php?page=...
 		// yang memicu error inlineEditPost is not defined.
 		if ( $screen->id === 'posts_page_autoblog-taxonomy-tools' ) {
 			wp_dequeue_script( 'inline-edit-post' );
-			
-			// Sebagai jaring pengaman terakhir, kita inject dummy object via inline script
-			wp_add_inline_script( $this->plugin_name, 'var inlineEditPost = { init: function(){} };', 'before' );
+			wp_add_inline_script( $this->plugin_name . '-pipeline', 'var inlineEditPost = { init: function(){} };', 'before' );
 		}
 	}
 
