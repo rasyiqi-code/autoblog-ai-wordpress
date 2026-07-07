@@ -19,6 +19,9 @@ class SearchSourceTest extends TestCase {
         parent::setUp();
         global $_autoblog_mock_options;
         $_autoblog_mock_options = [];
+        // Reset provider default agar test terisolasi
+        remove_all_filters( 'option_autoblog_search_provider' );
+        update_option( 'autoblog_search_provider', 'duckduckgo_free' );
     }
 
     // ================================================================
