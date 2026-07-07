@@ -137,26 +137,35 @@ class Autoblog {
 	 */
 	private function define_admin_hooks() {
 
+		// Load class admin utama (presentasi: menu, assets, data source actions)
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . '../admin/class-autoblog-admin.php';
-		$plugin_admin = new \Autoblog\Admin\Admin( $this->get_plugin_name(), $this->get_version() );
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . '../admin/class-autoblog-settings.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . '../admin/class-autoblog-ajax.php';
 
+		$plugin_admin    = new \Autoblog\Admin\Admin( $this->get_plugin_name(), $this->get_version() );
+		$plugin_settings = new \Autoblog\Admin\AdminSettings();
+		$plugin_ajax     = new \Autoblog\Admin\AdminAjax();
+
+		// Assets & menu
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
 		$this->loader->add_action( 'admin_menu', $plugin_admin, 'add_plugin_admin_menu' );
-		$this->loader->add_action( 'admin_init', $plugin_admin, 'register_settings' );
 
-		// Handler data sources (upload/hapus) HARUS di admin_init agar redirect bisa kirim header
+		// Settings registration
+		$this->loader->add_action( 'admin_init', $plugin_settings, 'register_settings' );
+
+		// Data source mutasi (upload, hapus KB, tambah/hapus source)
 		$this->loader->add_action( 'admin_init', $plugin_admin, 'handle_data_source_actions' );
 
-		// AJAX handlers (Run Pipeline & Get Logs tanpa reload)
-		$this->loader->add_action( 'wp_ajax_autoblog_run_pipeline', $plugin_admin, 'ajax_run_pipeline' );
-		$this->loader->add_action( 'wp_ajax_autoblog_run_collector', $plugin_admin, 'ajax_run_collector' );
-		$this->loader->add_action( 'wp_ajax_autoblog_run_ideator', $plugin_admin, 'ajax_run_ideator' );
-		$this->loader->add_action( 'wp_ajax_autoblog_run_writer', $plugin_admin, 'ajax_run_writer' );
-		$this->loader->add_action( 'wp_ajax_autoblog_ai_predict_taxonomy', $plugin_admin, 'ajax_ai_predict_taxonomy' );
-		$this->loader->add_action( 'wp_ajax_autoblog_get_logs', $plugin_admin, 'ajax_get_logs' );
-		$this->loader->add_action( 'wp_ajax_autoblog_test_gemini_grounding', $plugin_admin, 'ajax_test_gemini_grounding' );
-		$this->loader->add_action( 'wp_ajax_autoblog_test_api_connection', $plugin_admin, 'ajax_test_api_connection' );
+		// AJAX handlers → AdminAjax
+		$this->loader->add_action( 'wp_ajax_autoblog_run_pipeline',          $plugin_ajax, 'ajax_run_pipeline' );
+		$this->loader->add_action( 'wp_ajax_autoblog_run_collector',          $plugin_ajax, 'ajax_run_collector' );
+		$this->loader->add_action( 'wp_ajax_autoblog_run_ideator',            $plugin_ajax, 'ajax_run_ideator' );
+		$this->loader->add_action( 'wp_ajax_autoblog_run_writer',             $plugin_ajax, 'ajax_run_writer' );
+		$this->loader->add_action( 'wp_ajax_autoblog_ai_predict_taxonomy',    $plugin_ajax, 'ajax_ai_predict_taxonomy' );
+		$this->loader->add_action( 'wp_ajax_autoblog_get_logs',               $plugin_ajax, 'ajax_get_logs' );
+		$this->loader->add_action( 'wp_ajax_autoblog_test_gemini_grounding',  $plugin_ajax, 'ajax_test_gemini_grounding' );
+		$this->loader->add_action( 'wp_ajax_autoblog_test_api_connection',    $plugin_ajax, 'ajax_test_api_connection' );
 
         // Scheduler
         require_once plugin_dir_path( dirname( __FILE__ ) ) . '../includes/Publisher/UpdateScheduler.php';
@@ -169,10 +178,10 @@ class Autoblog {
         // Runner
         require_once plugin_dir_path( dirname( __FILE__ ) ) . '../includes/Core/Runner.php';
         $runner = new \Autoblog\Core\Runner();
-        $this->loader->add_action( 'autoblog_run_pipeline', $runner, 'run_pipeline' );
+        $this->loader->add_action( 'autoblog_run_pipeline',  $runner, 'run_pipeline' );
         $this->loader->add_action( 'autoblog_run_collector', $runner, 'run_ingestion_phase' );
-        $this->loader->add_action( 'autoblog_run_ideator', $runner, 'run_ideation_phase' );
-        $this->loader->add_action( 'autoblog_run_writer', $runner, 'run_production_phase' );
+        $this->loader->add_action( 'autoblog_run_ideator',   $runner, 'run_ideation_phase' );
+        $this->loader->add_action( 'autoblog_run_writer',    $runner, 'run_production_phase' );
 
         // Living Content (Content Refresher)
         require_once plugin_dir_path( dirname( __FILE__ ) ) . '../includes/Core/ContentRefresher.php';
