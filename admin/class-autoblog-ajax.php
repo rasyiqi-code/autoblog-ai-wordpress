@@ -342,7 +342,7 @@ class AdminAjax {
             if ( $provider === 'google' || $provider === 'gemini' ) {
                 $test_model = str_replace( 'google/', '', $test_model );
                 if ( empty( $test_model ) || $test_model === 'gpt-4o' ) {
-                    $test_model = 'gemini-1.5-flash';
+                    $test_model = 'gemini-2.0-flash';
                 }
             }
         }
