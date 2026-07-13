@@ -63,30 +63,37 @@ trait AIEmbeddingTrait {
      * @return array|false
      */
     private function openai_embedding( $text ) {
-        if ( empty( $this->openai_key ) ) {
+        $keys_pool = $this->get_keys_pool( 'openai' );
+
+        if ( empty( $keys_pool ) ) {
             Logger::log( 'OpenAI API Key is missing for embeddings.', 'error' );
             return false;
         }
 
-        try {
-            $response = $this->request_with_backoff( 'POST', 'https://api.openai.com/v1/embeddings', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $this->openai_key,
-                    'Content-Type'  => 'application/json',
-                ],
-                'json' => [
-                    'input' => $text,
-                    'model' => 'text-embedding-3-small',
-                ],
-            ]);
+        foreach ( $keys_pool as $index => $api_key ) {
+            $key_num = $index + 1;
+            Logger::log( "Mencoba request embedding [openai] menggunakan API Key ke-{$key_num} dari pool...", 'debug' );
 
-            $body = json_decode( (string) $response->getBody(), true );
+            try {
+                $response = $this->request_with_backoff( 'POST', 'https://api.openai.com/v1/embeddings', [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $api_key,
+                        'Content-Type'  => 'application/json',
+                    ],
+                    'json' => [
+                        'input' => $text,
+                        'model' => 'text-embedding-3-small',
+                    ],
+                ]);
 
-            if ( isset( $body['data'][0]['embedding'] ) ) {
-                return $body['data'][0]['embedding'];
+                $body = json_decode( (string) $response->getBody(), true );
+
+                if ( isset( $body['data'][0]['embedding'] ) ) {
+                    return $body['data'][0]['embedding'];
+                }
+            } catch ( \Exception $e ) {
+                Logger::log( "API Key ke-{$key_num} untuk embedding [openai] gagal: " . $e->getMessage() . ". Mencoba key berikutnya...", 'warning' );
             }
-        } catch ( \Exception $e ) {
-            Logger::log( 'OpenAI Embedding Error: ' . $e->getMessage(), 'error' );
         }
 
         return false;
@@ -100,28 +107,35 @@ trait AIEmbeddingTrait {
      * @return array|false
      */
     private function google_embedding( $text, $model = 'models/gemini-embedding-001' ) {
-        if ( empty( $this->gemini_key ) ) {
+        $keys_pool = $this->get_keys_pool( 'gemini' );
+
+        if ( empty( $keys_pool ) ) {
             Logger::log( 'Gemini API Key is missing for embeddings.', 'error' );
             return false;
         }
 
-        try {
-            $url = "https://generativelanguage.googleapis.com/v1beta/{$model}:embedContent?key={$this->gemini_key}";
+        foreach ( $keys_pool as $index => $api_key ) {
+            $key_num = $index + 1;
+            Logger::log( "Mencoba request embedding [gemini] menggunakan API Key ke-{$key_num} dari pool...", 'debug' );
 
-            $response = $this->request_with_backoff( 'POST', $url, [
-                'headers' => [ 'Content-Type' => 'application/json' ],
-                'json'    => [
-                    'content' => [ 'parts' => [ [ 'text' => $text ] ] ],
-                ],
-            ]);
+            try {
+                $url = "https://generativelanguage.googleapis.com/v1beta/{$model}:embedContent?key={$api_key}";
 
-            $body = json_decode( (string) $response->getBody(), true );
+                $response = $this->request_with_backoff( 'POST', $url, [
+                    'headers' => [ 'Content-Type' => 'application/json' ],
+                    'json'    => [
+                        'content' => [ 'parts' => [ [ 'text' => $text ] ] ],
+                    ],
+                ]);
 
-            if ( isset( $body['embedding']['values'] ) ) {
-                return $body['embedding']['values'];
+                $body = json_decode( (string) $response->getBody(), true );
+
+                if ( isset( $body['embedding']['values'] ) ) {
+                    return $body['embedding']['values'];
+                }
+            } catch ( \Exception $e ) {
+                Logger::log( "API Key ke-{$key_num} untuk embedding [gemini] gagal: " . $e->getMessage() . ". Mencoba key berikutnya...", 'warning' );
             }
-        } catch ( \Exception $e ) {
-            Logger::log( 'Gemini Embedding Error: ' . $e->getMessage(), 'error' );
         }
 
         return false;
@@ -134,34 +148,41 @@ trait AIEmbeddingTrait {
      * @return array|false
      */
     private function huggingface_embedding( $text ) {
-        if ( empty( $this->hf_key ) ) {
+        $keys_pool = $this->get_keys_pool( 'huggingface' );
+
+        if ( empty( $keys_pool ) ) {
             Logger::log( 'Hugging Face API Key is missing for embeddings.', 'error' );
             return false;
         }
 
-        try {
-            $model = 'sentence-transformers/all-MiniLM-L6-v2';
-            $url   = "https://api-inference.huggingface.co/pipeline/feature-extraction/{$model}";
+        foreach ( $keys_pool as $index => $api_key ) {
+            $key_num = $index + 1;
+            Logger::log( "Mencoba request embedding [huggingface] menggunakan API Key ke-{$key_num} dari pool...", 'debug' );
 
-            $response = $this->client->post( $url, [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $this->hf_key,
-                    'Content-Type'  => 'application/json',
-                ],
-                'json' => [
-                    'inputs'  => $text,
-                    'options' => [ 'wait_for_model' => true ],
-                ],
-            ]);
+            try {
+                $model = 'sentence-transformers/all-MiniLM-L6-v2';
+                $url   = "https://api-inference.huggingface.co/pipeline/feature-extraction/{$model}";
 
-            $body = json_decode( (string) $response->getBody(), true );
+                $response = $this->client->post( $url, [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $api_key,
+                        'Content-Type'  => 'application/json',
+                    ],
+                    'json' => [
+                        'inputs'  => $text,
+                        'options' => [ 'wait_for_model' => true ],
+                    ],
+                ]);
 
-            // HF feature-extraction mengembalikan array langsung
-            if ( is_array( $body ) && count( $body ) > 0 && is_numeric( $body[0] ) ) {
-                return $body;
+                $body = json_decode( (string) $response->getBody(), true );
+
+                // HF feature-extraction mengembalikan array langsung
+                if ( is_array( $body ) && count( $body ) > 0 && is_numeric( $body[0] ) ) {
+                    return $body;
+                }
+            } catch ( \Exception $e ) {
+                Logger::log( "API Key ke-{$key_num} untuk embedding [huggingface] gagal: " . $e->getMessage() . ". Mencoba key berikutnya...", 'warning' );
             }
-        } catch ( \Exception $e ) {
-            Logger::log( 'HF Embedding Error: ' . $e->getMessage(), 'error' );
         }
 
         return false;

@@ -38,12 +38,23 @@ class AIClient {
     private $client;
 
     public function __construct() {
-        $this->openai_key     = get_option( 'autoblog_openai_key' );
-        $this->anthropic_key  = get_option( 'autoblog_anthropic_key' );
-        $this->gemini_key     = get_option( 'autoblog_gemini_key' );
-        $this->groq_key       = get_option( 'autoblog_groq_key' );
-        $this->hf_key         = get_option( 'autoblog_hf_key' );
-        $this->openrouter_key = get_option( 'autoblog_openrouter_key' );
+        $openai_pool = $this->get_keys_pool( 'openai' );
+        $this->openai_key = ! empty( $openai_pool ) ? $openai_pool[0] : '';
+
+        $anthropic_pool = $this->get_keys_pool( 'anthropic' );
+        $this->anthropic_key = ! empty( $anthropic_pool ) ? $anthropic_pool[0] : '';
+
+        $gemini_pool = $this->get_keys_pool( 'gemini' );
+        $this->gemini_key = ! empty( $gemini_pool ) ? $gemini_pool[0] : '';
+
+        $groq_pool = $this->get_keys_pool( 'groq' );
+        $this->groq_key = ! empty( $groq_pool ) ? $groq_pool[0] : '';
+
+        $hf_pool = $this->get_keys_pool( 'hf' );
+        $this->hf_key = ! empty( $hf_pool ) ? $hf_pool[0] : '';
+
+        $openrouter_pool = $this->get_keys_pool( 'openrouter' );
+        $this->openrouter_key = ! empty( $openrouter_pool ) ? $openrouter_pool[0] : '';
 
         // HTTP errors di-handle secara manual agar retry logic berjalan
         $this->client = new Client( [ 'http_errors' => false ] );

@@ -325,7 +325,11 @@ class AdminAjax {
         $provider_models = isset( $models[ $dev_key ] ) ? $models[ $dev_key ] : [];
         $test_model      = ! empty( $provider_models ) ? array_key_first( $provider_models ) : 'gpt-4o';
         if ( $provider === 'google' || $provider === 'gemini' ) {
-            $test_model = 'gemini-2.5-flash';
+            // Bersihkan prefix provider 'google/' dari model name untuk API request langsung
+            $test_model = str_replace( 'google/', '', $test_model );
+            if ( empty( $test_model ) || $test_model === 'gpt-4o' ) {
+                $test_model = 'gemini-1.5-flash';
+            }
         }
 
         try {
