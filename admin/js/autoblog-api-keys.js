@@ -111,6 +111,8 @@
       $btn.prop("disabled", true).text("Testing...");
       $status.css("color", "#646970").text("⏳ Menghubungi API...");
 
+      var selectedModel = $("#autoblog_ai_model").val();
+
       $.ajax({
         url:  autoblog_ajax.ajax_url,
         type: "POST",
@@ -120,6 +122,7 @@
           provider:     provider,
           api_key:      apiKey,
           api_endpoint: apiEndpoint || "",
+          model:        selectedModel || "",
         },
         success: function (response) {
           if (response.success) {

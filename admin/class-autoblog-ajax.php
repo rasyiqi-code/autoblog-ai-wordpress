@@ -248,12 +248,13 @@ class AdminAjax {
         $provider     = isset( $_POST['provider'] ) ? sanitize_text_field( $_POST['provider'] ) : '';
         $api_key      = isset( $_POST['api_key'] )  ? sanitize_text_field( $_POST['api_key'] )  : '';
         $api_endpoint = isset( $_POST['api_endpoint'] ) ? esc_url_raw( trim( $_POST['api_endpoint'] ) ) : '';
+        $model        = isset( $_POST['model'] ) ? sanitize_text_field( $_POST['model'] ) : '';
 
         if ( empty( $provider ) || empty( $api_key ) ) {
             wp_send_json_error( [ 'message' => 'Provider atau API Key tidak boleh kosong.' ] );
         }
 
-        $result = $this->validate_api_key( $provider, $api_key, $api_endpoint );
+        $result = $this->validate_api_key( $provider, $api_key, $api_endpoint, $model );
 
         if ( $result['success'] ) {
             wp_send_json_success( [ 'message' => 'Sukses terhubung!' ] );
@@ -268,9 +269,10 @@ class AdminAjax {
      * @param string $provider
      * @param string $api_key
      * @param string $api_endpoint
+     * @param string $selected_model
      * @return array [ success => bool, message => string ]
      */
-    private function validate_api_key( $provider, $api_key, $api_endpoint = '' ) {
+    private function validate_api_key( $provider, $api_key, $api_endpoint = '', $selected_model = '' ) {
         // Pecah jika user memasukkan multi-key (satu per baris / koma)
         $keys = array_filter( array_map( 'trim', preg_split( '/[\n,]+/', $api_key ) ) );
         $api_key = ! empty( $keys ) ? $keys[0] : '';
@@ -318,17 +320,30 @@ class AdminAjax {
             return [ 'success' => false, 'message' => 'Provider API Endpoint tidak ditemukan.' ];
         }
 
-        // Tentukan model test
-        $models          = ModelCatalog::get_merged_models();
-        $dev_key         = ( $provider === 'gemini' || $provider === 'google' ) ? 'google'
-                         : ( ( $provider === 'huggingface' || $provider === 'hf' ) ? 'huggingface' : $provider );
-        $provider_models = isset( $models[ $dev_key ] ) ? $models[ $dev_key ] : [];
-        $test_model      = ! empty( $provider_models ) ? array_key_first( $provider_models ) : 'gpt-4o';
-        if ( $provider === 'google' || $provider === 'gemini' ) {
-            // Bersihkan prefix provider 'google/' dari model name untuk API request langsung
-            $test_model = str_replace( 'google/', '', $test_model );
-            if ( empty( $test_model ) || $test_model === 'gpt-4o' ) {
-                $test_model = 'gemini-1.5-flash';
+        // Tentukan model test (gunakan model yang dipilih jika ada)
+        $test_model = $selected_model;
+
+        if ( ! empty( $test_model ) ) {
+            // Bersihkan prefix provider jika ada (misal 'google/gemini-2.5-pro' -> 'gemini-2.5-pro')
+            $test_model = str_replace( $provider . '/', '', $test_model );
+            if ( $provider === 'gemini' || $provider === 'google' ) {
+                $test_model = str_replace( 'google/', '', $test_model );
+            }
+        }
+
+        // Fallback jika parameter model kosong
+        if ( empty( $test_model ) ) {
+            $models          = ModelCatalog::get_merged_models();
+            $dev_key         = ( $provider === 'gemini' || $provider === 'google' ) ? 'google'
+                             : ( ( $provider === 'huggingface' || $provider === 'hf' ) ? 'huggingface' : $provider );
+            $provider_models = isset( $models[ $dev_key ] ) ? $models[ $dev_key ] : [];
+            $test_model      = ! empty( $provider_models ) ? array_key_first( $provider_models ) : 'gpt-4o';
+            
+            if ( $provider === 'google' || $provider === 'gemini' ) {
+                $test_model = str_replace( 'google/', '', $test_model );
+                if ( empty( $test_model ) || $test_model === 'gpt-4o' ) {
+                    $test_model = 'gemini-1.5-flash';
+                }
             }
         }
 
