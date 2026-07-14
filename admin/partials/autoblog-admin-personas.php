@@ -120,14 +120,18 @@ if ( isset( $_GET['action'] ) && $_GET['action'] === 'autoblog_delete_persona' &
 $existing_personas = get_option( 'autoblog_custom_personas', array() );
 ?>
 
-<div class="postbox">
-    <div class="postbox-header">
-        <h2 class="hndle">👥 AI Author Profiles</h2>
-    </div>
-    <div class="inside">
-        <p class="description">Tentukan identitas siapa yang akan muncul sebagai penulis artikel di WordPress.</p>
-        <form method="post" action="options.php">
-            <?php settings_fields( 'autoblog_style' ); ?>
+<form method="post" action="options.php">
+    <?php settings_fields( 'autoblog_style' ); ?>
+
+    <!-- ================================================================ -->
+    <!-- AI AUTHOR PROFILES                                               -->
+    <!-- ================================================================ -->
+    <div class="postbox">
+        <div class="postbox-header">
+            <h2 class="hndle">👥 AI Author Profiles</h2>
+        </div>
+        <div class="inside">
+            <p class="description">Tentukan identitas siapa yang akan muncul sebagai penulis artikel di WordPress.</p>
             <table class="form-table">
                 <tr valign="top">
                     <th scope="row">Author Strategy</th>
@@ -161,12 +165,48 @@ $existing_personas = get_option( 'autoblog_custom_personas', array() );
                     </td>
                 </tr>
             </table>
-            <div style="margin-top: 15px; border-top:1px solid #dcdcde; padding-top:12px;">
-                <?php submit_button( 'Simpan Pengaturan Penulis', 'secondary', 'submit', false ); ?>
-            </div>
-        </form>
+        </div>
     </div>
-</div>
+
+    <!-- ================================================================ -->
+    <!-- PERSONALITY FINE-TUNING                                          -->
+    <!-- ================================================================ -->
+    <div class="postbox">
+        <div class="postbox-header">
+            <h2 class="hndle">✍️ Personality Fine-Tuning</h2>
+        </div>
+        <div class="inside">
+            <p class="description">Berikan contoh tulisan Anda agar AI bisa meniru gaya, nada, dan struktur kalimat Anda (Few-Shot Prompting).</p>
+            <table class="form-table">
+                <tr valign="top">
+                    <th scope="row">Enable Personality</th>
+                    <td>
+                        <fieldset>
+                            <label for="autoblog_enable_personality">
+                                <input name="autoblog_enable_personality" type="checkbox"
+                                       id="autoblog_enable_personality" value="1"
+                                       <?php checked( '1', get_option( 'autoblog_enable_personality' ) ); ?> />
+                                Aktifkan Custom Personality
+                            </label>
+                        </fieldset>
+                        <p class="description">Jika aktif, AI akan menganalisis sampel tulisan di bawah untuk meniru gaya Anda.</p>
+                    </td>
+                </tr>
+                <tr valign="top">
+                    <th scope="row">Writing Samples</th>
+                    <td>
+                        <textarea name="autoblog_personality_samples" rows="8" cols="50"
+                                  class="large-text code"
+                                  placeholder="Tempel 2-3 paragraf tulisan Anda di sini. AI akan menganalisis nada, struktur kalimat, dan gaya humor Anda."><?php echo esc_textarea( get_option( 'autoblog_personality_samples' ) ); ?></textarea>
+                    </td>
+                </tr>
+            </table>
+            <div style="margin-top: 15px; border-top:1px solid #dcdcde; padding-top:12px;">
+                <?php submit_button( 'Simpan Pengaturan Gaya Penulisan', 'primary', 'submit', false ); ?>
+            </div>
+        </div>
+    </div>
+</form>
 
 <div class="postbox">
     <div class="postbox-header">
@@ -231,45 +271,6 @@ $existing_personas = get_option( 'autoblog_custom_personas', array() );
                 </tbody>
             </table>
             <?php submit_button( 'Simpan Mapping Penulis', 'primary', 'autoblog_save_author_mapping', false ); ?>
-        </form>
-    </div>
-</div>
-
-<div class="postbox">
-    <div class="postbox-header">
-        <h2 class="hndle">✍️ Personality Fine-Tuning</h2>
-    </div>
-    <div class="inside">
-        <p class="description">Berikan contoh tulisan Anda agar AI bisa meniru gaya, nada, dan struktur kalimat Anda (Few-Shot Prompting).</p>
-        <form method="post" action="options.php">
-            <?php settings_fields( 'autoblog_style' ); ?>
-            <table class="form-table">
-                <tr valign="top">
-                    <th scope="row">Enable Personality</th>
-                    <td>
-                        <fieldset>
-                            <label for="autoblog_enable_personality">
-                                <input name="autoblog_enable_personality" type="checkbox"
-                                       id="autoblog_enable_personality" value="1"
-                                       <?php checked( '1', get_option( 'autoblog_enable_personality' ) ); ?> />
-                                Aktifkan Custom Personality
-                            </label>
-                        </fieldset>
-                        <p class="description">Jika aktif, AI akan menganalisis sampel tulisan di bawah untuk meniru gaya Anda.</p>
-                    </td>
-                </tr>
-                <tr valign="top">
-                    <th scope="row">Writing Samples</th>
-                    <td>
-                        <textarea name="autoblog_personality_samples" rows="8" cols="50"
-                                  class="large-text code"
-                                  placeholder="Tempel 2-3 paragraf tulisan Anda di sini. AI akan menganalisis nada, struktur kalimat, dan gaya humor Anda."><?php echo esc_textarea( get_option( 'autoblog_personality_samples' ) ); ?></textarea>
-                    </td>
-                </tr>
-            </table>
-            <div style="margin-top: 15px; border-top:1px solid #dcdcde; padding-top:12px;">
-                <?php submit_button( 'Simpan Personality', 'secondary', 'submit', false ); ?>
-            </div>
         </form>
     </div>
 </div>
