@@ -130,7 +130,7 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                                 <!-- Col 3.5: AI Model select dropdown -->
                                 <td style="vertical-align: middle;">
                                     <?php
-                                    $models          = ModelCatalog::get_merged_models();
+                                    $models          = \Autoblog\Utils\ModelCatalog::get_merged_models();
                                     $dev_key         = ( $prov_id === 'gemini' || $prov_id === 'google' ) ? 'google'
                                                      : ( ( $prov_id === 'huggingface' || $prov_id === 'hf' ) ? 'huggingface' : $prov_id );
                                     $provider_models = isset( $models[ $dev_key ] ) ? $models[ $dev_key ] : [];
