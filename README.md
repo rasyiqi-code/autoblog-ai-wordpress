@@ -29,6 +29,9 @@ An intelligent, agentic autoblogging plugin for WordPress that automates content
 Plugin ini dilengkapi dengan 5 tab pengaturan di halaman admin untuk mengontrol seluruh alur kerja robot penulis (AI Agent):
 
 ### 1. 🔑 API Keys (Pengaturan Kunci API & Model)
+
+![API Keys Dashboard](docs/images/api-keys.png)
+
 Di sini Anda mengatur "otak" AI yang akan digunakan untuk menulis:
 * **Pilih Provider Aktif**: Cukup klik tombol bulat (radio button) di kolom **Aktif** untuk memilih provider utama (misal: Google Gemini atau OpenAI). Provider terpilih akan bertanda **AKTIF** (hijau), sedangkan yang lain menjadi **CADANGAN** (abu-abu).
 * **AI Model Terpisah**: Setiap provider punya pilihan modelnya sendiri langsung di baris tabelnya. Anda bisa set Google Gemini menggunakan `gemini-2.5-pro` dan OpenAI menggunakan `gpt-4o-mini` tanpa saling mengganggu.
@@ -37,6 +40,9 @@ Di sini Anda mengatur "otak" AI yang akan digunakan untuk menulis:
 * **Tombol Uji (Test Connection)**: Klik tombol **Test** di baris provider mana saja untuk langsung mengetes koneksi API key menggunakan model spesifik pilihan di baris tersebut.
 
 ### 2. 📥 Data Sources (Sumber Bahan Tulisan)
+
+![Data Sources Dashboard](docs/images/data-sources.png)
+
 Menentukan dari mana AI akan mencari bahan referensi sebelum menulis artikel:
 * **Mode Sumber Data (Source Mode)**:
   * *Keduanya*: AI akan membaca dokumen di Knowledge Base lokal Anda DAN mencari info tambahan dari internet/RSS.
@@ -50,6 +56,9 @@ Menentukan dari mana AI akan mencari bahan referensi sebelum menulis artikel:
   * **Penyaring Kata Kunci**: Masukkan kata kunci wajib (*Include*) atau kata kunci pantangan (*Exclude*) untuk menyaring artikel agar relevan.
 
 ### 3. 👥 Writing Style (Gaya Penulisan & Penulis)
+
+![Writing Style Dashboard](docs/images/writing-style.png)
+
 Mengatur "siapa" yang menulis dan "bagaimana" gaya bahasanya:
 * **Strategi Penulis (Author Strategy)**: Tentukan akun WordPress mana yang dipasang sebagai penulis artikel baru:
   * *Random*: Diacak di antara user yang terdaftar.
@@ -65,6 +74,9 @@ Mengatur "siapa" yang menulis dan "bagaimana" gaya bahasanya:
   * *Si Profesional*: Sopan, terstruktur, dan berwibawa layaknya jurnalis senior.
 
 ### 4. ⚙️ Advanced (Fitur AI Canggih)
+
+![Advanced Dashboard](docs/images/advanced.png)
+
 Fitur-fitur tambahan untuk membuat AI bekerja seperti asisten jurnalis profesional:
 * **Dynamic Search Agent**: AI tidak hanya mencari kata kunci yang Anda masukkan, tapi juga mengembangkannya secara dinamis menjadi kueri pencarian unik setiap hari (misal: "Tren AI" berkembang menjadi "Tren AI dalam Industri Kesehatan 2025").
 * **Deep Research Agent (Riset Mendalam)**: AI akan mencari info di internet secara berulang-ulang (*multi-hop*), menganalisis data sementara, lalu mencari lagi sampai faktanya lengkap sebelum mulai menulis.
@@ -73,6 +85,9 @@ Fitur-fitur tambahan untuk membuat AI bekerja seperti asisten jurnalis profesion
 * **Multi-Modal Content**: Secara otomatis membuat diagram/grafik visual jika artikel membahas data statistik, serta menyisipkan media/video yang relevan.
 
 ### 5. 🛠 Tools (Pusat Kendali Agen)
+
+![Tools & Logs Dashboard](docs/images/tools.png)
+
 Halaman kontrol taktis untuk melihat kinerja robot AI secara real-time:
 * **Visual Agent Flow Diagram**: Grafik visual yang menunjukkan status kerja 3 agen utama Anda: *Collector Agent* (pengumpul data), *Ideator Agent* (pembuat ide), dan *Writer Agent* (penulis artikel). Anda bisa mengklik ikon agen tersebut untuk menjalankannya secara manual.
 * **Picu Pipeline Sekarang**: Tombol cepat untuk menyuruh AI langsung mulai mengumpulkan bahan, membuat ide, menulis, dan menerbitkan artikel detik ini juga tanpa menunggu jadwal cron.
