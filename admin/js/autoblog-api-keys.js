@@ -33,13 +33,28 @@
 
       var placeholderVal = 'Default models.dev';
 
+      var devKey = provId;
+      if (provId === "gemini") {
+        devKey = "google";
+      } else if (provId === "huggingface" || provId === "hf") {
+        devKey = "huggingface";
+      }
+
+      var catalog = autoblog_ajax.catalog_models || {};
+      var models  = catalog[devKey] || {};
+      var selectHtml = '<select name="autoblog_custom_api_models[' + provId + ']" class="provider-model-select" style="width: 100%; font-size: 12px; height: 28px; padding: 2px; margin: 0;">';
+      
+      $.map(models, function (m_name, m_id) {
+        selectHtml += '<option value="' + m_id + '">' + m_name + '</option>';
+      });
+      selectHtml += '</select>';
+
       // Buat baris input baru dengan input Base URL & Radio Set Aktif
       var isChecked = ($(".active-provider-radio:checked").length === 0) ? "checked" : "";
       var newRow =
         '<tr class="custom-key-row" data-provider="' + provId + '">' +
         '  <td style="text-align: center; vertical-align: middle; padding: 10px;">' +
         '    <input type="radio" class="active-provider-radio" name="autoblog_ai_provider" value="' + provId + '" ' + isChecked + ' style="margin: 0; cursor: pointer;" />' +
-        '    <input type="hidden" name="autoblog_custom_api_models[' + provId + ']" class="provider-custom-model-hidden" value="" />' +
         '  </td>' +
         '  <td style="vertical-align: middle; padding: 10px;">' +
         '    <span class="provider-label-text" style="font-weight: 700; font-size: 13px; color: #1d2327;">' + provName + '</span>' +
@@ -47,6 +62,9 @@
         '  </td>' +
         '  <td style="vertical-align: middle; padding: 10px;">' +
         '    <textarea name="autoblog_custom_api_keys[' + provId + ']" style="width: 100%; height: 38px; -webkit-text-security: disc; font-family: monospace; padding: 5px; font-size: 12px; resize: vertical; margin: 0;" placeholder="Masukkan satu atau lebih API key (satu per baris)..."></textarea>' +
+        '  </td>' +
+        '  <td style="vertical-align: middle; padding: 10px;">' +
+        selectHtml +
         '  </td>' +
         '  <td style="vertical-align: middle; padding: 10px;">' +
         '    <input type="text" name="autoblog_custom_api_endpoints[' + provId + ']" value="' + defaultApi + '" data-default="' + defaultApi + '" placeholder="' + placeholderVal + '" style="width: 100%; font-size: 12px; padding: 4px; margin: 0;" />' +
@@ -112,10 +130,7 @@
       $btn.prop("disabled", true).text("Testing...");
       $status.css("color", "#646970").text("⏳ Menghubungi API...");
 
-      var selectedModel = $row.find(".provider-custom-model-hidden").val();
-      if (!selectedModel) {
-        selectedModel = $("#autoblog_ai_model").val();
-      }
+      var selectedModel = $row.find(".provider-model-select").val() || "";
 
       $.ajax({
         url:  autoblog_ajax.ajax_url,

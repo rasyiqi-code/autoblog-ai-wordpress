@@ -86,8 +86,9 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                         <th scope="col" style="width: 55px; text-align: center;">Aktif</th>
                         <th scope="col" style="width: 120px;">Provider</th>
                         <th scope="col">API Key(s) (Satu per baris)</th>
+                        <th scope="col" style="width: 180px;">AI Model</th>
                         <th scope="col">Base URL (Custom / Bawaan)</th>
-                        <th scope="col" style="width: 130px; text-align: center;">Aksi</th>
+                        <th scope="col" style="width: 150px; text-align: center;">Aksi</th>
                     </tr>
                 </thead>
                 <tbody id="custom-keys-tbody">
@@ -111,12 +112,10 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                             if ( empty( $current_endpoint ) ) {
                                 $current_endpoint = $default_endpoint;
                             }
-                            ?>
-                            <tr class="custom-key-row" data-provider="<?php echo esc_attr($prov_id); ?>">
+                                                         <tr class="custom-key-row" data-provider="<?php echo esc_attr($prov_id); ?>">
                                 <!-- Col 1: Active Radio -->
                                 <td style="text-align: center; vertical-align: middle;">
                                     <input type="radio" class="active-provider-radio" name="autoblog_ai_provider" value="<?php echo esc_attr($prov_id); ?>" <?php checked($selected_provider, $prov_id); ?> style="margin: 0; cursor: pointer;" />
-                                    <input type="hidden" name="autoblog_custom_api_models[<?php echo esc_attr($prov_id); ?>]" class="provider-custom-model-hidden" value="<?php echo esc_attr( isset($custom_models[$prov_id]) ? $custom_models[$prov_id] : '' ); ?>" />
                                 </td>
                                 <!-- Col 2: Provider Name & Badge -->
                                 <td style="vertical-align: middle;">
@@ -126,6 +125,29 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                                 <!-- Col 3: API Key Textarea -->
                                 <td style="vertical-align: middle;">
                                     <textarea name="autoblog_custom_api_keys[<?php echo esc_attr($prov_id); ?>]" style="width: 100%; height: 38px; font-family: monospace; font-size: 13px;" placeholder="Masukkan satu atau lebih API key (satu per baris)..."><?php echo esc_textarea($prov_key); ?></textarea>
+                                </td>
+                                <!-- Col 3.5: AI Model select dropdown -->
+                                <td style="vertical-align: middle;">
+                                    <?php
+                                    $models          = ModelCatalog::get_merged_models();
+                                    $dev_key         = ( $prov_id === 'gemini' || $prov_id === 'google' ) ? 'google'
+                                                     : ( ( $prov_id === 'huggingface' || $prov_id === 'hf' ) ? 'huggingface' : $prov_id );
+                                    $provider_models = isset( $models[ $dev_key ] ) ? $models[ $dev_key ] : [];
+                                    $selected_model  = isset($custom_models[$prov_id]) ? $custom_models[$prov_id] : '';
+                                    if ( empty( $selected_model ) ) {
+                                        $selected_model = ! empty( $provider_models ) ? array_key_first( $provider_models ) : '';
+                                    }
+                                    ?>
+                                    <select name="autoblog_custom_api_models[<?php echo esc_attr($prov_id); ?>]" class="provider-model-select" style="width: 100%; font-size: 12px; height: 28px; padding: 2px; margin: 0;">
+                                        <?php
+                                        foreach ( $provider_models as $m_id => $m_name ) {
+                                            echo '<option value="' . esc_attr($m_id) . '" ' . selected($selected_model, $m_id, false) . '>' . esc_html($m_name) . '</option>';
+                                        }
+                                        if ( ! empty($selected_model) && ! isset($provider_models[$selected_model]) && $prov_id !== 'huggingface' && $prov_id !== 'hf' ) {
+                                            echo '<option value="' . esc_attr($selected_model) . '" selected>' . esc_html($selected_model) . '</option>';
+                                        }
+                                        ?>
+                                    </select>
                                 </td>
                                 <!-- Col 4: Base URL Input -->
                                 <td style="vertical-align: middle;">
@@ -181,14 +203,6 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                         ?>
                     </select>
                     <button type="button" class="button button-secondary" id="btn-add-custom-key">+ Tambah Key</button>
-                </div>
-
-                <!-- Right: AI Model selection -->
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <label for="autoblog_ai_model" style="font-weight: 600; font-size: 13px; color: #1d2327;">AI Model:</label>
-                    <select name="autoblog_ai_model" id="autoblog_ai_model" style="min-width: 250px;">
-                        <!-- JS dinamis populate -->
-                    </select>
                 </div>
             </div>
             

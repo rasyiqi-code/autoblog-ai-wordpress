@@ -17,55 +17,8 @@
     // ================================================================
     // HELPER: Update dropdown model berdasarkan provider yang dipilih
     // ================================================================
-    function updateAIModelDropdown() {
+    function toggleGeminiGroundingRow() {
       var provider = $(".active-provider-radio:checked").val();
-      var $modelSelect = $("#autoblog_ai_model");
-      if ($modelSelect.length === 0) return;
-
-      $modelSelect.empty();
-
-      if (!provider) {
-        $modelSelect.append($("<option></option>").val("").text("-- Harap Tambah & Aktifkan Provider --"));
-        return;
-      }
-
-      // Mapping alias provider ke kunci katalog
-      var devKey = provider;
-      if (provider === "gemini") {
-        devKey = "google";
-      } else if (provider === "huggingface" || provider === "hf") {
-        devKey = "huggingface";
-      }
-
-      var catalog       = autoblog_ajax.catalog_models || {};
-      var models        = catalog[devKey] || {};
-      
-      // Ambil model tersimpan khusus provider ini dari input hidden
-      var savedModel = $('.custom-key-row[data-provider="' + devKey + '"] .provider-custom-model-hidden').val();
-      if (!savedModel) {
-        savedModel = autoblog_ajax.selected_model;
-      }
-      
-      var foundSelected = false;
-
-      $.each(models, function (m_id, m_name) {
-        var isSelected = m_id === savedModel;
-        if (isSelected) { foundSelected = true; }
-        $modelSelect.append(
-          $("<option></option>").val(m_id).text(m_name).prop("selected", isSelected)
-        );
-      });
-
-      // Jika model tersimpan tidak ada di katalog (custom/lama), tambahkan sebagai opsi dinamis
-      if (savedModel && !foundSelected && provider !== "hf") {
-        $modelSelect.append(
-          $("<option></option>").val(savedModel).text(savedModel).prop("selected", true)
-        );
-      }
-
-      $modelSelect.val(savedModel);
-
-      // Tampil/sembunyi baris Gemini Grounding
       if (provider === "gemini") {
         $("#row_gemini_grounding").show();
       } else {
@@ -154,25 +107,10 @@
 
     // Bind event
     $(document).on("change", ".active-provider-radio", function() {
-      updateAIModelDropdown();
+      toggleGeminiGroundingRow();
       checkActiveKey();
     });
     $("#autoblog_embedding_provider").on("change", checkRAGKey);
-
-    // Update model kustom di input hidden saat dropdown model berubah
-    $(document).on("change", "#autoblog_ai_model", function() {
-      var modelVal = $(this).val();
-      var provider = $(".active-provider-radio:checked").val();
-      if (provider) {
-        var checkKey = provider;
-        if (provider === "gemini") {
-          checkKey = "google";
-        } else if (provider === "hf") {
-          checkKey = "huggingface";
-        }
-        $('.custom-key-row[data-provider="' + checkKey + '"] .provider-custom-model-hidden').val(modelVal);
-      }
-    });
 
     // Monitoring input password custom keys & default URL visibility
     $(document).on("input", ".custom-key-row textarea", checkActiveKey);
@@ -184,14 +122,14 @@
         if ($(".active-provider-radio:checked").length === 0) {
           $(".active-provider-radio").first().prop("checked", true);
         }
-        updateAIModelDropdown();
+        toggleGeminiGroundingRow();
         checkActiveKey();
         updateDefaultUrlVisibility();
       }, 50); // delay agar DOM selesai terupdate
     });
 
     // Inisialisasi awal
-    updateAIModelDropdown();
+    toggleGeminiGroundingRow();
     checkRAGKey();
     checkActiveKey();
     updateDefaultUrlVisibility();
