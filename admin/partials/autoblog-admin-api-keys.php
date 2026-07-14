@@ -326,8 +326,21 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                                 <div style="display:flex; gap:8px; align-items:center;">
                                     <label for="gemini_test_model" style="font-weight:600; font-size:11px; min-width:80px;">Model:</label>
                                     <select id="gemini_test_model">
-                                        <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                                        <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                                        <?php
+                                        $models = \Autoblog\Utils\ModelCatalog::get_merged_models();
+                                        $gemini_models = isset( $models['google'] ) ? $models['google'] : [];
+                                        if ( ! empty( $gemini_models ) ) {
+                                            foreach ( $gemini_models as $m_id => $m_name ) {
+                                                // Pilih gemini-2.0-flash sebagai default jika ada, karena stabil dan teruji
+                                                $selected = ( $m_id === 'gemini-2.0-flash' ) ? 'selected' : '';
+                                                echo '<option value="' . esc_attr($m_id) . '" ' . $selected . '>' . esc_html($m_name) . '</option>';
+                                            }
+                                        } else {
+                                            echo '<option value="gemini-2.0-flash" selected>Gemini 2.0 Flash</option>';
+                                            echo '<option value="gemini-1.5-flash">Gemini 1.5 Flash</option>';
+                                            echo '<option value="gemini-2.5-flash">Gemini 2.5 Flash</option>';
+                                        }
+                                        ?>
                                     </select>
                                 </div>
                                 <div style="display:flex; gap:6px;">
