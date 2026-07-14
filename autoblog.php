@@ -14,7 +14,7 @@
  * Plugin Name:       Autoblog AI
  * Plugin URI:        https://crediblemark.com
  * Description:       An intelligent autoblog plugin that scrapes, processes, and publishes content using AI.
- * Version:           1.1.1
+ * Version:           1.1.2
  * Author:            CredibleMark
  * Author URI:        https://crediblemark.com
  * License:           GPL-2.0+
@@ -33,7 +33,7 @@ if ( ! defined( 'WPINC' ) ) {
  * Start at version 1.0.0 and use SemVer - https://semver.org
  * Rename this for your plugin and update it as you release new versions.
  */
-define( 'AUTOBLOG_VERSION', '1.1.1' );
+define( 'AUTOBLOG_VERSION', '1.1.2' );
 
 /**
  * Payload path
