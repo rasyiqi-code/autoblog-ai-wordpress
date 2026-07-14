@@ -24,43 +24,60 @@ An intelligent, agentic autoblogging plugin for WordPress that automates content
 
 ---
 
-## 🖥 Admin Settings Dashboard Tabs
+## 🖥 Panduan Menu Dashboard Pengaturan (Admin Tabs)
 
-The plugin settings dashboard is organized into 5 tabs, allowing granular control over the agentic workflow:
+Plugin ini dilengkapi dengan 5 tab pengaturan di halaman admin untuk mengontrol seluruh alur kerja robot penulis (AI Agent):
 
-### 1. 🔑 API Keys
-* **Active Provider Radio**: Select the primary LLM provider. The active provider gets highlighted while backup providers are kept as standby.
-* **Per-Provider Model Dropdown**: Select the active model for each provider row independently. Models are dynamically populated from the `models.dev` catalog.
-* **Multi-API Key Rotation**: Input multiple API keys (one per line) per provider. The plugin automatically rotates to backup keys if the active key hits rate limits or quota depletion.
-* **Base URL Customization**: Override default API endpoints for custom proxies, local models, or reverse proxies.
-* **Isolated Connection Tester**: Test API keys using the specific model selected on that row.
+### 1. 🔑 API Keys (Pengaturan Kunci API & Model)
+Di sini Anda mengatur "otak" AI yang akan digunakan untuk menulis:
+* **Pilih Provider Aktif**: Cukup klik tombol bulat (radio button) di kolom **Aktif** untuk memilih provider utama (misal: Google Gemini atau OpenAI). Provider terpilih akan bertanda **AKTIF** (hijau), sedangkan yang lain menjadi **CADANGAN** (abu-abu).
+* **AI Model Terpisah**: Setiap provider punya pilihan modelnya sendiri langsung di baris tabelnya. Anda bisa set Google Gemini menggunakan `gemini-2.5-pro` dan OpenAI menggunakan `gpt-4o-mini` tanpa saling mengganggu.
+* **Rotasi Banyak API Key**: Anda bisa memasukkan banyak API key sekaligus di kolom **API Key(s)** (tulis satu key per baris). Jika key utama Anda limit atau habis kuota, AI akan otomatis memakai key baris di bawahnya tanpa membuat proses menulis berhenti.
+* **Base URL Kustom**: Bisa digunakan jika Anda memakai proxy API, server lokal, atau model AI buatan sendiri. Nilai default bawaan dari `models.dev` sudah terisi otomatis.
+* **Tombol Uji (Test Connection)**: Klik tombol **Test** di baris provider mana saja untuk langsung mengetes koneksi API key menggunakan model spesifik pilihan di baris tersebut.
 
-### 2. 📥 Data Sources
-* **Data Source Mode**: 
-  * *Both (Knowledge Base + Triggers)*: Combines external scraping with RAG context.
-  * *Only KB (Internal)*: Pure internal RAG processing from uploaded documents.
-  * *Only Triggers (External)*: Rely strictly on external triggers (RSS, Web Scrapers, Search).
-* **Knowledge Base (RAG)**: Upload documents (`.xlsx`, `.csv`, `.pdf`, `.docx`, `.txt`, `.md`) to build a local vector store.
-* **Content Triggers**: Configure automated ingestion via **RSS Feeds** (with Readability-based smart scraping fallback), **Web Scrapers** (targeting CSS Selectors), or periodic **Web Search** queries. Includes inclusion/exclusion keyword filters.
+### 2. 📥 Data Sources (Sumber Bahan Tulisan)
+Menentukan dari mana AI akan mencari bahan referensi sebelum menulis artikel:
+* **Mode Sumber Data (Source Mode)**:
+  * *Keduanya*: AI akan membaca dokumen di Knowledge Base lokal Anda DAN mencari info tambahan dari internet/RSS.
+  * *Hanya KB (Knowledge Base)*: AI hanya akan menulis artikel berdasarkan dokumen-dokumen yang Anda unggah saja (sumber internal).
+  * *Hanya Triggers (External)*: AI menulis murni dari internet, RSS Feed, atau web scraper luar saja.
+* **Knowledge Base (RAG)**: Unggah file dokumen referensi Anda di sini (mendukung `.xlsx`, `.csv`, `.pdf`, `.docx`, `.txt`, `.md`). Sistem akan memecah dokumen tersebut menjadi potongan memori vektor agar AI bisa menjawab dengan fakta yang tepat.
+* **Content Triggers**: Mengatur pemantau konten otomatis:
+  * **RSS Feed**: Mengambil berita dari feed RSS blog lain. Jika artikel di feed terlalu pendek, sistem otomatis akan pergi ke link asli dan mengekstrak artikel utamanya secara bersih menggunakan library `Readability`.
+  * **Web Scraper**: Menyalin isi halaman web tertentu secara spesifik menggunakan CSS Selector (misalnya hanya mengambil elemen tag `<article>`).
+  * **Web Search**: Menyuruh AI mencari topik terpopuler di DuckDuckGo atau SerpApi.
+  * **Penyaring Kata Kunci**: Masukkan kata kunci wajib (*Include*) atau kata kunci pantangan (*Exclude*) untuk menyaring artikel agar relevan.
 
-### 3. 👥 Writing Style
-* **WordPress Author Strategy**: Choose how WordPress author accounts are assigned to new posts (*Random*, *Round Robin*, or *Fixed Author*).
-* **Author-to-Persona Mapping**: Map each WordPress author account to a specific **AI Persona** (such as *Si Kritis*, *Si Storyteller*, *Si Realistis*, *Si Santuy*, or *Si Profesional*) and customize author-level writing samples.
-* **Personality Fine-Tuning**: Enable custom personality settings and paste writing samples for Few-Shot prompting.
-* **Master Persona Management**: Create, view, and delete custom AI personas with custom character instruction prompts.
+### 3. 👥 Writing Style (Gaya Penulisan & Penulis)
+Mengatur "siapa" yang menulis dan "bagaimana" gaya bahasanya:
+* **Strategi Penulis (Author Strategy)**: Tentukan akun WordPress mana yang dipasang sebagai penulis artikel baru:
+  * *Random*: Diacak di antara user yang terdaftar.
+  * *Round Robin*: Bergantian secara adil.
+  * *Fixed Author*: Selalu ditulis oleh satu user WordPress yang sama.
+* **Hubungkan Penulis ke Persona**: Anda bisa menugaskan Persona AI yang berbeda untuk setiap akun WordPress. Misalnya, akun Budi menggunakan gaya bahasa **Si Santuy**, sedangkan akun Jurnalis menggunakan gaya **Si Profesional**.
+* **Personality Fine-Tuning**: Anda bisa menempelkan 2-3 paragraf contoh tulisan asli Anda (*Writing Samples*). Jika diaktifkan, AI akan meniru gaya bahasa, panjang kalimat, hingga gaya humor Anda agar tulisan terlihat lebih orisinal dan natural.
+* **Pilihan Persona AI Bawaan**:
+  * *Si Kritis*: Skeptis, langsung ke poin utama, benci bahasa iklan.
+  * *Si Storyteller*: Mengalir, banyak metafora, seperti ngobrol santai di warkop.
+  * *Si Realistis*: Praktis dan fokus pada solusi nyata ("Gini lho...").
+  * *Si Santuy*: Bergaya bahasa kasual dan santai ala anak muda Jaksel yang tetap berbobot.
+  * *Si Profesional*: Sopan, terstruktur, dan berwibawa layaknya jurnalis senior.
 
-### 4. ⚙️ Advanced
-* **Dynamic Search Agent**: Generates specific daily search queries using base keywords as seeds.
-* **Deep Research Agent**: recursive multi-hop internet research (*Search -> Analyze -> Search*) to compile facts.
-* **Autonomous Interlinking**: Automatically scan and insert internal links to old posts contextually.
-* **Living Content (Auto-Update)**: Periodically refreshes old articles with fresh information without changing URLs.
-* **Multi-Modal Content**: Automatically renders visual charts for statistic-heavy posts and embeds media files.
+### 4. ⚙️ Advanced (Fitur AI Canggih)
+Fitur-fitur tambahan untuk membuat AI bekerja seperti asisten jurnalis profesional:
+* **Dynamic Search Agent**: AI tidak hanya mencari kata kunci yang Anda masukkan, tapi juga mengembangkannya secara dinamis menjadi kueri pencarian unik setiap hari (misal: "Tren AI" berkembang menjadi "Tren AI dalam Industri Kesehatan 2025").
+* **Deep Research Agent (Riset Mendalam)**: AI akan mencari info di internet secara berulang-ulang (*multi-hop*), menganalisis data sementara, lalu mencari lagi sampai faktanya lengkap sebelum mulai menulis.
+* **Autonomous Interlinking**: AI akan memindai artikel-artikel lama di blog Anda secara otomatis dan menyisipkan tautan (link) ke artikel tersebut di dalam postingan baru yang relevan untuk meningkatkan SEO.
+* **Living Content (Update Otomatis)**: AI secara berkala akan membaca artikel lama Anda yang sudah usang dan menulis ulang isinya agar tetap segar tanpa mengubah tautan (URL) artikel tersebut.
+* **Multi-Modal Content**: Secara otomatis membuat diagram/grafik visual jika artikel membahas data statistik, serta menyisipkan media/video yang relevan.
 
-### 5. 🛠 Tools
-* **Visual Agent Flow Diagram**: Interactive node-based diagram monitoring the asynchronous pipeline status (Collector -> Ideator -> Writer). Nodes can be clicked to trigger individual stages.
-* **Quick Actions & Overrides**: Run the full pipeline immediately with the **Picu Pipeline Sekarang** button, or toggle features globally with override checkboxes.
-* **Automated Scheduling (Cron)**: Configure intervals for publishing runs and content refreshing, plus default post statuses.
-* **Real-Time Debug Console**: View live system logs and clear log files.
+### 5. 🛠 Tools (Pusat Kendali Agen)
+Halaman kontrol taktis untuk melihat kinerja robot AI secara real-time:
+* **Visual Agent Flow Diagram**: Grafik visual yang menunjukkan status kerja 3 agen utama Anda: *Collector Agent* (pengumpul data), *Ideator Agent* (pembuat ide), dan *Writer Agent* (penulis artikel). Anda bisa mengklik ikon agen tersebut untuk menjalankannya secara manual.
+* **Picu Pipeline Sekarang**: Tombol cepat untuk menyuruh AI langsung mulai mengumpulkan bahan, membuat ide, menulis, dan menerbitkan artikel detik ini juga tanpa menunggu jadwal cron.
+* **Penjadwalan Otomatis (Cron)**: Mengatur frekuensi AI menulis otomatis (setiap jam, harian, mingguan, dsb.) dan status postingan default (Draft agar aman, atau langsung Terbit).
+* **📟 System Logs (Debug Console)**: Menampilkan konsol log aktivitas teknis AI di balik layar secara langsung untuk melacak error atau memantau rotasi API key.
 
 ---
 
