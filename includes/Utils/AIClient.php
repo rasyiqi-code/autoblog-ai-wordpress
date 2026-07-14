@@ -130,34 +130,6 @@ class AIClient {
      * @return string|false
      */
     public function get_fallback_model( $exclude_model = '', $provider = '' ) {
-        $defaults = [
-            'openai'     => 'gpt-4o',
-            'anthropic'  => 'claude-3-5-sonnet-20240620',
-            'gemini'     => 'gemini-3.1-pro',
-            'groq'       => 'llama-3.3-70b-versatile',
-            'openrouter' => 'openrouter/auto',
-        ];
-
-        // Pool model per provider untuk fallback intra-provider
-        $pools = [
-            'gemini' => [
-                'gemini-3.1-pro', 'gemini-3.0-pro', 'gemini-3.0-flash',
-                'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite',
-                'gemini-2.0-flash', 'gemini-2.0-flash-exp',
-            ],
-            'groq' => [
-                'llama-3.3-70b-versatile', 'llama3-70b-8192', 'mixtral-8x7b-32768',
-            ],
-            'openai' => [
-                'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo',
-            ],
-        ];
-
-        $has_openai     = ! empty( $this->openai_key );
-        $has_anthropic  = ! empty( $this->anthropic_key );
-        $has_gemini     = ! empty( $this->gemini_key );
-        $has_groq       = ! empty( $this->groq_key );
-
         // Deteksi provider dari nama model jika tidak di-pass
         $provider_of_failed = $provider;
         if ( empty( $provider_of_failed ) ) {
@@ -167,25 +139,36 @@ class AIClient {
             elseif ( strpos( $exclude_model, 'llama' ) !== false || strpos( $exclude_model, 'mixtral' ) !== false )     { $provider_of_failed = 'groq'; }
         }
 
-        // 1. INTRA-PROVIDER: coba model cadangan di provider yang sama
-        if ( ! empty( $provider_of_failed ) && isset( $pools[ $provider_of_failed ] ) ) {
-            $pool = $pools[ $provider_of_failed ];
+        // Normalisasi key provider untuk catalog
+        $prov_key = $provider_of_failed;
+        if ( $provider_of_failed === 'gemini' || $provider_of_failed === 'google' ) {
+            $prov_key = 'google';
+        } elseif ( $provider_of_failed === 'huggingface' || $provider_of_failed === 'hf' ) {
+            $prov_key = 'huggingface';
+        }
 
-            if ( $exclude_model === 'auto' || empty( $exclude_model ) ) {
-                $next = isset( $pool[1] ) ? $pool[1] : $pool[0];
+        $models = \Autoblog\Utils\ModelCatalog::get_merged_models();
+        $provider_models = isset( $models[$prov_key] ) ? array_keys( $models[$prov_key] ) : [];
+
+        // 1. INTRA-PROVIDER: coba model cadangan berikutnya di provider yang sama secara dinamis
+        if ( ! empty( $prov_key ) && ! empty( $provider_models ) ) {
+            $clean_exclude = $exclude_model;
+            $clean_exclude = str_replace( $provider_of_failed . '/', '', $clean_exclude );
+            $clean_exclude = str_replace( 'google/', '', $clean_exclude );
+
+            if ( $clean_exclude === 'auto' || empty( $clean_exclude ) ) {
+                $next = isset( $provider_models[1] ) ? $provider_models[1] : $provider_models[0];
                 Logger::log( "Intra-Provider Fallback ({$provider_of_failed}): 'auto' failed, jumping to: {$next}", 'debug' );
                 return $next;
             }
 
-            $found = false;
-            foreach ( $pool as $m ) {
-                if ( $found ) {
-                    Logger::log( "Intra-Provider Fallback ({$provider_of_failed}): next model = {$m}", 'debug' );
-                    return $m;
-                }
-                if ( $m === $exclude_model ) { $found = true; }
+            $found_idx = array_search( $clean_exclude, $provider_models );
+            if ( $found_idx !== false && isset( $provider_models[$found_idx + 1] ) ) {
+                $next_model = $provider_models[$found_idx + 1];
+                Logger::log( "Intra-Provider Fallback ({$provider_of_failed}): next model = {$next_model}", 'debug' );
+                return $next_model;
             }
-            Logger::log( "Intra-Provider Fallback ({$provider_of_failed}): pool habis.", 'info' );
+            Logger::log( "Intra-Provider Fallback ({$provider_of_failed}): pool model dinamis habis.", 'info' );
         }
 
         // 2. CROSS-PROVIDER: pindah ke provider lain (hanya jika Smart Fallback aktif)
@@ -194,25 +177,50 @@ class AIClient {
             return false;
         }
 
-        Logger::log( "Cross-provider fallback check. Keys: OpenAI=" . ($has_openai?1:0) . ", Anthropic=" . ($has_anthropic?1:0) . ", Groq=" . ($has_groq?1:0), 'info' );
+        $has_openai     = ! empty( $this->openai_key );
+        $has_anthropic  = ! empty( $this->anthropic_key );
+        $has_gemini     = ! empty( $this->gemini_key );
+        $has_groq       = ! empty( $this->groq_key );
 
-        if ( $provider_of_failed === 'gemini' ) {
-            if ( $has_groq )      { return $defaults['groq']; }
-            if ( $has_openai )    { return $defaults['openai']; }
-            if ( $has_anthropic ) { return $defaults['anthropic']; }
+        Logger::log( "Cross-provider fallback check. Keys: OpenAI=" . ($has_openai?1:0) . ", Anthropic=" . ($has_anthropic?1:0) . ", Gemini=" . ($has_gemini?1:0) . ", Groq=" . ($has_groq?1:0), 'info' );
+
+        // Urutan prioritas target provider
+        $target_provider = false;
+        if ( $provider_of_failed === 'gemini' || $provider_of_failed === 'google' ) {
+            if ( $has_openai )    { $target_provider = 'openai'; }
+            elseif ( $has_groq )  { $target_provider = 'groq'; }
+            elseif ( $has_anthropic ) { $target_provider = 'anthropic'; }
+        } elseif ( $provider_of_failed === 'openai' ) {
+            if ( $has_gemini )    { $target_provider = 'gemini'; }
+            elseif ( $has_anthropic ) { $target_provider = 'anthropic'; }
+            elseif ( $has_groq )  { $target_provider = 'groq'; }
+        } elseif ( $provider_of_failed === 'anthropic' ) {
+            if ( $has_openai )    { $target_provider = 'openai'; }
+            elseif ( $has_gemini ) { $target_provider = 'gemini'; }
+            elseif ( $has_groq )  { $target_provider = 'groq'; }
+        } elseif ( $provider_of_failed === 'groq' ) {
+            if ( $has_openai )    { $target_provider = 'openai'; }
+            elseif ( $has_gemini ) { $target_provider = 'gemini'; }
+            elseif ( $has_anthropic ) { $target_provider = 'anthropic'; }
         }
-        if ( $provider_of_failed === 'openai' ) {
-            if ( $has_anthropic ) { return $defaults['anthropic']; }
-            if ( $has_groq )      { return $defaults['groq']; }
-            if ( $has_gemini )    { return $defaults['gemini']; }
-        }
-        if ( $provider_of_failed === 'anthropic' ) {
-            if ( $has_openai ) { return $defaults['openai']; }
-            if ( $has_groq )   { return $defaults['groq']; }
-        }
-        if ( $provider_of_failed === 'groq' ) {
-            if ( $has_gemini )  { return $defaults['gemini']; }
-            if ( $has_openai )  { return $defaults['openai']; }
+
+        if ( $target_provider ) {
+            // Ambil kustom model yang disetel user untuk target provider
+            $custom_models = get_option( 'autoblog_custom_api_models', [] );
+            $target_model  = isset( $custom_models[$target_provider] ) ? $custom_models[$target_provider] : '';
+
+            // Fallback ke model dinamis pertama dari catalog
+            if ( empty( $target_model ) ) {
+                $target_p_key = ( $target_provider === 'gemini' || $target_provider === 'google' ) ? 'google'
+                              : ( ( $target_provider === 'huggingface' || $target_provider === 'hf' ) ? 'huggingface' : $target_provider );
+                $target_provider_models = isset( $models[$target_p_key] ) ? array_keys( $models[$target_p_key] ) : [];
+                $target_model = ! empty( $target_provider_models ) ? $target_provider_models[0] : '';
+            }
+
+            if ( ! empty( $target_model ) ) {
+                Logger::log( "Cross-Provider Fallback: pindah dari {$provider_of_failed} ke {$target_provider} menggunakan model {$target_model}", 'info' );
+                return $target_model;
+            }
         }
 
         return false;

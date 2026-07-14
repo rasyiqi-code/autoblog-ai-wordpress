@@ -331,19 +331,22 @@ class AdminAjax {
             }
         }
 
-        // Fallback jika parameter model kosong
+        // Fallback jika parameter model kosong: ambil model yang disimpan di custom models, atau model pertama dari catalog
         if ( empty( $test_model ) ) {
-            $models          = ModelCatalog::get_merged_models();
-            $dev_key         = ( $provider === 'gemini' || $provider === 'google' ) ? 'google'
-                             : ( ( $provider === 'huggingface' || $provider === 'hf' ) ? 'huggingface' : $provider );
-            $provider_models = isset( $models[ $dev_key ] ) ? $models[ $dev_key ] : [];
-            $test_model      = ! empty( $provider_models ) ? array_key_first( $provider_models ) : 'gpt-4o';
-            
-            if ( $provider === 'google' || $provider === 'gemini' ) {
+            $custom_models = get_option( 'autoblog_custom_api_models', [] );
+            $test_model    = isset( $custom_models[$provider] ) ? $custom_models[$provider] : '';
+
+            if ( empty( $test_model ) ) {
+                $models          = ModelCatalog::get_merged_models();
+                $dev_key         = ( $provider === 'gemini' || $provider === 'google' ) ? 'google'
+                                 : ( ( $provider === 'huggingface' || $provider === 'hf' ) ? 'huggingface' : $provider );
+                $provider_models = isset( $models[ $dev_key ] ) ? $models[ $dev_key ] : [];
+                $test_model      = ! empty( $provider_models ) ? array_key_first( $provider_models ) : '';
+            }
+
+            if ( ! empty( $test_model ) ) {
+                $test_model = str_replace( $provider . '/', '', $test_model );
                 $test_model = str_replace( 'google/', '', $test_model );
-                if ( empty( $test_model ) || $test_model === 'gpt-4o' ) {
-                    $test_model = 'gemini-2.0-flash';
-                }
             }
         }
 
