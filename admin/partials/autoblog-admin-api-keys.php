@@ -112,7 +112,8 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                             if ( empty( $current_endpoint ) ) {
                                 $current_endpoint = $default_endpoint;
                             }
-                                                         <tr class="custom-key-row" data-provider="<?php echo esc_attr($prov_id); ?>">
+                            ?>
+                            <tr class="custom-key-row" data-provider="<?php echo esc_attr($prov_id); ?>">
                                 <!-- Col 1: Active Radio -->
                                 <td style="text-align: center; vertical-align: middle;">
                                     <input type="radio" class="active-provider-radio" name="autoblog_ai_provider" value="<?php echo esc_attr($prov_id); ?>" <?php checked($selected_provider, $prov_id); ?> style="margin: 0; cursor: pointer;" />
