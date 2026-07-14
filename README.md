@@ -24,6 +24,46 @@ An intelligent, agentic autoblogging plugin for WordPress that automates content
 
 ---
 
+## 🖥 Admin Settings Dashboard Tabs
+
+The plugin settings dashboard is organized into 5 tabs, allowing granular control over the agentic workflow:
+
+### 1. 🔑 API Keys
+* **Active Provider Radio**: Select the primary LLM provider. The active provider gets highlighted while backup providers are kept as standby.
+* **Per-Provider Model Dropdown**: Select the active model for each provider row independently. Models are dynamically populated from the `models.dev` catalog.
+* **Multi-API Key Rotation**: Input multiple API keys (one per line) per provider. The plugin automatically rotates to backup keys if the active key hits rate limits or quota depletion.
+* **Base URL Customization**: Override default API endpoints for custom proxies, local models, or reverse proxies.
+* **Isolated Connection Tester**: Test API keys using the specific model selected on that row.
+
+### 2. 📥 Data Sources
+* **Data Source Mode**: 
+  * *Both (Knowledge Base + Triggers)*: Combines external scraping with RAG context.
+  * *Only KB (Internal)*: Pure internal RAG processing from uploaded documents.
+  * *Only Triggers (External)*: Rely strictly on external triggers (RSS, Web Scrapers, Search).
+* **Knowledge Base (RAG)**: Upload documents (`.xlsx`, `.csv`, `.pdf`, `.docx`, `.txt`, `.md`) to build a local vector store.
+* **Content Triggers**: Configure automated ingestion via **RSS Feeds** (with Readability-based smart scraping fallback), **Web Scrapers** (targeting CSS Selectors), or periodic **Web Search** queries. Includes inclusion/exclusion keyword filters.
+
+### 3. 👥 Writing Style
+* **WordPress Author Strategy**: Choose how WordPress author accounts are assigned to new posts (*Random*, *Round Robin*, or *Fixed Author*).
+* **Author-to-Persona Mapping**: Map each WordPress author account to a specific **AI Persona** (such as *Si Kritis*, *Si Storyteller*, *Si Realistis*, *Si Santuy*, or *Si Profesional*) and customize author-level writing samples.
+* **Personality Fine-Tuning**: Enable custom personality settings and paste writing samples for Few-Shot prompting.
+* **Master Persona Management**: Create, view, and delete custom AI personas with custom character instruction prompts.
+
+### 4. ⚙️ Advanced
+* **Dynamic Search Agent**: Generates specific daily search queries using base keywords as seeds.
+* **Deep Research Agent**: recursive multi-hop internet research (*Search -> Analyze -> Search*) to compile facts.
+* **Autonomous Interlinking**: Automatically scan and insert internal links to old posts contextually.
+* **Living Content (Auto-Update)**: Periodically refreshes old articles with fresh information without changing URLs.
+* **Multi-Modal Content**: Automatically renders visual charts for statistic-heavy posts and embeds media files.
+
+### 5. 🛠 Tools
+* **Visual Agent Flow Diagram**: Interactive node-based diagram monitoring the asynchronous pipeline status (Collector -> Ideator -> Writer). Nodes can be clicked to trigger individual stages.
+* **Quick Actions & Overrides**: Run the full pipeline immediately with the **Picu Pipeline Sekarang** button, or toggle features globally with override checkboxes.
+* **Automated Scheduling (Cron)**: Configure intervals for publishing runs and content refreshing, plus default post statuses.
+* **Real-Time Debug Console**: View live system logs and clear log files.
+
+---
+
 ## ⚙️ Configuration & Installation
 
 1. Upload the `autoblog-ai-wordpress` directory to your `/wp-content/plugins/` directory.
