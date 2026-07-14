@@ -128,7 +128,7 @@ class AdminAjax {
         $cat_context = implode( ', ', wp_list_pluck( $categories, 'name' ) );
 
         $provider = get_option( 'autoblog_ai_provider', 'openai' );
-        $model    = get_option( 'autoblog_' . $provider . '_model', 'gpt-4o' );
+        $model    = \Autoblog\Utils\ModelCatalog::get_active_model( $provider );
 
         $count  = 0;
         $failed = 0;

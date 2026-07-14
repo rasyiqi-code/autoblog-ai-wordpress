@@ -92,4 +92,34 @@ class ModelCatalog {
         set_transient( 'autoblog_providers_cache_v2', $providers, DAY_IN_SECONDS );
         return $providers;
     }
+
+    /**
+     * Ambil model aktif yang terkonfigurasi untuk provider tertentu.
+     *
+     * @param string $provider
+     * @return string
+     */
+    public static function get_active_model( $provider ) {
+        // Coba ambil dari setelan model kustom per provider
+        $custom_models = get_option( 'autoblog_custom_api_models', [] );
+        $model = isset( $custom_models[$provider] ) ? $custom_models[$provider] : '';
+        
+        if ( empty( $model ) ) {
+            $model = get_option( 'autoblog_ai_model' );
+        }
+        if ( empty( $model ) ) {
+            $model = get_option( 'autoblog_' . $provider . '_model' );
+        }
+        
+        // Fallback terakhir: ambil model pertama dari catalog untuk provider tersebut
+        if ( empty( $model ) ) {
+            $models          = self::get_dynamic_models();
+            $dev_key         = ( $provider === 'gemini' || $provider === 'google' ) ? 'google'
+                             : ( ( $provider === 'huggingface' || $provider === 'hf' ) ? 'huggingface' : $provider );
+            $provider_models = isset( $models[$dev_key] ) ? array_keys( $models[$dev_key] ) : [];
+            $model           = ! empty( $provider_models ) ? $provider_models[0] : '';
+        }
+        
+        return $model;
+    }
 }

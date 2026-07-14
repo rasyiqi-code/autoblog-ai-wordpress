@@ -58,15 +58,8 @@ class AngleInjector {
         $prompt .= "Content: \n" . $truncated_content . "\n\n";
         $prompt .= "Output ONLY the angle description.";
 
-        // Get Active Provider
         $provider = get_option( 'autoblog_ai_provider', 'openai' );
-        
-        // Get Model based on Provider (dynamic fallback)
-        $model = get_option( 'autoblog_ai_model' );
-        if ( empty( $model ) ) {
-            $model_option_name = 'autoblog_' . $provider . '_model';
-            $model = get_option( $model_option_name, 'gpt-4o' );
-        }
+        $model = \Autoblog\Utils\ModelCatalog::get_active_model( $provider );
 
 		$angle = $this->ai_client->generate_text( $prompt, $model, $provider );
 

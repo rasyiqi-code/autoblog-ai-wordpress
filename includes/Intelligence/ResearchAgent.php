@@ -75,13 +75,8 @@ class ResearchAgent {
         $prompt .= "Generate 2 follow-up search queries to dig deeper or verify facts.\n";
         $prompt .= "Return ONLY the 2 queries, one per line.";
 
-        // Bug #6 Fix: Gunakan provider/model dari konfigurasi
         $provider = get_option( 'autoblog_ai_provider', 'openai' );
-        $model = get_option( 'autoblog_ai_model' );
-        if ( empty( $model ) ) {
-            $model_option = 'autoblog_' . $provider . '_model';
-            $model = get_option( $model_option, 'gpt-4o' );
-        }
+        $model = \Autoblog\Utils\ModelCatalog::get_active_model( $provider );
         $response = $this->ai_client->generate_text( $prompt, $model, $provider ); 
         
         if ( ! $response ) return [];
@@ -96,13 +91,8 @@ class ResearchAgent {
         $prompt .= "Generate 3 specific search queries to find hard data, statistics, or expert opinions that would make this article authoritative. \n";
         $prompt .= "Return ONLY the 3 queries, one per line.";
 
-        // Bug #6 Fix: Gunakan provider/model dari konfigurasi
         $provider = get_option( 'autoblog_ai_provider', 'openai' );
-        $model = get_option( 'autoblog_ai_model' );
-        if ( empty( $model ) ) {
-            $model_option = 'autoblog_' . $provider . '_model';
-            $model = get_option( $model_option, 'gpt-4o' );
-        }
+        $model = \Autoblog\Utils\ModelCatalog::get_active_model( $provider );
         $response = $this->ai_client->generate_text( $prompt, $model, $provider );
         $lines = explode( "\n", $response );
         return array_filter( array_map( 'trim', $lines ) );
