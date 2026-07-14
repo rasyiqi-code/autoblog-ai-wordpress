@@ -11,12 +11,12 @@ An intelligent, agentic autoblogging plugin for WordPress that automates content
 
 ## 🌟 Key Features
 
-- **Unified AI Engine Settings**: Select your active LLM provider and configure models in one centralized postbox panel.
+- **Unified AI Engine Settings**: Select your active LLM provider using the radio button and configure individual AI models for each provider directly in the dynamic table.
 - **Dynamic Credentials Table**: Add, remove, and manage API keys and custom endpoints for multiple providers simultaneously.
 - **Intra-Provider Multi-API Key Rotation**: Input multiple API keys (one per line). The plugin automatically rotates to backup keys in the pool if the primary key hits a rate limit or quota depletion.
 - **Custom Base URL (models.dev Integration)**: Fully customize API endpoints per provider. Default endpoints from `models.dev` are pre-filled as values for instant transparency.
 - **Agentic Workflow Pipeline**:
-  - **Stage 1 (Ingestion)**: Scrapes news and publications dynamically based on seed keywords using DuckDuckGo Free, SerpApi, or Brave Search.
+  - **Stage 1 (Ingestion)**: Scrapes news, publications, and **RSS Feeds** dynamically based on seed keywords or RSS URLs using DuckDuckGo Free, SerpApi, or Brave Search.
   - **Stage 2 (Ideation)**: Brainstorms unique, non-trivial post ideas using semantic vector memory to avoid duplicate topics.
   - **Stage 3 (Production)**: Conducts multi-hop web research, compiles taxonomy (categories and tags), generates stock photo featured images (via Pexels/Openverse), and publishes the post.
 - **Cross-Provider Smart Fallback**: Automatically switches to backup LLM providers (e.g. Gemini -> OpenAI) if the primary provider fails.
@@ -32,8 +32,9 @@ An intelligent, agentic autoblogging plugin for WordPress that automates content
 4. Add your API credentials:
    - Click **`+ Tambah Key`** to select and add a provider (e.g., Google, OpenAI, Hugging Face).
    - Enter one or more API keys (one per line) in the **API Key(s)** textarea.
-   - Select **`Set Aktif`** on the provider you wish to use as the primary writer.
-   - Adjust the **AI Model** and other helper service keys (SerpApi, Pexels).
+   - Select the radio button under the **Aktif** column on the provider you wish to use as the primary writer.
+   - Choose the preferred **AI Model** directly from the dropdown menu in that provider's row.
+   - Adjust other helper service keys (SerpApi, Pexels) in the credentials section below.
 5. Click **Save Changes**.
 
 ---
@@ -79,5 +80,5 @@ Due to environmental constraints (e.g., local PHP compilation or FPM-only contex
 ---
 
 ## 📄 License
-
-This project is licensed under the Custom MIT License with Mandatory Original Repository Attribution - see the [LICENSE](LICENSE) file for details.
+ 
+This project is licensed under the GPL-2.0-or-later License - see the [LICENSE](LICENSE) file for details.
