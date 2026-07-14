@@ -31,6 +31,7 @@ $need_pexels      = ( $thumbnail_source === 'pexels' || $thumbnail_source === 'r
 
 $custom_keys      = get_option( 'autoblog_custom_api_keys', [] );
 $custom_endpoints = get_option( 'autoblog_custom_api_endpoints', [] );
+$custom_models    = get_option( 'autoblog_custom_api_models', [] );
 
 // Normalisasi key active provider untuk label
 $active_key_id = $selected_provider;
@@ -115,6 +116,7 @@ if ( ! function_exists( 'get_key_badge' ) ) {
                                 <!-- Col 1: Active Radio -->
                                 <td style="text-align: center; vertical-align: middle;">
                                     <input type="radio" class="active-provider-radio" name="autoblog_ai_provider" value="<?php echo esc_attr($prov_id); ?>" <?php checked($selected_provider, $prov_id); ?> style="margin: 0; cursor: pointer;" />
+                                    <input type="hidden" name="autoblog_custom_api_models[<?php echo esc_attr($prov_id); ?>]" class="provider-custom-model-hidden" value="<?php echo esc_attr( isset($custom_models[$prov_id]) ? $custom_models[$prov_id] : '' ); ?>" />
                                 </td>
                                 <!-- Col 2: Provider Name & Badge -->
                                 <td style="vertical-align: middle;">

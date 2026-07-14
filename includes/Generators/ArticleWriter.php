@@ -75,7 +75,14 @@ class ArticleWriter {
 
         // 4. Ambil provider & model dari pengaturan
         $provider = get_option( 'autoblog_ai_provider', 'openai' );
-        $model    = get_option( 'autoblog_ai_model' );
+        
+        // Coba ambil dari model kustom per provider
+        $custom_models = get_option( 'autoblog_custom_api_models', array() );
+        $model = isset( $custom_models[$provider] ) ? $custom_models[$provider] : '';
+        
+        if ( empty( $model ) ) {
+            $model = get_option( 'autoblog_ai_model' );
+        }
         if ( empty( $model ) ) {
             $model = get_option( 'autoblog_' . $provider . '_model', 'gpt-4o' );
         }

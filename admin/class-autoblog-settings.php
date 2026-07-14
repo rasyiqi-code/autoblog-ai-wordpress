@@ -35,6 +35,7 @@ class AdminSettings {
         register_setting( 'autoblog_keys', 'autoblog_pexels_key' );
         register_setting( 'autoblog_keys', 'autoblog_custom_api_keys' );
         register_setting( 'autoblog_keys', 'autoblog_custom_api_endpoints' );
+        register_setting( 'autoblog_keys', 'autoblog_custom_api_models' );
 
         // Duplikat registrasi ke group keys untuk form terpadu
         register_setting( 'autoblog_keys', 'autoblog_ai_provider' );

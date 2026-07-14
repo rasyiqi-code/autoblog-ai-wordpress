@@ -39,6 +39,7 @@
         '<tr class="custom-key-row" data-provider="' + provId + '">' +
         '  <td style="text-align: center; vertical-align: middle; padding: 10px;">' +
         '    <input type="radio" class="active-provider-radio" name="autoblog_ai_provider" value="' + provId + '" ' + isChecked + ' style="margin: 0; cursor: pointer;" />' +
+        '    <input type="hidden" name="autoblog_custom_api_models[' + provId + ']" class="provider-custom-model-hidden" value="" />' +
         '  </td>' +
         '  <td style="vertical-align: middle; padding: 10px;">' +
         '    <span class="provider-label-text" style="font-weight: 700; font-size: 13px; color: #1d2327;">' + provName + '</span>' +
@@ -111,7 +112,10 @@
       $btn.prop("disabled", true).text("Testing...");
       $status.css("color", "#646970").text("⏳ Menghubungi API...");
 
-      var selectedModel = $("#autoblog_ai_model").val();
+      var selectedModel = $row.find(".provider-custom-model-hidden").val();
+      if (!selectedModel) {
+        selectedModel = $("#autoblog_ai_model").val();
+      }
 
       $.ajax({
         url:  autoblog_ajax.ajax_url,

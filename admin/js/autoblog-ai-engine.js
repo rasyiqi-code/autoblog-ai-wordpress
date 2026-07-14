@@ -39,11 +39,17 @@
 
       var catalog       = autoblog_ajax.catalog_models || {};
       var models        = catalog[devKey] || {};
-      var selectedModel = autoblog_ajax.selected_model;
+      
+      // Ambil model tersimpan khusus provider ini dari input hidden
+      var savedModel = $('.custom-key-row[data-provider="' + devKey + '"] .provider-custom-model-hidden').val();
+      if (!savedModel) {
+        savedModel = autoblog_ajax.selected_model;
+      }
+      
       var foundSelected = false;
 
       $.each(models, function (m_id, m_name) {
-        var isSelected = m_id === selectedModel;
+        var isSelected = m_id === savedModel;
         if (isSelected) { foundSelected = true; }
         $modelSelect.append(
           $("<option></option>").val(m_id).text(m_name).prop("selected", isSelected)
@@ -51,11 +57,13 @@
       });
 
       // Jika model tersimpan tidak ada di katalog (custom/lama), tambahkan sebagai opsi dinamis
-      if (selectedModel && !foundSelected && provider !== "hf") {
+      if (savedModel && !foundSelected && provider !== "hf") {
         $modelSelect.append(
-          $("<option></option>").val(selectedModel).text(selectedModel).prop("selected", true)
+          $("<option></option>").val(savedModel).text(savedModel).prop("selected", true)
         );
       }
+
+      $modelSelect.val(savedModel);
 
       // Tampil/sembunyi baris Gemini Grounding
       if (provider === "gemini") {
@@ -150,6 +158,21 @@
       checkActiveKey();
     });
     $("#autoblog_embedding_provider").on("change", checkRAGKey);
+
+    // Update model kustom di input hidden saat dropdown model berubah
+    $(document).on("change", "#autoblog_ai_model", function() {
+      var modelVal = $(this).val();
+      var provider = $(".active-provider-radio:checked").val();
+      if (provider) {
+        var checkKey = provider;
+        if (provider === "gemini") {
+          checkKey = "google";
+        } else if (provider === "hf") {
+          checkKey = "huggingface";
+        }
+        $('.custom-key-row[data-provider="' + checkKey + '"] .provider-custom-model-hidden').val(modelVal);
+      }
+    });
 
     // Monitoring input password custom keys & default URL visibility
     $(document).on("input", ".custom-key-row textarea", checkActiveKey);
