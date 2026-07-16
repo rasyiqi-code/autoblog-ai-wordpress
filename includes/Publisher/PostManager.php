@@ -5,6 +5,7 @@ namespace Autoblog\Publisher;
 use Autoblog\Generators\ThumbnailGenerator;
 use Autoblog\Intelligence\Interlinker;
 use Autoblog\Utils\Logger;
+use Autoblog\Utils\OptionCache;
 use WP_Error;
 
 /**
@@ -69,7 +70,7 @@ class PostManager {
         }
 
 		// Autonomous Interlinking if enabled and not overridden
-		$enable_interlink = get_option( 'autoblog_enable_interlinking' );
+		$enable_interlink = OptionCache::get( 'autoblog_enable_interlinking' );
 		if ( isset( $overrides['interlinking'] ) ) {
 			$enable_interlink = (bool) $overrides['interlinking'];
 		}
@@ -89,7 +90,7 @@ class PostManager {
 		$post_data = array(
 			'post_title'   => wp_strip_all_tags( $title ),
 			'post_content' => $this->convert_to_gutenberg_blocks( $html_content, $post_id_to_pass ),
-			'post_status'  => get_option( 'autoblog_post_status', 'draft' ),
+			'post_status'  => OptionCache::get( 'autoblog_post_status', 'draft' ),
 			'post_type'    => 'post',
 			'post_author'  => $author_id ? $author_id : (get_current_user_id() ? get_current_user_id() : 1), // Priority to provided author_id
 		);
@@ -238,19 +239,16 @@ class PostManager {
         
         // Use XML encoding to force UTF-8 natively inside DOMDocument without converting characters to HTML-ENTITIES.
         // Gutenberg string-matches characters exactly. HTML-Entities will cause "Block contains unexpected or invalid content."
+        // Bug #10 Fix: Bersihkan karakter non-UTF8 sebelum parsing untuk cegah numeric entities
+        $html = mb_scrub( $html );
         $html_with_xml = '<?xml encoding="utf-8" ?>' . $html;
         $dom->loadHTML( $html_with_xml, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
 
         libxml_clear_errors();
 
         $blocks = '';
-        $xpath = new \DOMXPath( $dom );
 
-        // If loadHTML was called with NOIMPLIED, childNodes are the roots.
-        // If we used the wrapper fallback (unimplemented properly above), we would need body children.
-        // Let's stick to NOIMPLIED with mb_convert_encoding as primary.
-        
-        // Sanitization: Remove dangerous tags before processing
+        // Sanitization: Remove dangerous tags before processing (Bug #6: cegah XSS via saveHTML)
         $xpath = new \DOMXPath( $dom );
         $dangerous_tags = ['//script', '//style', '//iframe', '//object', '//embed', '//form'];
         
@@ -325,13 +323,13 @@ class PostManager {
                          $content .= "<!-- wp:paragraph -->\n<p>" . strip_tags($text) . "</p>\n<!-- /wp:paragraph -->\n\n";
                     }
                 } else {
-                    $text = $node->textContent; // or saveHTML to keep inline tags like <b>, <i>?
                     // Better to use saveHTML to preserve inline formatting like <strong>, <em>
                     $inner_html = '';
                     foreach ($node->childNodes as $child) {
                         $inner_html .= $node->ownerDocument->saveHTML($child);
                     }
-                    $content .= "<!-- wp:paragraph -->\n<p>$inner_html</p>\n<!-- /wp:paragraph -->\n\n";
+                    // Gunakan wp_kses_post untuk sanitasi XSS (Bug #6 Fix)
+                    $content .= "<!-- wp:paragraph -->\n<p>" . wp_kses_post( $inner_html ) . "</p>\n<!-- /wp:paragraph -->\n\n";
                 }
                 break;
 
@@ -339,7 +337,7 @@ class PostManager {
                 $inner_html = '';
                 foreach ($node->childNodes as $child) {
                     if ($child->nodeName === 'li') {
-                        $inner_html .= "<li>" . $child->textContent . "</li>"; // Simplified, should preserve internal formatting
+                        $inner_html .= "<li>" . esc_html( $child->textContent ) . "</li>"; // Bug #6: sanitasi teks
                     }
                 }
                 $content .= "<!-- wp:list -->\n<ul>$inner_html</ul>\n<!-- /wp:list -->\n\n";
@@ -349,7 +347,7 @@ class PostManager {
                 $inner_html = '';
                 foreach ($node->childNodes as $child) {
                     if ($child->nodeName === 'li') {
-                         $inner_html .= "<li>" . $child->textContent . "</li>";
+                         $inner_html .= "<li>" . esc_html( $child->textContent ) . "</li>";
                     }
                 }
                 $content .= "<!-- wp:list {\"ordered\":true} -->\n<ol>$inner_html</ol>\n<!-- /wp:list -->\n\n";
@@ -367,7 +365,7 @@ class PostManager {
             case '#text':
                 $text = trim( $node->textContent );
                 if ( ! empty( $text ) ) {
-                    $content .= "<!-- wp:paragraph -->\n<p>$text</p>\n<!-- /wp:paragraph -->\n\n";
+                    $content .= "<!-- wp:paragraph -->\n<p>" . esc_html( $text ) . "</p>\n<!-- /wp:paragraph -->\n\n";
                 }
                 break;
 
@@ -376,7 +374,7 @@ class PostManager {
                 // Using paragraph for safety
                  $text = trim( $node->textContent );
                  if ( ! empty( $text ) ) {
-                    $content .= "<!-- wp:paragraph -->\n<p>$text</p>\n<!-- /wp:paragraph -->\n\n";
+                    $content .= "<!-- wp:paragraph -->\n<p>" . esc_html( $text ) . "</p>\n<!-- /wp:paragraph -->\n\n";
                  }
                 break;
         }

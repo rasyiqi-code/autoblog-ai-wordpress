@@ -3,6 +3,7 @@
 namespace Autoblog\Generators;
 
 use Autoblog\Utils\Logger;
+use Autoblog\Utils\OptionCache;
 use GuzzleHttp\Client;
 
 /**
@@ -16,12 +17,50 @@ class ThumbnailGenerator {
 
 	private $openai_key;
 	private $pexels_key;
-	private $client;
+
+	/** @var \GuzzleHttp\Client|null Guzzle Client untuk testing (dependency injection) */
+	private $http_client = null;
 
 	public function __construct() {
-		$this->openai_key  = get_option( 'autoblog_openai_key' );
-		$this->pexels_key  = get_option( 'autoblog_pexels_key' );
-		$this->client      = new Client();
+		$this->openai_key  = OptionCache::get( 'autoblog_openai_key' );
+		$this->pexels_key  = OptionCache::get( 'autoblog_pexels_key' );
+
+		// Bug #7 Fix: Fallback ke multi-key system jika legacy key kosong
+		if ( empty( $this->openai_key ) ) {
+			$custom_keys = OptionCache::get( 'autoblog_custom_api_keys', [] );
+			$openai_pool = isset( $custom_keys['openai'] ) ? $custom_keys['openai'] : '';
+			if ( ! empty( $openai_pool ) ) {
+				$pool = array_filter( array_map( 'trim', preg_split( '/[\n,]+/', $openai_pool ) ) );
+				$this->openai_key = ! empty( $pool ) ? $pool[0] : '';
+			}
+		}
+	}
+
+	// ================================================================
+	// HTTP CLIENT GETTER/SETTER (untuk testing)
+	// ================================================================
+
+	/**
+	 * Set Guzzle Client kustom (misal mock client untuk integration test).
+	 *
+	 * @param \GuzzleHttp\Client $client
+	 */
+	public function set_http_client( \GuzzleHttp\Client $client ) {
+		$this->http_client = $client;
+	}
+
+	/**
+	 * Dapatkan Guzzle Client. Jika sudah diset via set_http_client(),
+	 * gunakan itu. Jika tidak, buat instance baru dengan konfigurasi $config.
+	 *
+	 * @param array $config
+	 * @return \GuzzleHttp\Client
+	 */
+	private function get_http_client( $config = [] ) {
+		if ( $this->http_client !== null ) {
+			return $this->http_client;
+		}
+		return new \GuzzleHttp\Client( $config );
 	}
 
 	/**
@@ -32,7 +71,7 @@ class ThumbnailGenerator {
 	 */
 	public function generate_thumbnail( $prompt ) {
 		// Default to pexels if not set
-		$source = get_option( 'autoblog_thumbnail_source', 'pexels' );
+		$source = OptionCache::get( 'autoblog_thumbnail_source', 'pexels' );
 		Logger::log( "ThumbnailGenerator: Using source '{$source}' for prompt: '{$prompt}'", 'info' );
 
 		switch ( $source ) {
@@ -65,7 +104,7 @@ class ThumbnailGenerator {
 		}
 
 		try {
-			$response = $this->client->get( 'https://api.pexels.com/v1/search', [
+			$response = $this->get_http_client()->get( 'https://api.pexels.com/v1/search', [
 				'headers' => [ 'Authorization' => $this->pexels_key ],
 				'query'   => [
 					'query'    => $query,
@@ -96,7 +135,7 @@ class ThumbnailGenerator {
 	private function search_openverse( $query ) {
 		try {
 			// Openverse API (Creative Commons search)
-			$response = $this->client->get( 'https://api.openverse.org/v1/images/', [
+			$response = $this->get_http_client()->get( 'https://api.openverse.org/v1/images/', [
 				'query' => [
 					'q'        => $query,
 					'page_size' => 1,
@@ -126,7 +165,7 @@ class ThumbnailGenerator {
 		}
 
 		try {
-			$response = $this->client->post( 'https://api.openai.com/v1/images/generations', [
+			$response = $this->get_http_client()->post( 'https://api.openai.com/v1/images/generations', [
 				'headers' => [
 					'Authorization' => 'Bearer ' . $this->openai_key,
 					'Content-Type'  => 'application/json',

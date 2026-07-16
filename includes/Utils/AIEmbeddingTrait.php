@@ -16,11 +16,11 @@ namespace Autoblog\Utils;
 trait AIEmbeddingTrait {
 
     // ================================================================
-    // PUBLIC: Dispatcher embedding
+    // PUBLIC: Single & Batch embedding dispatcher
     // ================================================================
 
     /**
-     * Buat embedding vector untuk teks.
+     * Buat embedding vector untuk satu teks.
      *
      * @param string $text     Teks yang akan di-embed.
      * @param string $provider Provider embedding (openai, gemini_001, hf).
@@ -39,6 +39,47 @@ trait AIEmbeddingTrait {
             return false;
         }
 
+        return $this->dispatch_embedding( $text, $provider );
+    }
+
+    /**
+     * Buat embedding untuk BANYAK teks sekaligus (batch).
+     *
+     * Mengirim seluruh chunk dalam 1 request API jika provider mendukung
+     * (OpenAI), atau sequential dengan rate limiting optimal.
+     *
+     * @param array  $texts    Array of strings to embed.
+     * @param string $provider Provider embedding.
+     * @return array Array of [ 'text' => string, 'vector' => array|false, 'index' => int ]
+     */
+    public function create_embeddings_batch( array $texts, $provider = 'openai' ) {
+        if ( empty( $provider ) ) {
+            $provider = 'openai';
+        }
+
+        if ( empty( $texts ) ) {
+            return [];
+        }
+
+        Logger::log( 'Batch embedding: ' . count( $texts ) . ' chunks via ' . $provider, 'info' );
+
+        switch ( $provider ) {
+            case 'openai':
+                return $this->openai_embeddings_batch( $texts );
+            case 'gemini_001':
+            case 'gemini':
+                return $this->google_embeddings_batch( $texts );
+            case 'hf':
+                return $this->sequential_embeddings( $texts, 'hf' );
+            default:
+                return $this->sequential_embeddings( $texts, $provider );
+        }
+    }
+
+    /**
+     * Dispatcher untuk single embedding (digunakan oleh search).
+     */
+    private function dispatch_embedding( $text, $provider ) {
         switch ( $provider ) {
             case 'openai':
                 return $this->openai_embedding( $text );
@@ -186,6 +227,172 @@ trait AIEmbeddingTrait {
         }
 
         return false;
+    }
+
+    // ================================================================
+    // BATCH EMBEDDING
+    // ================================================================
+
+    /**
+     * Batch embedding untuk OpenAI — kirim seluruh teks dalam 1 request.
+     *
+     * @param array $texts
+     * @return array [ [ 'text' => string, 'vector' => array|false, 'index' => int ] ]
+     */
+    private function openai_embeddings_batch( array $texts ) {
+        $keys_pool = $this->get_keys_pool( 'openai' );
+
+        if ( empty( $keys_pool ) ) {
+            Logger::log( 'OpenAI API Key is missing for batch embeddings.', 'error' );
+            return $this->build_batch_result( $texts, null );
+        }
+
+        // Sanitasi semua teks
+        $sanitized = [];
+        foreach ( $texts as $t ) {
+            $sanitized[] = $this->sanitize_utf8( $t );
+        }
+
+        foreach ( $keys_pool as $api_key ) {
+            try {
+                $response = $this->request_with_backoff( 'POST', 'https://api.openai.com/v1/embeddings', [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $api_key,
+                        'Content-Type'  => 'application/json',
+                    ],
+                    'json' => [
+                        'input' => $sanitized,  // Array of strings — 1 API call
+                        'model' => 'text-embedding-3-small',
+                    ],
+                ]);
+
+                $body = json_decode( (string) $response->getBody(), true );
+
+                if ( isset( $body['data'] ) && is_array( $body['data'] ) ) {
+                    // Map response by index
+                    $vectors = [];
+                    foreach ( $body['data'] as $item ) {
+                        $idx = $item['index'];
+                        $vectors[ $idx ] = $item['embedding'] ?? false;
+                    }
+
+                    $results = [];
+                    foreach ( $sanitized as $i => $t ) {
+                        $results[] = [
+                            'text'   => $t,
+                            'vector' => isset( $vectors[ $i ] ) ? $vectors[ $i ] : false,
+                            'index'  => $i,
+                        ];
+                    }
+
+                    Logger::log( 'OpenAI batch embedding sukses: ' . count( $results ) . ' chunks.', 'info' );
+                    return $results;
+                }
+            } catch ( \Exception $e ) {
+                Logger::log( 'OpenAI batch embedding error: ' . $e->getMessage() . '. Coba key berikutnya...', 'warning' );
+            }
+        }
+
+        Logger::log( 'OpenAI batch embedding GAGAL total untuk ' . count( $texts ) . ' chunks.', 'error' );
+        return $this->build_batch_result( $texts, null );
+    }
+
+    /**
+     * Batch embedding untuk Gemini — sequential dengan rate limit optimal.
+     *
+     * Gemini tidak mendukung batch input, tapi kita optimasi delay:
+     * - 1 chunk: tanpa delay
+     * - 2+ chunks: delay 1 detik antar request (vs 4 detik sebelumnya)
+     *
+     * @param array $texts
+     * @return array
+     */
+    private function google_embeddings_batch( array $texts ) {
+        $keys_pool = $this->get_keys_pool( 'gemini' );
+
+        if ( empty( $keys_pool ) ) {
+            Logger::log( 'Gemini API Key is missing for embeddings.', 'error' );
+            return $this->build_batch_result( $texts, null );
+        }
+
+        $results = [];
+        $count = count( $texts );
+
+        foreach ( $texts as $i => $text ) {
+            $sanitized = $this->sanitize_utf8( $text );
+            if ( empty( $sanitized ) ) {
+                $results[] = [ 'text' => $text, 'vector' => false, 'index' => $i ];
+                continue;
+            }
+
+            // Delay hanya jika bukan chunk pertama dan ada lebih dari 1 chunk
+            if ( $i > 0 && $count > 1 ) {
+                Logger::log( 'Gemini batch: jeda 1 detik antar chunk (' . ( $i + 1 ) . '/' . $count . ')...', 'debug' );
+                sleep( 1 );
+            }
+
+            $vector = $this->google_embedding( $sanitized, 'models/gemini-embedding-001' );
+            $results[] = [
+                'text'   => $sanitized,
+                'vector' => $vector ?: false,
+                'index'  => $i,
+            ];
+
+            // Jika satu chunk gagal, lanjutkan ke chunk berikutnya
+        }
+
+        Logger::log( 'Gemini batch embedding selesai: ' . count( $results ) . ' chunks.', 'info' );
+        return $results;
+    }
+
+    /**
+     * Fallback sequential untuk provider yang tidak mendukung batch.
+     *
+     * @param array  $texts
+     * @param string $provider
+     * @return array
+     */
+    private function sequential_embeddings( array $texts, $provider ) {
+        $results = [];
+        $count = count( $texts );
+
+        foreach ( $texts as $i => $text ) {
+            $sanitized = $this->sanitize_utf8( $text );
+            if ( empty( $sanitized ) ) {
+                $results[] = [ 'text' => $text, 'vector' => false, 'index' => $i ];
+                continue;
+            }
+
+            // Micro delay antar chunk untuk mencegah rate limit
+            if ( $i > 0 ) {
+                usleep( 100000 ); // 0.1s
+            }
+
+            $vector = $this->dispatch_embedding( $sanitized, $provider );
+            $results[] = [
+                'text'   => $sanitized,
+                'vector' => $vector ?: false,
+                'index'  => $i,
+            ];
+        }
+
+        Logger::log( 'Sequential batch embedding selesai: ' . count( $results ) . ' chunks via ' . $provider, 'info' );
+        return $results;
+    }
+
+    /**
+     * Helper: bangun array batch result dengan vector seragam.
+     */
+    private function build_batch_result( array $texts, $default_vector = null ) {
+        $results = [];
+        foreach ( $texts as $i => $t ) {
+            $results[] = [
+                'text'   => $t,
+                'vector' => $default_vector,
+                'index'  => $i,
+            ];
+        }
+        return $results;
     }
 
     // ================================================================

@@ -4,6 +4,7 @@ namespace Autoblog\Generators;
 
 use Autoblog\Utils\AIClient;
 use Autoblog\Utils\Logger;
+use Autoblog\Utils\OptionCache;
 use Autoblog\Generators\Helpers\ContentTransformer;
 use Autoblog\Generators\Helpers\ContentCleaner;
 
@@ -74,17 +75,17 @@ class ArticleWriter {
         $user_prompt = $this->build_user_prompt( $article_title, $angle, $context, $data_string );
 
         // 4. Ambil provider & model dari pengaturan
-        $provider = get_option( 'autoblog_ai_provider', 'openai' );
+        $provider = OptionCache::get( 'autoblog_ai_provider', 'openai' );
         
         // Coba ambil dari model kustom per provider
-        $custom_models = get_option( 'autoblog_custom_api_models', array() );
+        $custom_models = OptionCache::get( 'autoblog_custom_api_models', array() );
         $model = isset( $custom_models[$provider] ) ? $custom_models[$provider] : '';
         
         if ( empty( $model ) ) {
-            $model = get_option( 'autoblog_ai_model' );
+            $model = OptionCache::get( 'autoblog_ai_model' );
         }
         if ( empty( $model ) ) {
-            $model = get_option( 'autoblog_' . $provider . '_model', 'gpt-4o' );
+            $model = OptionCache::get( 'autoblog_' . $provider . '_model', 'gpt-4o' );
         }
 
         // 5. Generate via AI (temperature 0.9 untuk kreativitas tinggi)
@@ -109,7 +110,7 @@ class ArticleWriter {
         $this->last_taxonomy = $this->extract_taxonomy_json( $response_text );
 
         // 9. Proses Multi-Modal (chart + media embed) jika tidak dioverride
-        $enable_multimodal = get_option( 'autoblog_enable_charts', true );
+        $enable_multimodal = OptionCache::get( 'autoblog_enable_charts', true );
         if ( isset( $overrides['multi_modal'] ) ) {
             $enable_multimodal = (bool) $overrides['multi_modal'];
         }
@@ -187,7 +188,7 @@ class ArticleWriter {
         } else {
             // Pilih random dari daftar persona aktif
             $personas        = [];
-            $stored_personas = get_option( 'autoblog_custom_personas', array() );
+            $stored_personas = OptionCache::get( 'autoblog_custom_personas', array() );
             if ( ! empty( $stored_personas ) && is_array( $stored_personas ) ) {
                 foreach ( $stored_personas as $p ) {
                     $is_active = isset( $p['active'] ) ? $p['active'] : true;
@@ -201,7 +202,7 @@ class ArticleWriter {
             }
             $persona_key  = array_rand( $personas );
             $persona_desc = $personas[ $persona_key ];
-            $samples      = get_option( 'autoblog_personality_samples', '' );
+            $samples      = OptionCache::get( 'autoblog_personality_samples', '' );
         }
 
         $p  = "Abaikan semua pedoman gaya penulisan standar, format AI bawaan, dan struktur tata bahasa kaku Anda. ";

@@ -28,12 +28,12 @@ trait BraveDriver {
             return [];
         }
 
-        $client = new Client();
         $items  = [];
 
         try {
             Logger::log( 'Requesting Brave Search for: ' . $this->query, 'info' );
 
+            $client   = $this->get_http_client();
             $response = $client->get( 'https://api.search.brave.com/res/v1/web/search', [
                 'headers' => [
                     'Accept'               => 'application/json',

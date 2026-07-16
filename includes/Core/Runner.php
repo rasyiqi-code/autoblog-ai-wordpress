@@ -3,6 +3,7 @@
 namespace Autoblog\Core;
 
 use Autoblog\Utils\Logger;
+use Autoblog\Utils\OptionCache;
 use Autoblog\Sources\RSSSource;
 use Autoblog\Sources\WebScraperSource;
 use Autoblog\Sources\FileSource;
@@ -65,7 +66,7 @@ class Runner {
      */
     public function run_ingestion_phase( $overrides = array() ) {
         try {
-            $data_source_mode = get_option( 'autoblog_data_source_mode', 'both' );
+            $data_source_mode = OptionCache::get( 'autoblog_data_source_mode', 'both' );
             $sources = $this->get_configured_sources();
             $vector_store = new VectorStore();
             $this->stage_ingestion( $data_source_mode, $sources, $vector_store, $overrides );
@@ -98,7 +99,7 @@ class Runner {
     public function run_production_phase( $idea = null, $overrides = array() ) {
         try {
             if ( ! $idea ) {
-                $ideation_data = get_option( 'autoblog_last_ideation_data', array() );
+                $ideation_data = OptionCache::get( 'autoblog_last_ideation_data', array() );
                 if ( empty( $ideation_data ) || $ideation_data['status'] !== 'completed' ) {
                     Logger::log( 'Production: No completed ideation data found to publish.', 'warning' );
                     return;
@@ -149,12 +150,12 @@ class Runner {
 
         foreach ( $sources as $config ) {
             try {
-                if ( $config['type'] === 'file' ) continue;
+                if ( ! isset( $config['type'] ) || $config['type'] === 'file' ) continue;
 
                 $query = isset( $config['url'] ) ? $config['url'] : '';
                 
                 // Dynamic Search Research if enabled and not overridden
-                $enable_dynamic = get_option( 'autoblog_enable_dynamic_search' );
+                $enable_dynamic = OptionCache::get( 'autoblog_enable_dynamic_search' );
                 if ( isset( $overrides['dynamic_search'] ) ) {
                     $enable_dynamic = (bool) $overrides['dynamic_search'];
                 }
@@ -196,13 +197,13 @@ class Runner {
         }
 
         // Also process Knowledge Base files if any
-        $kb_files = get_option( 'autoblog_knowledge', array() );
+        $kb_files = OptionCache::get( 'autoblog_knowledge', array() );
         if ( ! empty( $kb_files ) ) {
              foreach ( $kb_files as &$kb_item ) {
                  if ( isset( $kb_item['embedded'] ) && $kb_item['embedded'] ) continue;
                  try {
-                     $fs = new FileSource();
-                     $parsed = $fs->parse_file( $kb_item['path'] );
+                     $fs = new FileSource( $kb_item['path'] );
+                     $parsed = $fs->fetch_data();
                      foreach ( $parsed as $p ) {
                          $vector_store->add_document( $p['content'], array( 'name' => $kb_item['name'] ) );
                      }
@@ -213,14 +214,14 @@ class Runner {
                      Logger::log( "KB Ingestion Error ({$kb_item['name']}): " . $e->getMessage(), 'error' );
                  }
              }
-             update_option( 'autoblog_knowledge', $kb_files );
+             OptionCache::set( 'autoblog_knowledge', $kb_files );
         }
 
         $vector_store->save();
         
         $ingestion_data['status'] = 'completed';
         $ingestion_data['count']  = $processed_count;
-        update_option( 'autoblog_last_ingestion_data', $ingestion_data );
+        OptionCache::set( 'autoblog_last_ingestion_data', $ingestion_data );
     }
 
     /**
@@ -229,7 +230,7 @@ class Runner {
     private function stage_ideation( $sources, $vector_store ) {
         Logger::log( 'Stage 2 [Ideation]: Brainstorming unique topics...', 'info' );
         
-        update_option( 'autoblog_last_ideation_data', array( 'status' => 'running', 'timestamp' => current_time('mysql') ) );
+        OptionCache::set( 'autoblog_last_ideation_data', array( 'status' => 'running', 'timestamp' => current_time('mysql') ) );
 
         $ideator = new IdeationAgent();
         $seed = 'Advanced Technology';
@@ -244,14 +245,14 @@ class Runner {
         $idea = ! empty( $ideas ) ? $ideas[0] : null;
 
         if ( $idea ) {
-            update_option( 'autoblog_last_ideation_data', array(
+            OptionCache::set( 'autoblog_last_ideation_data', array(
                 'status'    => 'completed',
                 'timestamp' => current_time('mysql'),
                 'title'     => $idea['title'],
                 'angle'     => $idea['angle']
             ));
         } else {
-            update_option( 'autoblog_last_ideation_data', array( 'status' => 'failed', 'timestamp' => current_time('mysql') ) );
+            OptionCache::set( 'autoblog_last_ideation_data', array( 'status' => 'failed', 'timestamp' => current_time('mysql') ) );
         }
 
         return $idea;
@@ -266,7 +267,7 @@ class Runner {
 
         Logger::log( "Stage 3 [Production]: Writing article for '{$topic}'", 'info' );
 
-        update_option( 'autoblog_last_production_data', array(
+        OptionCache::set( 'autoblog_last_production_data', array(
             'status'    => 'running',
             'timestamp' => current_time('mysql'),
             'topic'     => $topic
@@ -275,7 +276,7 @@ class Runner {
         $publisher = new PostManager();
         if ( $publisher->post_exists_by_title( $topic ) ) {
             Logger::log( "Production: Skipping '{$topic}' because it already exists.", 'info' );
-            update_option( 'autoblog_last_production_data', array( 'status' => 'skipped', 'topic' => $topic, 'timestamp' => current_time('mysql') ) );
+            OptionCache::set( 'autoblog_last_production_data', array( 'status' => 'skipped', 'topic' => $topic, 'timestamp' => current_time('mysql') ) );
             return;
         }
 
@@ -285,7 +286,7 @@ class Runner {
         foreach ( $chunks as $c ) { $context .= $c['text'] . "\n\n"; }
 
         // Deep Research if enabled and not overridden
-        $enable_deep = get_option( 'autoblog_enable_deep_research' );
+        $enable_deep = OptionCache::get( 'autoblog_enable_deep_research' );
         if ( isset( $overrides['deep_research'] ) ) {
             $enable_deep = (bool) $overrides['deep_research'];
         }
@@ -299,8 +300,8 @@ class Runner {
 
         // Pick an Author Persona & Style
         $author_mngr  = new AuthorManager();
-        $strategy     = get_option( 'autoblog_author_strategy', 'random' );
-        $fixed_id     = (int) get_option( 'autoblog_author_fixed_id', 0 );
+        $strategy     = OptionCache::get( 'autoblog_author_strategy', 'random' );
+        $fixed_id     = (int) OptionCache::get( 'autoblog_author_fixed_id', 0 );
         $author_id    = $author_mngr->pick_author( $strategy, $fixed_id );
         $persona_data = $author_mngr->get_author_persona_data( $author_id );
 
@@ -312,7 +313,7 @@ class Runner {
 
         if ( ! $html ) {
             Logger::log( "Runner: Gagal menulis artikel untuk topik '{$topic}'.", 'error' );
-            update_option( 'autoblog_last_production_data', array( 'status' => 'failed', 'topic' => $topic, 'timestamp' => current_time('mysql') ) );
+            OptionCache::set( 'autoblog_last_production_data', array( 'status' => 'failed', 'topic' => $topic, 'timestamp' => current_time('mysql') ) );
             return;
         }
 
@@ -320,10 +321,12 @@ class Runner {
         $img_url = $thumb->generate_thumbnail( $topic );
             
         // Bug #16 Fix: Gunakan format deterministik agar PostManager bisa menemukan post existing
-        // time() selalu unik → post tidak pernah di-update, selalu buat baru\n        $source_info = array( 'title' => $topic, 'source_url' => 'ai_modular_' . sanitize_title( $topic ) );
+        // time() selalu unik -> post tidak pernah di-update, selalu buat baru.
+        // Gunakan sanitize_title($topic) sebagai source_url yang deterministik.
+        $source_info = array( 'title' => $topic, 'source_url' => 'ai_modular_' . sanitize_title( $topic ) );
         $post_id = $publisher->create_or_update_post( $source_info, $html, $img_url, $author_id, $writer->last_taxonomy, $overrides );
         
-        update_option( 'autoblog_last_production_data', array(
+        OptionCache::set( 'autoblog_last_production_data', array(
             'status'    => 'completed',
             'timestamp' => current_time('mysql'),
             'topic'     => $topic,
@@ -335,7 +338,10 @@ class Runner {
     }
 
     private function get_configured_sources() {
-        $sources = get_option( 'autoblog_sources', array() );
-        return is_array( $sources ) ? array_filter( $sources, 'is_array' ) : array();
+        $sources = OptionCache::get( 'autoblog_sources', array() );
+        if ( ! is_array( $sources ) ) {
+            return array();
+        }
+        return array_values( array_filter( $sources, 'is_array' ) );
     }
 }

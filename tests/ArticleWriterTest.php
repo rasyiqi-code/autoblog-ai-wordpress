@@ -11,6 +11,7 @@ use Autoblog\Generators\ArticleWriter;
  * Memverifikasi pembersihan teks boilerplate, transformasi format Markdown ke HTML,
  * serta ekstraksi data taksonomi JSON dari teks output AI.
  *
+ * @group unit
  * @package Autoblog\Tests
  */
 class ArticleWriterTest extends TestCase {

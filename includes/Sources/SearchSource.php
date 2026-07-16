@@ -4,6 +4,7 @@ namespace Autoblog\Sources;
 
 use Autoblog\Interfaces\SourceInterface;
 use Autoblog\Utils\Logger;
+use Autoblog\Utils\OptionCache;
 use Autoblog\Sources\Drivers\DuckDuckGoDriver;
 use Autoblog\Sources\Drivers\SerpApiDriver;
 use Autoblog\Sources\Drivers\BraveDriver;
@@ -50,6 +51,36 @@ class SearchSource implements SourceInterface {
     /** @var string Brave Search API key */
     private $brave_key;
 
+    /** @var \GuzzleHttp\Client|null Guzzle Client untuk testing (dependency injection) */
+    private $http_client = null;
+
+    // ================================================================
+    // HTTP CLIENT GETTER/SETTER (untuk testing)
+    // ================================================================
+
+    /**
+     * Set Guzzle Client kustom (misal mock client untuk integration test).
+     *
+     * @param \GuzzleHttp\Client $client
+     */
+    public function set_http_client( \GuzzleHttp\Client $client ) {
+        $this->http_client = $client;
+    }
+
+    /**
+     * Dapatkan Guzzle Client. Jika sudah diset via set_http_client(),
+     * gunakan itu. Jika tidak, buat instance baru dengan konfigurasi $config.
+     *
+     * @param array $config
+     * @return \GuzzleHttp\Client
+     */
+    private function get_http_client( $config = [] ) {
+        if ( $this->http_client !== null ) {
+            return $this->http_client;
+        }
+        return new \GuzzleHttp\Client( $config );
+    }
+
     // ================================================================
     // CONSTRUCTOR
     // ================================================================
@@ -67,9 +98,9 @@ class SearchSource implements SourceInterface {
         $this->match_keywords    = $match_keywords;
         $this->negative_keywords = $negative_keywords;
 
-        $this->provider    = get_option( 'autoblog_search_provider', 'serpapi' );
-        $this->serpapi_key = get_option( 'autoblog_serpapi_key' );
-        $this->brave_key   = get_option( 'autoblog_brave_key' );
+        $this->provider    = OptionCache::get( 'autoblog_search_provider', 'serpapi' );
+        $this->serpapi_key = OptionCache::get( 'autoblog_serpapi_key' );
+        $this->brave_key   = OptionCache::get( 'autoblog_brave_key' );
     }
 
     // ================================================================
@@ -107,7 +138,12 @@ class SearchSource implements SourceInterface {
     // ================================================================
 
     public function validate_source() {
-        if ( $this->provider !== 'duckduckgo_free' && empty( $this->serpapi_key ) ) {
+        if ( $this->provider === 'brave' && empty( $this->brave_key ) ) {
+            Logger::log( 'Brave Search Key is missing. Search will fail.', 'error' );
+            return false;
+        }
+
+        if ( $this->provider !== 'duckduckgo_free' && $this->provider !== 'brave' && empty( $this->serpapi_key ) ) {
             Logger::log( 'SerpApi Key is missing. Search will fail.', 'error' );
             return false;
         }
@@ -153,7 +189,18 @@ class SearchSource implements SourceInterface {
     }
 
     /**
+     * Cache hasil HTTP request untuk menghindari N+1 fetch ke URL yang sama.
+     * Static cache per request — tidak persist antar request.
+     *
+     * @var array [ url => html_content ]
+     */
+    private static $http_response_cache = [];
+
+    /**
      * Ambil konten penuh artikel menggunakan Readability (via cURL).
+     *
+     * N+1 Protection: hasil HTTP di-cache per URL dalam 1 siklus request
+     * untuk menghindari fetch ulang URL yang sama dari source berbeda.
      *
      * @param string $url
      * @return string|false
@@ -163,6 +210,24 @@ class SearchSource implements SourceInterface {
             return false;
         }
 
+        // N+1 fix: cek cache dulu sebelum HTTP request
+        $cache_key = md5( $url );
+        if ( isset( self::$http_response_cache[ $cache_key ] ) ) {
+            Logger::log( "fetch_full_content: cache HIT untuk {$url}", 'debug' );
+            $cached = self::$http_response_cache[ $cache_key ];
+            if ( $cached === false ) {
+                return false;
+            }
+            // Re-parse Readability untuk konten baru (cache hanya HTML mentah)
+            try {
+                $readability = new \FiveFilters\Readability\Readability( new \FiveFilters\Readability\Configuration() );
+                $readability->parse( $cached );
+                return method_exists( $readability, 'getContent' ) ? $readability->getContent() : $cached;
+            } catch ( \Exception $e ) {
+                return false;
+            }
+        }
+
         $ch = curl_init();
         curl_setopt( $ch, \CURLOPT_URL, $url );
         curl_setopt( $ch, \CURLOPT_RETURNTRANSFER, true );
@@ -170,13 +235,10 @@ class SearchSource implements SourceInterface {
         curl_setopt( $ch, \CURLOPT_MAXREDIRS, 5 );
         curl_setopt( $ch, \CURLOPT_TIMEOUT, 20 );
         curl_setopt( $ch, \CURLOPT_CONNECTTIMEOUT, 10 );
-        // Nonaktifkan SSL verify utk outgoing request scraping ke domain publik
         curl_setopt( $ch, \CURLOPT_SSL_VERIFYPEER, false );
         curl_setopt( $ch, \CURLOPT_SSL_VERIFYHOST, 0 );
-        // Paksa IPv4 — hindari ::1 dari DNS Local by Flywheel
         curl_setopt( $ch, \CURLOPT_IPRESOLVE, \CURL_IPRESOLVE_V4 );
 
-        // Rotasi User-Agent untuk menghindari blokir sederhana
         $user_agents = [
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
             'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -196,7 +258,6 @@ class SearchSource implements SourceInterface {
             'Sec-Fetch-User: ?1',
         ]);
 
-        // Cookie jar unik per-request (Bug #11 Fix)
         $cookie_file = sys_get_temp_dir() . '/autoblog_cookie_' . uniqid() . '.txt';
         curl_setopt( $ch, CURLOPT_COOKIEJAR, $cookie_file );
         curl_setopt( $ch, CURLOPT_COOKIEFILE, $cookie_file );
@@ -209,6 +270,9 @@ class SearchSource implements SourceInterface {
             @unlink( $cookie_file );
         }
 
+        // Cache hasil HTTP (termasuk failure) untuk hindari N+1
+        self::$http_response_cache[ $cache_key ] = $html ?: false;
+
         if ( ! $html || $error ) {
             Logger::log( "cURL failed for {$url}: {$error}", 'warning' );
             return false;
@@ -217,7 +281,7 @@ class SearchSource implements SourceInterface {
         try {
             $readability = new \FiveFilters\Readability\Readability( new \FiveFilters\Readability\Configuration() );
             $readability->parse( $html );
-            return $readability->getContent();
+            return method_exists( $readability, 'getContent' ) ? $readability->getContent() : $html;
         } catch ( \Exception $e ) {
             Logger::log( "Readability failed for {$url}: " . $e->getMessage(), 'warning' );
             return false;

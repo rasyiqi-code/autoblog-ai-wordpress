@@ -4,6 +4,7 @@ namespace Autoblog\Intelligence;
 
 use Autoblog\Utils\AIClient;
 use Autoblog\Utils\Logger;
+use Autoblog\Utils\OptionCache;
 
 /**
  * Manages Vector Storage and Retrieval for RAG.
@@ -33,6 +34,19 @@ class VectorStore {
     private $memory = [];
 
     /**
+     * Maximum number of chunks to keep in the vector store.
+     * Prevents unbounded growth and O(n) search slowdown.
+     */
+    const MAX_MEMORY_CHUNKS = 10000;
+
+    /**
+     * Pre-filter threshold: hanya hitung cosine similarity untuk chunk
+     * yang memiliki kemiripan keyword dengan query.
+     * Mengurangi O(n) jadi O(m) dengan m < n.
+     */
+    const KEYWORD_FILTER_MIN_CHARS = 50;
+
+    /**
      * AI Client for generating embeddings.
      * @var AIClient
      */
@@ -42,7 +56,7 @@ class VectorStore {
         $upload_dir = wp_upload_dir();
         
         // 4. Isolasi Vector Database (Multi-Collection) berdasarkan dimensi model Provider
-        $provider = get_option( 'autoblog_embedding_provider', 'openai' );
+        $provider = OptionCache::get( 'autoblog_embedding_provider', 'openai' );
         $safe_provider = sanitize_file_name( strtolower( $provider ) );
         
         $this->store_path = $upload_dir['basedir'] . '/autoblog/vector_store_' . $safe_provider . '.json';
@@ -98,15 +112,27 @@ class VectorStore {
             return;
         }
 
-        // Simpan secara terisolasi (atomic) dengan temp file
+        // Simpan secara terisolasi (atomic) dengan temp file di direktori yang sama
         // Agar file utama tidak kosong jika proses terputus di tengah jalan
-        $temp_path = $this->store_path . '.tmp';
-        $result = file_put_contents( $temp_path, $json );
+        $store_dir = dirname( $this->store_path );
+        $temp_path = tempnam( $store_dir, 'vs_tmp_' );
+        if ( $temp_path === false ) {
+            Logger::log( 'VectorStore: Gagal membuat file temporary di: ' . $store_dir, 'error' );
+            return;
+        }
+
+        $result = file_put_contents( $temp_path, $json, LOCK_EX );
         
         if ( $result !== false ) {
-            rename( $temp_path, $this->store_path );
+            // rename() bersifat atomic pada filesystem yang sama (Linux)
+            $renamed = rename( $temp_path, $this->store_path );
+            if ( ! $renamed ) {
+                Logger::log( 'VectorStore: Gagal me-rename temp file ke: ' . $this->store_path, 'error' );
+                @unlink( $temp_path );
+            }
         } else {
             Logger::log( 'VectorStore: Gagal menulis data ke file temporary: ' . $temp_path, 'error' );
+            @unlink( $temp_path );
         }
     }
 
@@ -121,8 +147,14 @@ class VectorStore {
 
     /**
      * Add a document to the store.
-     * Chunks it, embeds it, and saves it.
+     * Chunks it, embeds it (in batch), and saves it.
      * 
+     * Batch embedding mengirim seluruh chunk dalam 1 request API
+     * untuk provider yang mendukung (OpenAI), mengurangi latency drastis.
+     *
+     * Optimasi memori: jika jumlah chunk melebihi MAX_MEMORY_CHUNKS,
+     * hapus chunk terlama (paling tidak relevan).
+     *
      * @param string $text Content to store.
      * @param string $source Source identifier (filename/url).
      */
@@ -132,40 +164,41 @@ class VectorStore {
         Logger::log("VectorStore: Processing document from $source...", 'info');
 
         // 1. Chunking (Simple Sentence/Length-based)
-        $chunks = $this->chunk_text( $text, 800 ); // ~800 chars (approx 200 tokens)
+        $chunks = $this->chunk_text( $text, 800 );
+        
+        if ( empty( $chunks ) ) return 0;
 
+        // 2. Get Configured Provider
+        $provider = OptionCache::get( 'autoblog_embedding_provider', 'openai' );
+
+        // 3. Generate Embeddings dalam BATCH
+        $batch_results = $this->ai_client->create_embeddings_batch( $chunks, $provider );
+
+        // 4. Simpan hasil ke memory
         $success_count = 0;
-        foreach ( $chunks as $chunk ) {
-            // Get Configured Provider
-            $provider = get_option( 'autoblog_embedding_provider', 'openai' );
-
-            // Sleep dynamically to avoid strict rate limits (Gemini Free Tier has ~15 RPM limit)
-            if ( strpos( $provider, 'gemini' ) !== false ) {
-                Logger::log( "VectorStore: Jeda 4 detik untuk model Gemini guna mencegah terkena Rate Limit 15 RPM...", 'debug' );
-                sleep( 4 );
-            } else {
-                usleep( 200000 ); // 0.2s pause untuk provider lain (OpenAI/Groq umumnya limit per menit jauh lebih besar)
-            }
-
-            // 2. Generate Embedding
-            $vector = $this->ai_client->create_embedding( $chunk, $provider );
-
-            if ( $vector ) {
+        foreach ( $batch_results as $result ) {
+            if ( isset( $result['vector'] ) && $result['vector'] !== false ) {
                 $this->memory[] = [
                     'id'     => uniqid('vec_'),
-                    'text'   => $chunk,
-                    'vector' => $vector,
+                    'text'   => $result['text'],
+                    'vector' => $result['vector'],
                     'source' => $source,
-                    'provider' => $provider
+                    'provider' => $provider,
                 ];
                 $success_count++;
-            } else {
-                Logger::log("Failed to embed chunk from $source using $provider.", 'warning');
             }
         }
         
+        // 5. Batasi memori: hapus chunk terlama jika melebihi batas
+        if ( count( $this->memory ) > self::MAX_MEMORY_CHUNKS ) {
+            $this->memory = array_slice( $this->memory, -self::MAX_MEMORY_CHUNKS );
+            Logger::log( "VectorStore: Memory trimmed to " . self::MAX_MEMORY_CHUNKS . " chunks (oldest removed).", 'info' );
+        }
+        
+        // 6. Save sekali untuk semua chunk
         $this->save();
-        Logger::log("VectorStore: {$success_count}/" . count($chunks) . " chunks berhasil dari $source.", 'info');
+        
+        Logger::log("VectorStore: {$success_count}/" . count($chunks) . " chunks berhasil dari $source (batch).", 'info');
 
         return $success_count;
     }
@@ -177,42 +210,98 @@ class VectorStore {
      * @param int $limit Number of chunks to return.
      * @return array Top relevant chunks.
      */
+    /**
+     * Search for relevant chunks using Cosine Similarity.
+     * 
+     * Optimasi O(n) → O(m):
+     * - Keyword pre-filter untuk mengurangi kandidat sebelum cosine similarity
+     * - Hanya hitung cosine similarity untuk chunk dengan potensi relevansi
+     * 
+     * @param string $query User query or Article Title.
+     * @param int $limit Number of chunks to return.
+     * @return array Top relevant chunks.
+     */
     public function search( $query, $limit = 3 ) {
         if ( empty( $this->memory ) ) return [];
 
-        // Get Configured Provider
-        $provider = get_option( 'autoblog_embedding_provider', 'openai' );
+        $provider = OptionCache::get( 'autoblog_embedding_provider', 'openai' );
 
         // 1. Embed Query
         $query_vector = $this->ai_client->create_embedding( $query, $provider );
         
         if ( ! $query_vector ) return [];
 
-        // 2. Calculate Similarity
+        // 2. Keyword pre-filter: ekstrak keyword dari query untuk reduksi kandidat
+        $query_keywords = array_unique( array_filter( preg_split( '/[\s,.;:!?]+/', strtolower( $query ) ),
+            function( $w ) { return strlen( $w ) > 3; }
+        ) );
+        
+        $has_keyword_filter = ! empty( $query_keywords );
+
+        // 3. Calculate Similarity (dengan keyword pre-filter)
         $scores = [];
         foreach ( $this->memory as $index => $item ) {
             if ( ! isset( $item['vector'] ) ) continue;
+            
+            // Keyword pre-filter: skip chunk yang tidak mengandung keyword query
+            if ( $has_keyword_filter && isset( $item['text'] ) ) {
+                $text_lower = strtolower( $item['text'] );
+                $has_keyword = false;
+                foreach ( $query_keywords as $kw ) {
+                    if ( strpos( $text_lower, $kw ) !== false ) {
+                        $has_keyword = true;
+                        break;
+                    }
+                }
+                if ( ! $has_keyword ) {
+                    // Beri score minimal tanpa cosine similarity untuk chunk tanpa keyword
+                    $scores[ $index ] = -1;
+                    continue;
+                }
+            }
             
             $similarity = $this->cosine_similarity( $query_vector, $item['vector'] );
             $scores[ $index ] = $similarity;
         }
 
-        // 3. Sort by Score (Desc)
+        // 4. Sort by Score (Desc)
         arsort( $scores );
 
-        // 4. Get Top K
+        // 5. Get Top K
         $results = [];
         $count = 0;
         foreach ( $scores as $index => $score ) {
             if ( $count >= $limit ) break;
             
-            // Threshold logic (optional) - e.g. score > 0.7
-            if ( $score > 0.4 ) { // somewhat relevant
+            if ( $score > 0.4 ) {
                 $match = $this->memory[ $index ];
-                unset( $match['vector'] ); // Don't return heavy vector
+                unset( $match['vector'] );
                 $match['score'] = $score;
                 $results[] = $match;
                 $count++;
+            }
+        }
+
+        // Jika hasil terlalu sedikit (keyword filter terlalu ketat), fallback tanpa filter
+        if ( $has_keyword_filter && count( $results ) < $limit ) {
+            Logger::log( "VectorStore: Keyword filter terlalu ketat, fallback tanpa filter.", 'debug' );
+            $fallback_scores = [];
+            foreach ( $this->memory as $index => $item ) {
+                if ( ! isset( $item['vector'] ) ) continue;
+                if ( isset( $scores[ $index ] ) && $scores[ $index ] >= 0 ) continue; // sudah dihitung
+                $similarity = $this->cosine_similarity( $query_vector, $item['vector'] );
+                $fallback_scores[ $index ] = $similarity;
+            }
+            arsort( $fallback_scores );
+            foreach ( $fallback_scores as $index => $score ) {
+                if ( $count >= $limit ) break;
+                if ( $score > 0.4 ) {
+                    $match = $this->memory[ $index ];
+                    unset( $match['vector'] );
+                    $match['score'] = $score;
+                    $results[] = $match;
+                    $count++;
+                }
             }
         }
 

@@ -4,6 +4,7 @@ namespace Autoblog\Utils;
 
 use GuzzleHttp\Client;
 use Autoblog\Utils\Logger;
+use Autoblog\Utils\OptionCache;
 
 /**
  * AIClient
@@ -172,7 +173,7 @@ class AIClient {
         }
 
         // 2. CROSS-PROVIDER: pindah ke provider lain (hanya jika Smart Fallback aktif)
-        if ( ! get_option( 'autoblog_enable_fallback', '0' ) ) {
+        if ( ! OptionCache::get( 'autoblog_enable_fallback', '0' ) ) {
             Logger::log( 'Smart Provider Switching (Cross-Provider) DISABLED.', 'info' );
             return false;
         }
@@ -206,7 +207,7 @@ class AIClient {
 
         if ( $target_provider ) {
             // Ambil kustom model yang disetel user untuk target provider
-            $custom_models = get_option( 'autoblog_custom_api_models', [] );
+            $custom_models = OptionCache::get( 'autoblog_custom_api_models', [] );
             $target_model  = isset( $custom_models[$target_provider] ) ? $custom_models[$target_provider] : '';
 
             // Fallback ke model dinamis pertama dari catalog
@@ -282,33 +283,26 @@ class AIClient {
                 break;
         }
 
-        // Auto-fallback dengan circuit breaker (maks 3 lompatan)
+        // Auto-fallback dengan circuit breaker (maks 3 lompatan) (Bug #9 Fix: counter-based depth tracking)
         if ( $result === false ) {
-            static $fallback_depth = [];
-            $call_id = md5( $prompt . $temperature );
+            static $fallback_depth = 0;
 
-            if ( ! isset( $fallback_depth[$call_id] ) ) {
-                $fallback_depth[$call_id] = 0;
-            }
-
-            if ( $fallback_depth[$call_id] < 3 ) {
+            if ( $fallback_depth < 3 ) {
                 $fallback_model = $this->get_fallback_model( $model, $provider );
                 if ( $fallback_model ) {
-                    $fallback_depth[$call_id]++;
-                    Logger::log( "Model [{$model}] gagal. Auto-redirect → [{$fallback_model}] (Lompatan ke-{$fallback_depth[$call_id]})...", 'warning' );
+                    $fallback_depth++;
+                    Logger::log( "Model [{$model}] gagal. Auto-redirect → [{$fallback_model}] (Lompatan ke-{$fallback_depth})...", 'warning' );
 
                     $new_result = $this->generate_text( $prompt, $fallback_model, '', $temperature, $system_prompt );
+                    $fallback_depth--;
 
                     if ( $new_result !== false ) {
-                        unset( $fallback_depth[$call_id] );
+                        return $new_result;
                     }
-                    return $new_result;
                 }
             } else {
                 Logger::log( 'CRITICAL: Maksimal rentetan Fallback tercapai (3x). Hentikan generate_text.', 'error' );
             }
-
-            unset( $fallback_depth[$call_id] );
         }
 
         return $result;

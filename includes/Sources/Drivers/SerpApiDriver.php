@@ -28,12 +28,12 @@ trait SerpApiDriver {
             return [];
         }
 
-        $client           = new Client();
         $base_url         = 'https://serpapi.com/search';
         $organic_fallback = [];
 
         // ---- Priority 1: Google AI Mode ----
         try {
+            $client   = $this->get_http_client();
             $params   = [ 'engine' => 'google_ai_mode', 'q' => $this->query, 'api_key' => $this->serpapi_key, 'gl' => 'us', 'hl' => 'en' ];
             $response = $client->get( $base_url, [ 'query' => $params, 'http_errors' => false ] );
             $json     = json_decode( $response->getBody(), true );
@@ -59,6 +59,7 @@ trait SerpApiDriver {
 
         // ---- Priority 2: Bing Copilot ----
         try {
+            $client   = $this->get_http_client();
             $params   = [ 'engine' => 'bing_copilot', 'q' => $this->query, 'api_key' => $this->serpapi_key, 'tone' => 'Balanced' ];
             $response = $client->get( $base_url, [ 'query' => $params, 'http_errors' => false ] );
             $json     = json_decode( $response->getBody(), true );
@@ -93,6 +94,7 @@ trait SerpApiDriver {
 
         // ---- Priority 3: Google Standard + AI Overview ----
         try {
+            $client   = $this->get_http_client();
             $params   = [ 'engine' => 'google', 'q' => $this->query, 'api_key' => $this->serpapi_key, 'gl' => 'us', 'hl' => 'en' ];
             $response = $client->get( $base_url, [ 'query' => $params, 'http_errors' => false ] );
             $json     = json_decode( $response->getBody(), true );

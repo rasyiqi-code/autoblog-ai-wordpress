@@ -29,6 +29,8 @@ class WebScraperSource implements SourceInterface {
 	 *
 	 * @var string
 	 */
+	private $selector;
+
     /**
      * Match Keywords.
      */
@@ -82,13 +84,13 @@ class WebScraperSource implements SourceInterface {
 				
 				$xpath = new DOMXPath( $dom );
                 
-                // Simple Selector to XPath conversion
+                // Simple Selector to XPath conversion with sanitization (Bug #4 Fix)
                 $xpath_query = "//" . $this->selector; 
                 if ( strpos($this->selector, '#') === 0 ) {
-                    $id = substr($this->selector, 1);
+                    $id = addslashes( substr($this->selector, 1) );
                     $xpath_query = "//*[@id='$id']";
                 } elseif ( strpos($this->selector, '.') === 0 ) {
-                    $class = substr($this->selector, 1);
+                    $class = addslashes( substr($this->selector, 1) );
                      $xpath_query = "//*[contains(concat(' ', normalize-space(@class), ' '), ' $class ')]";
                 }
  
@@ -132,7 +134,8 @@ class WebScraperSource implements SourceInterface {
      * Fetch using Readability (Auto-Detect Main Content).
      */
     private function fetch_with_readability() {
-        if ( ! class_exists( 'FiveFilters\Readability\Readability' ) ) {
+        $readabilityClass = 'fivefilters\\Readability\\Readability';
+        if ( ! class_exists( $readabilityClass ) ) {
              Logger::log( 'Readability library not found.', 'error' );
              return array();
         }
@@ -153,11 +156,11 @@ class WebScraperSource implements SourceInterface {
             $html = (string) $response->getBody();
             if ( empty( $html ) ) return array();
 
-            $readability = new \FiveFilters\Readability\Readability( new \FiveFilters\Readability\Configuration() );
+            $readability = new $readabilityClass( new \fivefilters\Readability\Configuration() );
             $readability->parse( $html );
             
-            $content = $readability->getContent();
-            $title = $readability->getTitle();
+            $content = method_exists( $readability, 'getContent' ) ? $readability->getContent() : '';
+            $title = method_exists( $readability, 'getTitle' ) ? $readability->getTitle() : '';
 
              // Apply Filters
              if ( ! $this->passes_filters( $title . ' ' . strip_tags($content) ) ) {

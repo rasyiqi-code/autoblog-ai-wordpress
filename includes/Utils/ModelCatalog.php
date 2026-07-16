@@ -101,14 +101,14 @@ class ModelCatalog {
      */
     public static function get_active_model( $provider ) {
         // Coba ambil dari setelan model kustom per provider
-        $custom_models = get_option( 'autoblog_custom_api_models', [] );
+        $custom_models = OptionCache::get( 'autoblog_custom_api_models', [] );
         $model = isset( $custom_models[$provider] ) ? $custom_models[$provider] : '';
         
         if ( empty( $model ) ) {
-            $model = get_option( 'autoblog_ai_model' );
+            $model = OptionCache::get( 'autoblog_ai_model' );
         }
         if ( empty( $model ) ) {
-            $model = get_option( 'autoblog_' . $provider . '_model' );
+            $model = OptionCache::get( 'autoblog_' . $provider . '_model' );
         }
         
         // Fallback terakhir: ambil model pertama dari catalog untuk provider tersebut

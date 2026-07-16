@@ -98,7 +98,7 @@ trait DuckDuckGoDriver {
         }
 
         try {
-            $client   = new \GuzzleHttp\Client( [
+            $client   = $this->get_http_client( [
                 'timeout'     => 20,
                 'http_errors' => false,
                 'verify'      => false,

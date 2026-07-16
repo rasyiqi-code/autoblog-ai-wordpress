@@ -3,6 +3,7 @@
 namespace Autoblog\Intelligence;
 
 use Autoblog\Utils\Logger;
+use Autoblog\Utils\OptionCache;
 use WP_Query;
 
 /**
@@ -22,7 +23,7 @@ class Interlinker {
      * @return array Array of ['url' => '...', 'title' => '...']
      */
     public function get_relevant_posts( $content_topic ) {
-        if ( ! get_option( 'autoblog_enable_interlinking' ) ) {
+        if ( ! OptionCache::get( 'autoblog_enable_interlinking' ) ) {
             return [];
         }
 

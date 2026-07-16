@@ -3,6 +3,7 @@
 namespace Autoblog\Publisher;
 
 use Autoblog\Utils\Logger;
+use Autoblog\Utils\OptionCache;
 
 /**
  * AuthorManager: Manages AI Author personas and mappings to WordPress users.
@@ -58,9 +59,9 @@ class AuthorManager {
                 return $fixed_id > 0 ? $fixed_id : $authors[0]['id'];
 
             case 'round_robin':
-                $last_index = (int) get_option( 'autoblog_last_author_index', 0 );
+                $last_index = (int) OptionCache::get( 'autoblog_last_author_index', 0 );
                 $next_index = ( $last_index + 1 ) % count( $authors );
-                update_option( 'autoblog_last_author_index', $next_index );
+                OptionCache::set( 'autoblog_last_author_index', $next_index );
                 return $authors[$next_index]['id'];
 
             case 'random':
@@ -80,7 +81,7 @@ class AuthorManager {
         $persona_name = get_user_meta( $user_id, '_autoblog_persona_name', true );
         $custom_samples = get_user_meta( $user_id, '_autoblog_personality_samples', true );
 
-        $all_personas = get_option( 'autoblog_custom_personas', array() );
+        $all_personas = OptionCache::get( 'autoblog_custom_personas', array() );
         $selected_persona = null;
 
         foreach ( $all_personas as $p ) {
@@ -101,7 +102,7 @@ class AuthorManager {
         return array(
             'name'    => $selected_persona['name'],
             'desc'    => $selected_persona['desc'],
-            'samples' => ! empty( $custom_samples ) ? $custom_samples : get_option( 'autoblog_personality_samples', '' ),
+            'samples' => ! empty( $custom_samples ) ? $custom_samples : OptionCache::get( 'autoblog_personality_samples', '' ),
         );
     }
 

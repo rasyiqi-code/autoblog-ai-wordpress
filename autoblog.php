@@ -14,7 +14,7 @@
  * Plugin Name:       Autoblog AI
  * Plugin URI:        https://crediblemark.com
  * Description:       An intelligent autoblog plugin that scrapes, processes, and publishes content using AI.
- * Version:           1.1.9
+ * Version:           1.2.0
  * Author:            CredibleMark
  * Author URI:        https://crediblemark.com
  * License:           GPL-2.0+

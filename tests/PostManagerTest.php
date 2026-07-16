@@ -5,6 +5,11 @@ namespace Autoblog\Tests;
 use PHPUnit\Framework\TestCase;
 use Autoblog\Publisher\PostManager;
 
+/**
+ * Unit Test untuk PostManager (Gutenberg block conversion).
+ *
+ * @group unit
+ */
 class PostManagerTest extends TestCase {
 
     public function test_simple_paragraph_conversion() {

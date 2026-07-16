@@ -1,0 +1,4 @@
+composer.json.bak
+composer.lock.bak
+.phpunit.result.cache
+coverage-report/

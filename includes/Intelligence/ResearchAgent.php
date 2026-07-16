@@ -3,6 +3,7 @@
 namespace Autoblog\Intelligence;
 
 use Autoblog\Utils\AIClient;
+use Autoblog\Utils\OptionCache;
 use Autoblog\Sources\SearchSource;
 use Autoblog\Utils\Logger;
 
@@ -29,7 +30,7 @@ class ResearchAgent {
      * @return string A comprehensive research report.
      */
     public function conduct_research( $topic ) {
-        if ( ! get_option( 'autoblog_enable_deep_research' ) ) {
+        if ( ! OptionCache::get( 'autoblog_enable_deep_research' ) ) {
             return '';
         }
 
@@ -75,7 +76,7 @@ class ResearchAgent {
         $prompt .= "Generate 2 follow-up search queries to dig deeper or verify facts.\n";
         $prompt .= "Return ONLY the 2 queries, one per line.";
 
-        $provider = get_option( 'autoblog_ai_provider', 'openai' );
+        $provider = OptionCache::get( 'autoblog_ai_provider', 'openai' );
         $model = \Autoblog\Utils\ModelCatalog::get_active_model( $provider );
         $response = $this->ai_client->generate_text( $prompt, $model, $provider ); 
         
@@ -91,7 +92,7 @@ class ResearchAgent {
         $prompt .= "Generate 3 specific search queries to find hard data, statistics, or expert opinions that would make this article authoritative. \n";
         $prompt .= "Return ONLY the 3 queries, one per line.";
 
-        $provider = get_option( 'autoblog_ai_provider', 'openai' );
+        $provider = OptionCache::get( 'autoblog_ai_provider', 'openai' );
         $model = \Autoblog\Utils\ModelCatalog::get_active_model( $provider );
         $response = $this->ai_client->generate_text( $prompt, $model, $provider );
         $lines = explode( "\n", $response );

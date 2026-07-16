@@ -408,16 +408,32 @@ class AdminAjax {
 
         if ( file_exists( $log_file ) ) {
             $max_bytes = 15360; // ~15KB terakhir
-            $size      = filesize( $log_file );
-            if ( $size > $max_bytes ) {
-                $fp          = fopen( $log_file, 'r' );
-                fseek( $fp, -$max_bytes, SEEK_END );
-                $log_content = fread( $fp, $max_bytes );
-                fclose( $fp );
-                // Potong baris pertama yang mungkin terpotong setengah
-                $log_content = substr( $log_content, strpos( $log_content, "\n" ) + 1 );
+            $size      = @filesize( $log_file );
+            if ( $size !== false && $size > $max_bytes ) {
+                $fp = @fopen( $log_file, 'r' );
+                if ( $fp ) {
+                    // Re-check size after opening to avoid race condition
+                    $actual_size = @filesize( $log_file );
+                    if ( $actual_size !== false && $actual_size > $max_bytes ) {
+                        // Gunakan offset dari posisi actual file
+                        $offset = min( $actual_size, $max_bytes );
+                        fseek( $fp, -$offset, SEEK_END );
+                        $log_content = fread( $fp, $offset );
+                        // Potong baris pertama yang mungkin terpotong setengah
+                        $first_newline = strpos( $log_content, "\n" );
+                        if ( $first_newline !== false ) {
+                            $log_content = substr( $log_content, $first_newline + 1 );
+                        }
+                    } else {
+                        $log_content = stream_get_contents( $fp );
+                    }
+                    fclose( $fp );
+                }
             } else {
-                $log_content = file_get_contents( $log_file );
+                $content = @file_get_contents( $log_file );
+                if ( $content !== false ) {
+                    $log_content = $content;
+                }
             }
         }
 
@@ -447,7 +463,7 @@ class AdminAjax {
         };
 
         wp_send_json_success( [
-            'html'     => esc_textarea( $log_content ),
+            'html'     => $log_content,
             'statuses' => [
                 'collector' => [
                     'status'    => $ingestion['status'],

@@ -3,9 +3,9 @@
 namespace Autoblog\Core;
 
 use Autoblog\Utils\Logger;
+use Autoblog\Utils\OptionCache;
 use Autoblog\Intelligence\ResearchAgent;
 use Autoblog\Generators\ArticleWriter;
-use Autoblog\Intelligence\AngleInjector;
 use WP_Query;
 
 /**
@@ -18,13 +18,32 @@ use WP_Query;
  */
 class ContentRefresher {
 
+    /** @var ResearchAgent|null */
+    private $research_agent;
+
+    /** @var ArticleWriter|null */
+    private $writer;
+
+    /**
+     * Constructor dengan optional dependency injection.
+     *
+     * Jika dependency tidak di-inject, akan dibuat instance baru (backward compatible).
+     *
+     * @param ResearchAgent|null  $research_agent
+     * @param ArticleWriter|null  $writer
+     */
+    public function __construct( $research_agent = null, $writer = null ) {
+        $this->research_agent = $research_agent ?? new ResearchAgent();
+        $this->writer         = $writer ?? new ArticleWriter();
+    }
+
     /**
      * Run the refresh process on a single old post.
      * 
      * @param bool $force Whether to bypass the global enable option.
      */
     public function refresh_old_content( $force = false ) {
-        if ( ! $force && ! get_option( 'autoblog_enable_living_content' ) ) {
+        if ( ! $force && ! OptionCache::get( 'autoblog_enable_living_content' ) ) {
             return;
         }
 
@@ -73,10 +92,10 @@ class ContentRefresher {
             Logger::log( "ContentRefresher: Refreshing Post ID {$post_id}: '{$title}'", 'info' );
 
             // 2. Research Fresh Info
-            $research_agent = new ResearchAgent();
-            // Force enable deep research for refresh to get new value
+            // Force enable deep research for refresh to get new value (Bug #8 Fix: restore filter afterward)
             add_filter( 'option_autoblog_enable_deep_research', '__return_true' );
-            $research_context = $research_agent->conduct_research( $title );
+            $research_context = $this->research_agent->conduct_research( $title );
+            remove_filter( 'option_autoblog_enable_deep_research', '__return_true' );
             
             if ( empty( $research_context ) ) {
                  Logger::log( "ContentRefresher: Research failed. Skipping update.", 'warning' );
@@ -84,18 +103,16 @@ class ContentRefresher {
             }
 
             // 3. Generate New Angle (Focus on 'Review/Update')
-            $injector = new AngleInjector();
             $angle = "Update Terbaru " . date('Y'); // Sederhana dulu
 
             // 4. Rewrite Content
-            $writer = new ArticleWriter();
             // Context includes old content summary + new research
             $full_context = "ORIGINAL CONTENT SUMMARY: " . mb_substr( strip_tags( get_the_content() ), 0, 500 ) . "\n\n";
             $full_context .= "NEW RESEARCH FINDINGS:\n" . $research_context;
             
             // Bug #10 Fix: write_article() mengharapkan $data sebagai array, bukan string $title
             $data = array( array( 'title' => $title, 'content' => $full_context, 'source_type' => 'refresh' ) );
-            $new_content_html = $writer->write_article( $data, $angle, $full_context );
+            $new_content_html = $this->writer->write_article( $data, $angle, $full_context );
 
             if ( $new_content_html ) {
                 // Add Update Notice

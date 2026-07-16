@@ -4,6 +4,7 @@ namespace Autoblog\Intelligence;
 
 use Autoblog\Utils\AIClient;
 use Autoblog\Utils\Logger;
+use Autoblog\Utils\OptionCache;
 
 /**
  * Generates unique angles/perspectives for content using AI.
@@ -58,7 +59,7 @@ class AngleInjector {
         $prompt .= "Content: \n" . $truncated_content . "\n\n";
         $prompt .= "Output ONLY the angle description.";
 
-        $provider = get_option( 'autoblog_ai_provider', 'openai' );
+        $provider = OptionCache::get( 'autoblog_ai_provider', 'openai' );
         $model = \Autoblog\Utils\ModelCatalog::get_active_model( $provider );
 
 		$angle = $this->ai_client->generate_text( $prompt, $model, $provider );

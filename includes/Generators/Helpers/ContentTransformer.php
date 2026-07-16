@@ -31,6 +31,11 @@ trait ContentTransformer {
      * @return string
      */
     private function process_chart_json( $content ) {
+        // Bug #14 Fix: Batasi panjang konten untuk cegah PCRE stack overflow dari recursive regex
+        if ( strlen( $content ) > 50000 ) {
+            Logger::log( 'ContentTransformer: Konten terlalu panjang (>50KB), lewati chart processing.', 'warning' );
+            return $content;
+        }
         $regex = '/(?:```(?:html|json)?\s*)?(\{(?:[^{}]+|(?R))*\})(?:\s*```)?/isu';
 
         if ( preg_match_all( $regex, $content, $matches, PREG_SET_ORDER ) ) {
@@ -81,6 +86,11 @@ trait ContentTransformer {
      * @return string
      */
     private function process_media_embeds( $content ) {
+        // Bug #14 Fix: Batasi panjang konten untuk cegah PCRE stack overflow
+        if ( strlen( $content ) > 50000 ) {
+            Logger::log( 'ContentTransformer: Konten terlalu panjang (>50KB), lewati media embed processing.', 'warning' );
+            return $content;
+        }
         $regex = '/(?:```(?:html|json)?\s*)?(\{(?:[^{}]+|(?R))*\})(?:\s*```)?/isu';
 
         if ( preg_match_all( $regex, $content, $matches, PREG_SET_ORDER ) ) {

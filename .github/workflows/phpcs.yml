@@ -1,0 +1,62 @@
+name: PHP CodeSniffer
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'includes/**/*.php'
+      - 'admin/**/*.php'
+      - 'autoblog.php'
+      - 'phpcs.xml.dist'
+      - 'composer.json'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'includes/**/*.php'
+      - 'admin/**/*.php'
+      - 'autoblog.php'
+      - 'phpcs.xml.dist'
+
+jobs:
+  phpcs:
+    name: PHPCS - WordPress Coding Standards
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: cs2pr
+          coverage: none
+
+      - name: 💾 Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: 📦 Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction --ignore-platform-req=php-64bit
+
+      - name: 🔍 List installed PHPCS standards
+        run: vendor/bin/phpcs -i
+
+      - name: 🧹 Run PHP CodeSniffer
+        run: vendor/bin/phpcs --report-full --report-checkstyle=phpcs-report.xml
+
+      - name: 📤 Upload PHPCS report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phpcs-report
+          path: phpcs-report.xml
+
+      - name: 📋 Annotate PR with CS2PR
+        if: github.event_name == 'pull_request' && always()
+        run: cs2pr phpcs-report.xml

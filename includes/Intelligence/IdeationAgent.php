@@ -4,6 +4,7 @@ namespace Autoblog\Intelligence;
 
 use Autoblog\Utils\AIClient;
 use Autoblog\Utils\Logger;
+use Autoblog\Utils\OptionCache;
 use Autoblog\Publisher\PostManager;
 
 /**
@@ -43,7 +44,7 @@ class IdeationAgent {
     public function brainstorm_topics( $seed, $kb_summary = '', $count = 1 ) {
         Logger::log( "IdeationAgent: Starting brainstorm for seed: '{$seed}'", 'debug' );
         
-        $used_topics = get_option( 'autoblog_used_topics', array() );
+        $used_topics = OptionCache::get( 'autoblog_used_topics', array() );
         if ( ! is_array( $used_topics ) ) $used_topics = array();
 
         $used_topics_text = "";
@@ -80,7 +81,7 @@ class IdeationAgent {
         $prompt .= "FORMAT OUTPUT: JSON valid berupa array of objects. Contoh: [{\"title\": \"...\", \"angle\": \"...\"}]\n";
         $prompt .= "Kembalikan HANYA JSON!";
 
-        $provider = get_option( 'autoblog_ai_provider', 'openai' );
+        $provider = OptionCache::get( 'autoblog_ai_provider', 'openai' );
         $model = \Autoblog\Utils\ModelCatalog::get_active_model( $provider );
         // Use higher temperature for brainstorming
         $response = $this->ai_client->generate_text( $prompt, $model, $provider, 0.85 );
@@ -105,10 +106,18 @@ class IdeationAgent {
             return array();
         }
 
-        // Deduplication against existing database
+        // Deduplication against existing database (Bug #13 Fix: cegah duplikat internal)
         $unique_ideas = array();
+        $seen_titles = array(); // Track internal dupes in this batch
         foreach ( $ideas as $idea ) {
             if ( isset( $idea['title'] ) && ! $this->post_manager->post_exists_by_title( $idea['title'] ) ) {
+                // Skip if we already added this exact title in this run
+                $title_key = mb_strtolower( trim( $idea['title'] ) );
+                if ( isset( $seen_titles[$title_key] ) ) {
+                    continue;
+                }
+                $seen_titles[$title_key] = true;
+                
                 $unique_ideas[] = $idea;
                 // Add to temporary used topics to prevent internal duplicates in this run
                 $used_topics[] = $idea['title'];
@@ -117,7 +126,7 @@ class IdeationAgent {
 
         // Update used topics log
         if ( count( $used_topics ) > 50 ) $used_topics = array_slice( $used_topics, -50 );
-        update_option( 'autoblog_used_topics', $used_topics );
+        OptionCache::set( 'autoblog_used_topics', $used_topics );
 
         return $unique_ideas;
     }
@@ -132,7 +141,7 @@ class IdeationAgent {
         }
         $prompt .= "Kembalikan HANYA kueri pencariannya saja tanpa penjelasan.";
 
-        $provider = get_option( 'autoblog_ai_provider', 'openai' );
+        $provider = OptionCache::get( 'autoblog_ai_provider', 'openai' );
         $model = \Autoblog\Utils\ModelCatalog::get_active_model( $provider );
         $query = $this->ai_client->generate_text( $prompt, $model, $provider );
         return trim( $query, " \"'" );

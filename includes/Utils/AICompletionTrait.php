@@ -35,12 +35,12 @@ trait AICompletionTrait {
         }
 
         // Ambil dari custom keys
-        $custom_keys = get_option( 'autoblog_custom_api_keys', [] );
+        $custom_keys = OptionCache::get( 'autoblog_custom_api_keys', [] );
         $raw_keys    = isset( $custom_keys[$check_id] ) ? $custom_keys[$check_id] : '';
         
         // Fallback ke option standard
         if ( empty( $raw_keys ) ) {
-            $raw_keys = get_option( "autoblog_{$legacy_option_name}_key" );
+            $raw_keys = OptionCache::get( "autoblog_{$legacy_option_name}_key" );
         }
 
         if ( empty( $raw_keys ) ) {
@@ -68,7 +68,7 @@ trait AICompletionTrait {
      */
     public function custom_provider_completion( $prompt, $model, $provider, $temperature = 0.7, $system_prompt = '' ) {
         // Ambil custom endpoint jika didefinisikan oleh user
-        $custom_endpoints = get_option( 'autoblog_custom_api_endpoints', array() );
+        $custom_endpoints = OptionCache::get( 'autoblog_custom_api_endpoints', array() );
         $api_endpoint     = isset( $custom_endpoints[$provider] ) ? trim( $custom_endpoints[$provider] ) : '';
 
         if ( empty( $api_endpoint ) ) {
@@ -271,7 +271,11 @@ trait AICompletionTrait {
         }
 
         if ( $model === 'auto' || empty( $model ) ) {
-            $model = 'gemini-3.1-pro';
+            // Coba ambil model aktif dari catalog, fallback ke model yang dikenal valid
+            $model = \Autoblog\Utils\ModelCatalog::get_active_model( 'gemini' );
+            if ( empty( $model ) ) {
+                $model = 'gemini-2.0-flash-lite';
+            }
         }
 
         $version = 'v1beta';
@@ -286,7 +290,7 @@ trait AICompletionTrait {
         }
 
         // Tambahkan Search Grounding jika diaktifkan
-        if ( get_option( 'autoblog_gemini_grounding', '0' ) === '1' ) {
+        if ( OptionCache::get( 'autoblog_gemini_grounding', '0' ) === '1' ) {
             $postData['tools'] = [ [ 'google_search' => (object)[] ] ];
             Logger::log( "Gemini ({$version}): Google Search Grounding ENABLED.", 'debug' );
         }

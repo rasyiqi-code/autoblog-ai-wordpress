@@ -8,6 +8,11 @@ namespace Autoblog\Tests;
 use PHPUnit\Framework\TestCase;
 use Autoblog\Intelligence\VectorStore;
 
+/**
+ * Unit Test untuk VectorStore::get_recent_topics().
+ *
+ * @group unit
+ */
 class VectorStoreTopicsTest extends TestCase {
 
     /**

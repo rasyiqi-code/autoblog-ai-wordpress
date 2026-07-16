@@ -50,8 +50,9 @@ class DataSizer {
     public function sort( $items ) {
         
         usort( $items, function( $a, $b ) {
-            $date_a = isset( $a['pubDate'] ) ? strtotime( $a['pubDate'] ) : 0;
-            $date_b = isset( $b['pubDate'] ) ? strtotime( $b['pubDate'] ) : 0;
+            // Bug #11 Fix: strtotime() return false untuk tanggal invalid, treat sebagai 0
+            $date_a = isset( $a['pubDate'] ) ? (int) strtotime( $a['pubDate'] ) : 0;
+            $date_b = isset( $b['pubDate'] ) ? (int) strtotime( $b['pubDate'] ) : 0;
 
             if ( $date_a == $date_b ) {
                 return 0;
